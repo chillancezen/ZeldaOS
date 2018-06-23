@@ -7,18 +7,18 @@ inline uint8_t
 inb(uint16_t portid)
 {
     uint8_t ret;
-    asm volatile("inb %%dx;"
+    asm volatile("inb %1, %0;"
         :"=a"(ret)
-        :"d"(portid));
+        :"Nd"(portid));
     return ret;
 }
 
 inline
 void outb(uint16_t portid, uint8_t val)
 {
-    asm volatile("outb %%dx;"
+    asm volatile("outb %%al, %%dx"
         :
-        :"a"(val), "d"(portid));
+        :"a"(val), "Nd"(portid));
 }
 inline void outb_slow(uint16_t portid, uint8_t val)
 {

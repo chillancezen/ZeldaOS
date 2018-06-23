@@ -6,16 +6,19 @@
 #include <x86/include/gdt.h>
 #include <x86/include/interrupt.h>
 #include <x86/include/ioport.h>
+#include <x86/include/timer.h>
 
 void kernel_main(void * multiboot, void * magicnum)
 {
-    int a = 0;
     printk_init();
     multiboot = magicnum;
     magicnum = multiboot;
     gdt_init();
     idt_init();
+    pit_init();
     __asm__ volatile("sti;");
-    
-    printk("magic:%x\n", a / a);
+#if 0
+    asm ("int $0x80");
+    asm ("int $0x81");
+#endif
 }

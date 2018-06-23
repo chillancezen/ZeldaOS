@@ -19,7 +19,7 @@ typedef unsigned long long uint64_t;
 #include <stdint.h>
 #endif
 
-
+#define NULL ((void *)0)
 
 #define asm __asm__
 #endif

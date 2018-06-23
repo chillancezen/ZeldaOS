@@ -33,6 +33,8 @@ struct idt_pointer {
     uint32_t base;
 }__attribute__((packed));
 
+typedef void int_handler(struct interrup_argument *);
+
 #define PIC_MASTER_COMMAND_PORT 0x20
 #define PIC_MASTER_DATA_PORT 0x21
 #define PIC_SLAVE_COMMAND_PORT 0xa0

@@ -17,6 +17,12 @@ void printk(const char * format, ...);
     printk("[error] "); \
     printk(format, ##__VA_ARGS__); \
 }
+
+#define LOG_WARN(format, ...) {\
+    printk("[warn] "); \
+    printk(format, ##__VA_ARGS__); \
+}
+
 #define ASSERT(cond) {\
     if (!(cond)){ \
         printk("[assert] %s failed\n", #cond); \
