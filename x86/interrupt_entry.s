@@ -17,12 +17,13 @@ per_vector_entry:
     pop %ecx
     pop %eax
     add $8, %esp # skip interrup vector number and errorcode
+    sti
     iret
 
 .macro DEF_INT_ENTRY_WITH_ERRORCODE vectoor
 .global int\vectoor
 int\vectoor:
-    #cli
+    cli
     push $\vectoor
     jmp per_vector_entry
 .endm
@@ -30,7 +31,7 @@ int\vectoor:
 .macro DEF_INT_ENTRY_WITHOUT_ERRORCODE vectoor
 .global int\vectoor
 int\vectoor:
-    #cli
+    cli
     push $0
     push $\vectoor
     jmp per_vector_entry

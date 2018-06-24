@@ -20,6 +20,6 @@ typedef unsigned long long uint64_t;
 #endif
 
 #define NULL ((void *)0)
-
+#define __used __attribute__((unused))
 #define asm __asm__
 #endif

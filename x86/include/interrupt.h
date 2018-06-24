@@ -35,6 +35,8 @@ struct idt_pointer {
 
 typedef void int_handler(struct interrup_argument *);
 
+void register_interrupt_handler(int vector_number, int_handler * handler);
+
 #define PIC_MASTER_COMMAND_PORT 0x20
 #define PIC_MASTER_DATA_PORT 0x21
 #define PIC_SLAVE_COMMAND_PORT 0xa0

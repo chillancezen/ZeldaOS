@@ -13,6 +13,14 @@ struct interrupt_gate_entry IDT[IDT_SIZE] __attribute__((aligned(8)));
 //I.E. one device exclusively take one vector number.
 int_handler *  handlers[IDT_SIZE];
 
+void
+register_interrupt_handler(int vector_number, int_handler * handler)
+{
+    LOG_INFO("register interrupt handler:%d %x\n",
+        vector_number,
+        handler);
+    handlers[vector_number] =  handler;
+}
 static void
 set_interrupt_gate(int vector_number, void (*entry)(void))
 {

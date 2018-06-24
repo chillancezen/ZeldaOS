@@ -24,7 +24,6 @@ loader:
     call kernel_main
 
 _stop:
-    cli
     hlt
     jmp _stop
 
