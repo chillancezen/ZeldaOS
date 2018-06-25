@@ -14,10 +14,14 @@ struct interrupt_gate_entry IDT[IDT_SIZE] __attribute__((aligned(8)));
 int_handler *  handlers[IDT_SIZE];
 
 void
-register_interrupt_handler(int vector_number, int_handler * handler)
+register_interrupt_handler(
+    int vector_number,
+    int_handler * handler,
+    char * description)
 {
-    LOG_INFO("register interrupt handler:%d %x\n",
+    LOG_INFO("register interrupt handler:(%d, %s[0x%x])\n",
         vector_number,
+        description,
         handler);
     handlers[vector_number] =  handler;
 }
