@@ -8,9 +8,17 @@
 
 #define KEYBOARD_INTERRUPT_VECTOR (0x20 + 1)
 
+void __switch_led(uint8_t mask)
+{
+    outb(KEYBOARD_COMMAND_PORT, 0xed);
+    __asm__ volatile("pause;");
+    outb(KEYBOARD_COMMAND_PORT, mask);
+}
+
 void keyboard_interrupt_handler(struct interrup_argument * parg __used)
 {
-    printk("keyboard interrupted\n");    
+    uint8_t scancode = inb(0x60);
+    printk("keyboard interrupted:%x\n", scancode); 
 }
 
 
