@@ -3,7 +3,7 @@ ASMPARAMS = -f elf32
 ASPARAMS = --32
 LDPARAMS = -melf_i386 -Map=Zelda.map
 
-DIRS = x86 kernel lib 
+DIRS = x86 kernel lib device 
 KERNEL_IMAGE = Zelda.bin
 OS_PACKAGE = Zelda.iso
 

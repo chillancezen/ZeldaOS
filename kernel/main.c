@@ -7,7 +7,7 @@
 #include <x86/include/interrupt.h>
 #include <x86/include/ioport.h>
 #include <x86/include/timer.h>
-#include <x86/include/keyboard.h>
+#include <device/include/keyboard.h>
 
 void kernel_main(void * multiboot __used, void * magicnum __used)
 {
