@@ -7,15 +7,26 @@
  */
 
 #include <device/include/keyboard.h>
+#include <device/include/keyboard_scancode.h>
 #include <x86/include/interrupt.h>
 #include <kernel/include/printk.h>
 #include <x86/include/ioport.h>
+#include <lib/include/string.h>
+#include <lib/include/errorcode.h>
 
 #define KEYBOARD_INTERRUPT_VECTOR (0x20 + 1)
+#define KEY_SPACE_SIZE 256
+/*
+ * The global shortcut space size
+ */
+
+#define MAX_SHORTCUT_SIZE 256
 
 static uint8_t key_state = 0;
-static uint8_t keycode[sizeof(uint8_t)]; //scan code to ascii
-static uint8_t keyshift[sizeof(uint8_t)]; //ascii conversion table
+static uint8_t keycode[KEY_SPACE_SIZE]; //scan code to ascii
+static uint8_t keyshift[KEY_SPACE_SIZE]; //ascii conversion table
+static struct keyboard_shortcut_entry shortcut_entries[MAX_SHORTCUT_SIZE];
+static int shortcut_entry_ptr = 0;
 
 void __switch_led(uint8_t mask)
 {
@@ -70,7 +81,6 @@ uint8_t process_scancode(uint8_t scancode)
                 key_state = (key_state & KEY_STATE_CAPS_LOCKED) ?
                     key_state & ~KEY_STATE_CAPS_LOCKED:
                     key_state | KEY_STATE_CAPS_LOCKED;
-                __switch_led(0xf);
                 break;
             default:
                 break;
@@ -97,6 +107,7 @@ uint8_t process_scancode(uint8_t scancode)
 
 uint8_t to_ascii(uint8_t scancode, uint8_t keystate)
 {
+
     uint8_t __ascii_code = keycode[scancode];
     if (__ascii_code == 0xff)
         return __ascii_code;
@@ -114,27 +125,83 @@ uint8_t to_ascii(uint8_t scancode, uint8_t keystate)
     return __ascii_code;
 }
 
+static void
+hook_scancode(uint8_t scancode, uint8_t keystate)
+{
+    int idx = 0;
+    for (idx = 0; idx < shortcut_entry_ptr; idx++) {
+        if (shortcut_entries[idx].scancode == scancode && 
+            shortcut_entries[idx].keystate == keystate)
+            break;
+    }
+    if(idx < shortcut_entry_ptr && shortcut_entries[idx].handler)
+        shortcut_entries[idx].handler(shortcut_entries[idx].arg);
+}
+
 void keyboard_interrupt_handler(struct interrup_argument * parg __used)
 {
     uint8_t scancode = retrieve_scancode();
+    uint8_t asciicode;
     scancode = process_scancode(scancode);
-    if (key_state & KEY_STATE_PRESSED)
-        printk("%c", to_ascii(scancode, key_state)); 
+    hook_scancode(scancode, key_state);
+    asciicode = to_ascii(scancode, key_state);
+
+    if (key_state & KEY_STATE_PRESSED && asciicode != 0xff){
+        //printk("%c", asciicode); 
+    }
 }
 
+int32_t register_shortcut_entry(uint8_t scancode,
+    uint8_t keystate,
+    void (*handler)(void*),
+    void * arg)
+{
+    //Enforce key is pressed
+    keystate |= KEY_STATE_PRESSED;
+    int idx = 0;
+    for (idx = 0; idx < shortcut_entry_ptr; idx++) {
+        if(shortcut_entries[idx].scancode == scancode &&
+            shortcut_entries[idx].keystate == keystate)
+            break;
+    }
+    if (idx < shortcut_entry_ptr){
+        shortcut_entries[idx].handler = handler;
+        shortcut_entries[idx].arg = arg;
+        return OK;
+    }
+    if (shortcut_entry_ptr == MAX_SHORTCUT_SIZE)
+        return -ERR_OUT_OF_RESOURCE;
+    shortcut_entries[shortcut_entry_ptr].scancode = scancode;
+    shortcut_entries[shortcut_entry_ptr].keystate = keystate;
+    shortcut_entries[shortcut_entry_ptr].handler = handler;
+    shortcut_entries[shortcut_entry_ptr].arg = arg;
+    shortcut_entry_ptr++;
+    return OK;
+}
+
+void CTRL_ALT_DELETE(void * arg __used)
+{
+    printk("CTRL_ALT_DELETE\n");
+}
 
 void
 keyboard_init(void)
 {
     int idx = 0;
-    for (; idx < (int)sizeof(uint8_t); idx++) {
+    for (; idx < KEY_SPACE_SIZE; idx++) {
         keycode[idx] = 0xff;
         keyshift[idx] = 0xff;
     }
+    memset(shortcut_entries, 0x0, sizeof(shortcut_entries));
+    
+    register_shortcut_entry(SCANCODE_DELETE,
+        KEY_STATE_CONTROLL_PRESSED|KEY_STATE_ALT_PRESSED,
+        CTRL_ALT_DELETE,
+        NULL);
     /*
      * please refer to https://en.wikipedia.org/wiki/ASCII
      */
-    keycode[0x01] = '\x1b'; //escape key
+    //keycode[0x01] = '\x1b'; //escape key
     keycode[0x02] = '1';
     keycode[0x03] = '2';
     keycode[0x04] = '3';
@@ -147,8 +214,8 @@ keyboard_init(void)
     keycode[0x0b] = '0';
     keycode[0x0c] = '-';
     keycode[0x0d] = '=';
-    keycode[0x0e] = '\x7f'; //backspace&delete key
-    keycode[0x0f] = '\t'; //horizontal TAB key
+    //keycode[0x0e] = '\x7f'; //backspace&delete key
+    //keycode[0x0f] = '\t'; //horizontal TAB key
     keycode[0x10] = 'q';
     keycode[0x11] = 'w';
     keycode[0x12] = 'e';

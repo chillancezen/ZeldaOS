@@ -31,4 +31,17 @@ void keyboard_init(void);
 #define SCANCODE_RSHIFT 0x36
 #define SCANCODE_ALT 0x38
 #define SCANCODE_CAPS 0x3a
+
+struct keyboard_shortcut_entry {
+    uint8_t scancode;
+    uint8_t keystate;
+    void (*handler)(void *);
+    void * arg;
+};
+
+int32_t register_shortcut_entry(uint8_t scancode,
+    uint8_t keystate,
+    void (*handler)(void*),
+    void * arg);
+
 #endif
