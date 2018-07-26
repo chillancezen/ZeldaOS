@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2018 Jie Zheng
  */
-#include <memory/include/multiboot_mmap.h>
+#include <memory/include/physical_memory.h>
 #include <kernel/include/printk.h>
 
 #define LOW_MEMORY_DELIMITER 0x100000
@@ -9,6 +9,10 @@
 
 __used static uint32_t physical_memory_address = 0; //always count lower 1MB memory in
 __used static uint32_t physical_memory_length = 0;
+
+int32_t text_size_aligned = 0;
+int32_t data_size_aligned = 0;
+int32_t bss_size_aligned = 0;
 
 void probe_physical_mmeory(struct multiboot_info * boot_info)
 {
@@ -29,4 +33,24 @@ void probe_physical_mmeory(struct multiboot_info * boot_info)
     LOG_INFO("Set physical memory boundary:0x%x(%d MiB)\n",
         physical_memory_length,
         physical_memory_length/1024/1024);
+    text_size_aligned = &_kernel_text_end - &_kernel_text_start;
+    data_size_aligned = &_kernel_data_end - &_kernel_data_start;
+    bss_size_aligned = &_kernel_bss_end - &_kernel_bss_start;
+    
+    text_size_aligned = (int32_t)page_align_addr(text_size_aligned);
+    data_size_aligned = (int32_t)page_align_addr(data_size_aligned);
+    bss_size_aligned = (int32_t)page_align_addr(bss_size_aligned);
+
+    LOG_INFO("kernel text starts at 0x%x\n", &_kernel_text_start);
+    LOG_INFO("kernel text ends at 0x%x (aligned size:%d)\n",
+        &_kernel_text_end,
+        text_size_aligned);
+    LOG_INFO("kernel data starts at 0x%x\n", &_kernel_data_start);
+    LOG_INFO("kernel data ends at 0x%x (aligned size:%d)\n",
+        &_kernel_data_end,
+        data_size_aligned);
+    LOG_INFO("kernel bss starts at 0x%x\n", &_kernel_bss_start);
+    LOG_INFO("kernel bss ends at 0x%x (aligned size:%d)\n",
+        &_kernel_bss_end,
+        bss_size_aligned);
 }

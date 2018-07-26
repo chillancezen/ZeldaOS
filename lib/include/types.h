@@ -22,4 +22,16 @@ typedef unsigned long long uint64_t;
 #define NULL ((void *)0)
 #define __used __attribute__((unused))
 #define asm __asm__
+
+#define PAGE_SIZE 4096
+#define PAGE_MASK (PAGE_SIZE - 1)
+
+static inline uint32_t
+page_align_addr(uint32_t addr)
+{
+    return (addr & PAGE_MASK) ?
+        PAGE_SIZE + (uint32_t)(addr & (~PAGE_MASK)) :
+        addr;
+}
+
 #endif

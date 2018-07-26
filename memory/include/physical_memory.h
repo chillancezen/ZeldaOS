@@ -2,8 +2,8 @@
  * Copyright (c) 2018 Jie Zheng
  */
 
-#ifndef _MULTIBOOT_MMAP_H
-#define _MULTIBOOT_MMAP_H
+#ifndef _PHYSICAL_MEMORY_H
+#define _PHYSICAL_MEMORY_H
 #include <lib/include/types.h>
 
 /*
@@ -39,6 +39,14 @@ struct multiboot_info {
     uint32_t mmap_length;
     uint32_t mmap_addr;
 };
+
 void probe_physical_mmeory(struct multiboot_info * boot_info);
+
+extern uint8_t * _kernel_text_start;
+extern uint8_t * _kernel_text_end;
+extern uint8_t * _kernel_data_start;
+extern uint8_t * _kernel_data_end;
+extern uint8_t * _kernel_bss_start;
+extern uint8_t * _kernel_bss_end;
 
 #endif
