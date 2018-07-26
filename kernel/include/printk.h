@@ -25,7 +25,7 @@ void printk(const char * format, ...);
 
 #define ASSERT(cond) {\
     if (!(cond)){ \
-        printk("[assert] %s failed\n", #cond); \
+        printk("[assert] %s.%d %s failed\n", __FILE__, __LINE__, #cond); \
     }\
 }
 #define VAR64(val)  (uint32_t)((val) >> 32), (uint32_t)(val)

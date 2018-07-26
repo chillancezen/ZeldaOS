@@ -41,6 +41,8 @@ struct multiboot_info {
 };
 
 void probe_physical_mmeory(struct multiboot_info * boot_info);
+__attribute__((always_inline)) inline uint32_t get_system_memory_boundary(void);
+__attribute__((always_inline)) inline uint32_t get_system_memory_start(void);
 
 extern uint8_t * _kernel_text_start;
 extern uint8_t * _kernel_text_end;

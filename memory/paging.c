@@ -7,6 +7,7 @@
 
 
 static uint8_t free_page_bitmap[FREE_PAGE_BITMAP_SIZE];
+static uint32_t * kernel_page_directory;
 
 
 /*
@@ -57,10 +58,144 @@ create_pde32(uint32_t write_permission,
     pde.pt_frame = pt_frame >> 12;
     return PTE32_TO_DWORD(&pde);
 }
+/*
+ * map phy_addr to virt_addr in kernel linear address space
+ * if page table is not present for a page directory entry
+ * allocate one page from physical page inventory
+ */
+void
+kernel_map_page(uint32_t virt_addr,
+    uint32_t phy_addr,
+    uint32_t write_permission)
+{
+    uint32_t page_table = 0;
+    uint32_t * page_table_ptr;
+    uint32_t pd_index = (virt_addr >> 22) & 0x3ff;
+    uint32_t pt_index = (virt_addr >> 12) & 0x3ff;
+    struct pde32 * pde = PDE32_PTR(&kernel_page_directory[pd_index]);
+    struct pte32 * pte;
+    if(!pde->present) {
+        page_table = get_page();
+        ASSERT(page_table);
+        kernel_page_directory[pd_index] = create_pde32(
+            PAGE_PERMISSION_READ_WRITE,
+            PAGE_PERMISSION_SUPERVISOR,
+            PAGE_WRITEBACK,
+            PAGE_CACHE_ENABLED,
+            page_table);
+        LOG_INFO("allocate page table for page directory index:%x\n", pd_index);
+        pde = PDE32_PTR(&kernel_page_directory[pd_index]);
+    }
+    ASSERT(pde->present);
+    page_table_ptr = (uint32_t *)(pde->pt_frame << 12);
+    page_table_ptr[pt_index] = create_pte32(write_permission,
+        PAGE_PERMISSION_SUPERVISOR,
+        PAGE_WRITEBACK,
+        PAGE_CACHE_ENABLED,
+        phy_addr);
+    pte = PTE32_PTR(&page_table_ptr[pt_index]);
+    ASSERT(pte->present);
+    //LOG_INFO("map %x to %x\n", phy_addr, virt_addr);
+}
+/*
+ * allocate physically continuous pages
+ * return the address of the 1st page
+ */
+uint32_t
+get_pages(int nr_pages)
+{
+    //addr is page aligned
+    uint32_t addr = get_system_memory_start();
+    uint32_t boundary = get_system_memory_boundary();
+    int idx = 0;
+    int nstep = 1;
+    int match = 0;
+    ASSERT(!(addr & PAGE_MASK));
+    for (; addr < boundary; addr += PAGE_SIZE * nstep) {
+        if ((addr + PAGE_SIZE * nr_pages) >= boundary)
+            break;
+        for(idx = 0; idx < nr_pages; idx++){
+            if (!IS_PAGE_FREE(addr + idx * PAGE_SIZE))
+                break;
+        }
+        if (idx == nr_pages) {
+            match = 1;
+            break;
+        }
+        nstep = idx + 1;
+    }
+    if (match) {
+        for (idx = 0; idx < nr_pages; idx++) {
+            ASSERT(IS_PAGE_FREE(addr + idx * PAGE_SIZE));
+            MARK_PAGE_AS_OCCUPIED(addr + idx * PAGE_SIZE);
+            ASSERT(!IS_PAGE_FREE(addr + idx * PAGE_SIZE));
+        }
+        return addr;
+    }
+    return 0;
+}
+
+uint32_t
+get_page(void)
+{
+    return get_pages(1);
+}
+
+void
+free_pages(uint32_t pg_addr, int nr_pages)
+{
+    int idx = 0;
+    for(; idx < nr_pages; idx++){
+        MAKR_PAGE_AS_FREE(pg_addr + PAGE_SIZE * idx);
+    }
+}
+
+void
+free_page(uint32_t pg_addr)
+{
+    free_pages(pg_addr, 1);
+}
 
 void
 paging_init(void)
 {
+    uint32_t phy_addr = 0;
+    uint32_t frame_addr = 0;
+    uint32_t sys_mem_start = get_system_memory_start();
     memset(free_page_bitmap, 0x0, sizeof(free_page_bitmap));
-    printk("entry:%x\n", create_pde32(1,1,0,1,0x1234000));
+    /*
+     * Mark pages whose address is lower than the _kernel_bss_end as occupied
+     */
+    for (frame_addr = 0;
+        frame_addr < (uint32_t)&_kernel_bss_end;
+        frame_addr += PAGE_SIZE) {
+        MARK_PAGE_AS_OCCUPIED(frame_addr);
+        ASSERT(!IS_PAGE_FREE(frame_addr));
+    }
+    /*
+     * Allocate the kernel page directory
+     * */
+    kernel_page_directory = (uint32_t *)get_page();
+    memset(kernel_page_directory, 0x0, PAGE_SIZE);
+    LOG_INFO("kernel page directory address: 0x%x\n", kernel_page_directory);
+    /*
+     * Map all the pages before the returned address of 
+     * get_system_memory_start()
+     */
+    for(phy_addr = 0; phy_addr < sys_mem_start; phy_addr += PAGE_SIZE) {
+        kernel_map_page(phy_addr, phy_addr,
+            (phy_addr >= (uint32_t)&_kernel_text_start &&
+            phy_addr < (uint32_t)&_kernel_data_start) ?
+            PAGE_PERMISSION_READ_ONLY :
+            PAGE_PERMISSION_READ_WRITE);
+    }
+    /*
+     * Enable paging
+     */
+    asm volatile("movl %%eax, %%cr3;"
+        "movl %%cr0, %%eax;"
+        "or $0x80010001, %%eax;"
+        "movl %%eax, %%cr0;"
+        :
+        :"a"((uint32_t)kernel_page_directory));
 }

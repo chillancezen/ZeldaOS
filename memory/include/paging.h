@@ -38,6 +38,21 @@ struct pte32 {
     uint32_t pg_frame:20;
 }__attribute__((packed));
 
+uint32_t
+create_pte32(uint32_t write_permission,
+    uint32_t supervisor_permission,
+    uint32_t page_writethrough,
+    uint32_t page_cachedisable,
+    uint32_t pg_frame);
+
+uint32_t
+create_pde32(uint32_t write_permission,
+    uint32_t supervisor_permission,
+    uint32_t page_writethrough,
+    uint32_t page_cachedisable,
+    uint32_t pt_frame);
+
+
 #define PDE32_TO_DWORD(entry) (*(uint32_t*)(entry))
 #define PTE32_TO_DWORD(entry) PDE32_TO_DWORD(entry)
 
@@ -49,6 +64,8 @@ struct pte32 {
 
 #define AT_BYTE(fn) ((fn) >> 3)
 #define AT_BIT(fn) ((fn) & 0x7)
+
+#define INVALID_PAGE 0xffffffff
 
 #define IS_PAGE_FREE(pg_fn) ({\
     uint32_t _byte_index = AT_BYTE((pg_fn)); \
@@ -63,21 +80,29 @@ struct pte32 {
     _mask = ~_mask; \
     free_page_bitmap[_byte_index] &= _mask; \
 }
+
 #define MARK_PAGE_AS_OCCUPIED(pg_fn) { \
     uint32_t _byte_index = AT_BYTE((pg_fn)); \
     uint8_t _bit_index = AT_BIT((pg_fn)); \
     uint8_t _mask = 1 << _bit_index; \
     free_page_bitmap[_byte_index] |= _mask; \
 }
-#define SEARCH_FREE_PAGE(begin_index) ({\
-    int32_t _idx = 0; \
-    int32_t _target = -1; \
-    for (_idx = (begin_index); _idx < FREE_PAGE_BITMAP_SIZE << 3; _idx++) { \
-        if (IS_PAGE_FREE(_idx)) { \
-            _target = _idx; \
+
+/*
+ * deprecated macro to search free pages, as it only can search one free page
+ * every time
+ */
+#define SEARCH_FREE_PAGE(start_addr, mem_boundary) ({\
+    uint32_t _addr = (uint32_t)(start_addr); \
+    uint32_t _target = INVALID_PAGE; \
+    for (; _addr < (uint32_t)(mem_boundary); _addr += PAGE_SIZE) { \
+        if (IS_PAGE_FREE(_addr)) { \
+            _target = _addr; \
             break; \
         } \
     } \
+    if (_target != INVALID_PAGE) \
+        _target = (uint32_t)(_target & (~PAGE_MASK)); \
     _target; \
 })
 
@@ -95,5 +120,10 @@ struct pte32 {
 #define PAGE_CACHE_DISABLED 0x1
 #define PAGE_CACHE_ENABLED 0x0
 
+uint32_t get_pages(int nr_pages);
+uint32_t get_page(void);
+void free_pages(uint32_t pg_addr, int nr_pages);
+void free_page(uint32_t pg_addr);
 void paging_init(void);
+
 #endif

@@ -9,11 +9,24 @@
 
 __used static uint32_t physical_memory_address = 0; //always count lower 1MB memory in
 __used static uint32_t physical_memory_length = 0;
+__used static uint32_t system_memory_start = 0;
 
 int32_t text_size_aligned = 0;
 int32_t data_size_aligned = 0;
 int32_t bss_size_aligned = 0;
 
+__attribute__((always_inline)) inline
+uint32_t get_system_memory_boundary(void)
+{
+        return physical_memory_length;
+}
+
+__attribute__((always_inline)) inline
+uint32_t get_system_memory_start(void)
+{
+    uint32_t _bss_end = (uint32_t)&_kernel_bss_end;
+    return (uint32_t)page_round_addr(_bss_end);
+}
 void probe_physical_mmeory(struct multiboot_info * boot_info)
 {
     int idx = 0;
