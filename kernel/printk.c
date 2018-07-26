@@ -155,11 +155,12 @@ void printk(const char * format, ...)
 void
 dump_registers(void)
 {
-    uint32_t CR0 = 0;
+    uint32_t CR0 = 0;// controll register 0
     uint32_t CS = 0;
     uint32_t DS = 0;
     uint32_t SS = 0;
     uint32_t ES = 0;
+    uint16_t TR = 0; // Task Register
     __asm__ volatile("mov %%cs, %%dx;"
         "mov %%dx, %[CS];"
         "mov %%ds, %%dx;"
@@ -174,5 +175,9 @@ dump_registers(void)
         [CR0]"=m"(CR0)
         :
         :"%edx");
-    LOG_INFO("cr0:%x cs:%x ds:%x ss:%x es:%x\n",CR0, CS, DS, SS, ES);
+    __asm__ volatile("str %0;"
+        :"=m"(TR)
+        :
+        :"memory");
+    LOG_INFO("tr:%x,cr0:%x cs:%x ds:%x ss:%x es:%x\n", TR, CR0, CS, DS, SS, ES);
 }

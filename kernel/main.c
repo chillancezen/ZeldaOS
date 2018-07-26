@@ -17,4 +17,9 @@ void kernel_main(void * multiboot __used, void * magicnum __used)
     pit_init();
     keyboard_init();
     sti();
+
+    //enter static tss0
+    asm volatile("jmpl %0, $0x0;"
+        :
+        :"i"(TSS0_SELECTOR));
 }
