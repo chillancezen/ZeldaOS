@@ -9,6 +9,7 @@
 #include <x86/include/timer.h>
 #include <device/include/keyboard.h>
 #include <memory/include/physical_memory.h>
+#include <memory/include/paging.h>
 
 void kernel_main(struct multiboot_info * boot_info __used, void * magicnum __used)
 {
@@ -18,8 +19,8 @@ void kernel_main(struct multiboot_info * boot_info __used, void * magicnum __use
     pit_init();
     keyboard_init();
     probe_physical_mmeory(boot_info);
+    paging_init();
     sti();
-    printk("_kernel start:%x\n", _kernel_text_start);
 #if 0
     //enter static tss0
     asm volatile("jmpl %0, $0x0;"
