@@ -8,7 +8,7 @@ per_vector_entry:
     push %eax
     push %ecx
     push %edx
-    push %ds  # to now, the ESP contains the address of the interrup_argument
+    push %ds  # to now, the ESP contains the address of the interrupt_argument
     push %esp # push it as arguments
     call interrupt_handler
     pop %eax  #pop the argument
@@ -17,7 +17,7 @@ per_vector_entry:
     pop %ecx
     pop %eax
     add $8, %esp # skip interrup vector number and errorcode
-    sti
+    #sti
     iret
 
 .macro DEF_INT_ENTRY_WITH_ERRORCODE vectoor

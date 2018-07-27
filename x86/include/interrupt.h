@@ -6,7 +6,7 @@
 #include <lib/include/types.h>
 
 
-struct interrup_argument {
+struct interrupt_argument {
     uint32_t ds;
     uint32_t edx;
     uint32_t ecx;
@@ -33,7 +33,7 @@ struct idt_pointer {
     uint32_t base;
 }__attribute__((packed));
 
-typedef void int_handler(struct interrup_argument *);
+typedef void int_handler(struct interrupt_argument *);
 
 void register_interrupt_handler(int vector_number,
     int_handler * handler,

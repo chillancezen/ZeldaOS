@@ -236,5 +236,11 @@ paging_init(void)
         "movl %%eax, %%cr0;"
         :
         :"a"((uint32_t)kernel_page_directory));
+    /*
+     * page fault handler setup
+     */
+    paging_fault_init();
+    
+    *(uint32_t*)paging_init = 0;
     printk("%x\n", kernel_page_directory[0]);
 }

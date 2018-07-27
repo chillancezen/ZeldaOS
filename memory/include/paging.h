@@ -125,5 +125,6 @@ uint32_t get_page(void);
 void free_pages(uint32_t pg_addr, int nr_pages);
 void free_page(uint32_t pg_addr);
 void paging_init(void);
+void paging_fault_init(void);
 
 #endif
