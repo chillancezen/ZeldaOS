@@ -77,6 +77,11 @@ kernel_map_page(uint32_t virt_addr,
     if(!pde->present) {
         page_table = get_page();
         ASSERT(page_table);
+        /*
+         * MY GOD, the page should be clear once allocated
+         * or the table will be polluted initially.
+         */
+        memset((void *)page_table, 0x0, PAGE_SIZE);
         kernel_page_directory[pd_index] = create_pde32(
             PAGE_PERMISSION_READ_WRITE,
             PAGE_PERMISSION_SUPERVISOR,
@@ -95,7 +100,8 @@ kernel_map_page(uint32_t virt_addr,
         phy_addr);
     pte = PTE32_PTR(&page_table_ptr[pt_index]);
     ASSERT(pte->present);
-    //LOG_INFO("map %x to %x\n", phy_addr, virt_addr);
+    ASSERT((pte->pg_frame << 12) == (phy_addr & (~PAGE_MASK)));
+    //LOG_INFO("map %x to %x %x\n", phy_addr, virt_addr, page_table_ptr[pt_index]);
 }
 /*
  * allocate physically continuous pages
@@ -157,6 +163,37 @@ free_page(uint32_t pg_addr)
 }
 
 void
+dump_page_tables(uint32_t page_directory)
+{
+    uint32_t * pd_ptr = (uint32_t *)page_directory;
+    int pd_index = 0;
+    int pg_index = 0;
+    struct pde32 * pde;
+    struct pte32 * pte;
+    uint32_t virtual_addr;
+
+    LOG_INFO("dump page table:\n");
+    for(pd_index = 0; pd_index < 1024; pd_index++) {
+        pde = PDE32_PTR(&pd_ptr[pd_index]);
+        if(!pde->present)
+            continue;
+        printk("    page directory entry:%d 0x%x\n",
+            pd_index,
+            pd_ptr[pd_index]);
+        for(pg_index = 0; pg_index < 1023; pg_index++) {
+            pte = PTE32_PTR(((pde->pt_frame << 12) + pg_index * 4));
+            if (!pte->present)
+                continue;
+            virtual_addr = pd_index << 22 | pg_index << 12;
+            printk("        page table entry:%d (virt:%x) 0x%x\n",
+                pg_index,
+                virtual_addr,
+                PTE32_TO_DWORD(pte));
+        }
+    }
+}
+
+void
 paging_init(void)
 {
     uint32_t phy_addr = 0;
@@ -189,6 +226,7 @@ paging_init(void)
             PAGE_PERMISSION_READ_ONLY :
             PAGE_PERMISSION_READ_WRITE);
     }
+    //dump_page_tables((uint32_t)kernel_page_directory);
     /*
      * Enable paging
      */
@@ -198,4 +236,5 @@ paging_init(void)
         "movl %%eax, %%cr0;"
         :
         :"a"((uint32_t)kernel_page_directory));
+    printk("%x\n", kernel_page_directory[0]);
 }

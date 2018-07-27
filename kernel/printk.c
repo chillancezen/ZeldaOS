@@ -4,6 +4,9 @@
 #include <stdarg.h>
 #include <kernel/include/printk.h>
 
+#if defined(SERIAL_OUTPUT)
+    #include <device/include/serial.h>
+#endif
 #define VGA_MAX_ROW 25
 #define VGA_MAX_COL 80
 #define VGA_MEMORY_BASE 0xb8000
@@ -27,6 +30,9 @@ int
 vga_enqueue_byte(uint8_t target)
 {
     int idx = 0;
+#if defined(SERIAL_OUTPUT)
+    write_serial(target);
+#endif
     if (target != '\n')
         vga_shadow_memory[vga_row_idx][vga_col_idx] = target;
     vga_col_idx ++;
