@@ -8,6 +8,24 @@
 
 static struct kernel_vma _kernel_vma[KERNEL_VMA_ARRAY_LENGTH];
 
+struct kernel_vma *
+search_kernel_vma(uint32_t virt_addr)
+{
+    struct kernel_vma * vma = NULL;
+    struct kernel_vma * _vma = NULL;
+    int idx;
+    for (idx = 0; idx < KERNEL_VMA_ARRAY_LENGTH; idx++) {
+        _vma = &_kernel_vma[idx];
+        if (!_vma->present)
+            continue;
+        if ((virt_addr >= _vma->virt_addr) &&
+            (virt_addr < (_vma->virt_addr + _vma->length))) {
+            vma = _vma;
+            break;
+        }
+    }
+    return vma;
+}
 
 int
 register_kernel_vma(struct kernel_vma * vma)
@@ -86,5 +104,21 @@ kernel_vma_init(void)
     _vma.length = sys_mem_start - 0x100000;
     ASSERT(register_kernel_vma(&_vma) == OK);
 
+    strcpy(_vma.name, (const uint8_t*)"KernelHeap");
+    _vma.exact = 0;
+    _vma.virt_addr = KERNEL_HEAP_BOTTOM;
+    _vma.phy_addr = 0;
+    _vma.length = KERNEL_HEAP_TOP - KERNEL_HEAP_BOTTOM;
+    ASSERT(register_kernel_vma(&_vma) == OK);
+
+    strcpy(_vma.name, (const uint8_t*)"KernelStack");
+    _vma.exact = 0;
+    _vma.virt_addr = KERNEL_STACK_BOTTOM;
+    _vma.phy_addr = 0;
+    _vma.length = KERNEL_STACK_TOP - KERNEL_STACK_BOTTOM;
+    ASSERT(register_kernel_vma(&_vma) == OK);
     dump_kernel_vma();
 }
+
+
+

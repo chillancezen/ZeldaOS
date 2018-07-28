@@ -39,6 +39,22 @@ init3(void)
     pit_init();
     keyboard_init();
 }
+static void
+post_init(void)
+{
+   /*
+    * switch stack too newly mapped stack top
+    * NOTE that the invalid ESP will not cause page fault exception.
+    * to work this around, we premap them before performing stack switching.
+    * here we do walk through the STACK area. let the page fault handler
+    * do it for us
+    */
+   uint32_t stack_ptr = KERNEL_STACK_BOTTOM;
+   for (; stack_ptr < KERNEL_STACK_TOP; stack_ptr += PAGE_SIZE) {
+       *(uint32_t *)stack_ptr = *(uint32_t *)stack_ptr; 
+   }
+
+}
 void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
 {
     boot_info = _boot_info;
@@ -46,11 +62,28 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init2();
     init3();
     sti();
+    post_init();
+    /*
+     * perform stack switching with newly mapped stack area
+     * prepare the return address of last frame in new stack
+     */
+    asm volatile("movl 4(%%ebp), %%eax;"
+        "movl %0, %%ebx;"
+        //"sub $0x4, %%ebx;" //actually, it's not necessary
+        "movl %%ebx, %%esp;"
+        "push %%eax;"
+        "ret;"
+        :
+        :"i"(KERNEL_STACK_TOP)
+        :"%eax", "%ebx");
+    /*
+     * do not put any code below this line
+     * because the stack layout is incomplete
+     *
+     */
 #if 0
-    //enter static tss0
     asm volatile("jmpl %0, $0x0;"
         :
         :"i"(TSS0_SELECTOR));
 #endif
-    //*(uint32_t*)kernel_main = 0;
 }

@@ -23,6 +23,7 @@ loader:
     push ebx
     call kernel_main
 
+global _stop
 _stop:
     hlt
     jmp _stop

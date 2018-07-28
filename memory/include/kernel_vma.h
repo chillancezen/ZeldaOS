@@ -28,6 +28,7 @@ struct kernel_vma
     uint32_t length;
 };
 
+struct kernel_vma * search_kernel_vma(uint32_t virt_addr);
 int register_kernel_vma(struct kernel_vma * vma);
 void kernel_vma_init(void);
 
