@@ -19,6 +19,8 @@ typedef unsigned long long uint64_t;
 #include <stdint.h>
 #endif
 
+#include <lib/include/errorcode.h>
+
 #define NULL ((void *)0)
 #define __used __attribute__((unused))
 #define asm __asm__

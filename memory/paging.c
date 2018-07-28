@@ -7,6 +7,13 @@
 
 
 static uint8_t free_page_bitmap[FREE_PAGE_BITMAP_SIZE];
+/*
+ * the kernel page directory is the PDBR address.
+ * NOTE the kernel_page_directory is not mapped into kernel virtual adddress
+ * space, they are only accessable in page fault handler by disabling paging
+ * the benefit is : the kernel even does not have the right to access the
+ * page directory/table, and simplify the kernel virtual address layout
+ */
 static uint32_t * kernel_page_directory;
 
 
@@ -163,6 +170,38 @@ free_page(uint32_t pg_addr)
 }
 
 void
+enable_paging(void)
+{
+    asm volatile("movl %%cr0, %%eax;"
+        "or $0x80000000, %%eax;"
+        "movl %%eax, %%cr0;"
+        :
+        :
+        :"%eax");
+}
+
+void
+disable_paging(void)
+{
+    asm volatile("movl %%cr0, %%eax;"
+        "and $0x7fffffff, %%eax;"
+        "movl %%eax, %%cr0;"
+        :
+        :
+        :"%eax");
+}
+
+void
+flush_tlb(void)
+{
+    asm volatile("movl %%cr3, %%eax;"
+        "movl %%eax, %%cr3;"
+        :
+        :
+        :"%eax", "memory");
+    printk("flush TLB\n");
+}
+void
 dump_page_tables(uint32_t page_directory)
 {
     uint32_t * pd_ptr = (uint32_t *)page_directory;
@@ -226,6 +265,7 @@ paging_init(void)
             PAGE_PERMISSION_READ_ONLY :
             PAGE_PERMISSION_READ_WRITE);
     }
+    
     //dump_page_tables((uint32_t)kernel_page_directory);
     /*
      * Enable paging
@@ -236,11 +276,7 @@ paging_init(void)
         "movl %%eax, %%cr0;"
         :
         :"a"((uint32_t)kernel_page_directory));
-    /*
-     * page fault handler setup
-     */
-    paging_fault_init();
     
-    *(uint32_t*)paging_init = 0;
-    printk("%x\n", kernel_page_directory[0]);
+    //*(uint32_t*)paging_init = 0;
+    //printk("%x\n", kernel_page_directory[0]);
 }

@@ -52,6 +52,7 @@ create_pde32(uint32_t write_permission,
     uint32_t page_cachedisable,
     uint32_t pt_frame);
 
+#define PAGE_ALIGN(addr) ((uint32_t)((addr) & (~PAGE_MASK)))
 
 #define PDE32_TO_DWORD(entry) (*(uint32_t*)(entry))
 #define PTE32_TO_DWORD(entry) PDE32_TO_DWORD(entry)
@@ -126,5 +127,10 @@ void free_pages(uint32_t pg_addr, int nr_pages);
 void free_page(uint32_t pg_addr);
 void paging_init(void);
 void paging_fault_init(void);
-
+void kernel_map_page(uint32_t virt_addr,
+    uint32_t phy_addr,
+    uint32_t write_permission);
+void enable_paging(void);
+void disable_paging(void);
+void flush_tlb(void);
 #endif

@@ -16,6 +16,10 @@ paging_fault_handler(struct interrupt_argument * pt_regs)
         :
         :"%edx");
     printk("esp: %x %x\n", pt_regs->errorcode, cr2);
+    disable_paging();
+    kernel_map_page(cr2, cr2, PAGE_PERMISSION_READ_WRITE);
+    //flush_tlb();
+    enable_paging();
 }
 
 void

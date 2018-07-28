@@ -3,7 +3,7 @@
  */
 
 #include <x86/include/ioport.h>
-
+#include <kernel/include/printk.h>
 
 #define COM1_PORT 0x3f8
 
@@ -30,6 +30,7 @@ serial_init(void)
     outb(COM1_PORT + 3, 0x03);// 8 bits, no parity, one stop bit
     outb(COM1_PORT + 2, 0xC7);// Enable FIFO, clear them, with 14-byte threshold
     outb(COM1_PORT + 4, 0x0B);// IRQs enabled, RTS/DSR set
+    LOG_INFO("Initialize serial port output channel\n");
 }
 
 

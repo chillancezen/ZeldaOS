@@ -7,6 +7,8 @@
 enum errorcode {
     OK = 0,
     ERR_OUT_OF_MEMORY,
-    ERR_OUT_OF_RESOURCE
+    ERR_OUT_OF_RESOURCE,
+    ERR_INVALID_ARG
 };
+
 #endif

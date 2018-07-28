@@ -13,3 +13,11 @@ memset(void * dst, uint8_t target, int32_t size)
         ptr[idx] = target;
     }
 }
+
+
+void
+strcpy(uint8_t * dst, const uint8_t * src)
+{
+    int idx = 0;
+    for(; (dst[idx] = src[idx]); idx++);
+}

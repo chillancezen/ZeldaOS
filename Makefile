@@ -23,7 +23,7 @@ KERNEL_DEPENDS = $(C_OBJS) $(ASM_OBJS) $(AS_OBJS)
 
 %.o: %.c
 	@echo "[CC] $<"
-	@gcc $(GCCPARAMS) $(DEFS) -I .  -o $@ -c $<
+	@gcc $(GCCPARAMS) $(DEFS) -I . -include zelda_config.h  -o $@ -c $<
 
 %.o: %.asm
 	@echo "[AS] $<"
