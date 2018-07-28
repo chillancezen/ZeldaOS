@@ -181,6 +181,7 @@ int32_t register_shortcut_entry(uint8_t scancode,
 
 void CTRL_ALT_DELETE(void * arg __used)
 {
+    printk("%x\n", &arg);
     dump_registers();
 }
 

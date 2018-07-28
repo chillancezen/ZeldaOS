@@ -201,6 +201,11 @@ flush_tlb(void)
         :"%eax", "memory");
     printk("flush TLB\n");
 }
+uint32_t
+get_kernel_page_directory(void)
+{
+    return (uint32_t)kernel_page_directory;
+}
 void
 dump_page_tables(uint32_t page_directory)
 {
@@ -219,7 +224,7 @@ dump_page_tables(uint32_t page_directory)
         printk("    page directory entry:%d 0x%x\n",
             pd_index,
             pd_ptr[pd_index]);
-        for(pg_index = 0; pg_index < 1023; pg_index++) {
+        for(pg_index = 0; pg_index < 1024; pg_index++) {
             pte = PTE32_PTR(((pde->pt_frame << 12) + pg_index * 4));
             if (!pte->present)
                 continue;

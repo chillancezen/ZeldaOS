@@ -48,11 +48,17 @@ post_init(void)
     * to work this around, we premap them before performing stack switching.
     * here we do walk through the STACK area. let the page fault handler
     * do it for us
+    * UPDATE Aug 6, 2018: do not use page fault handler, it's slow and need
+    * a lot of initial stack space, 2 MB is not far enough.
     */
    uint32_t stack_ptr = KERNEL_STACK_BOTTOM;
+   LOG_INFO("Map kernel stack space:\n");
+   disable_paging();
    for (; stack_ptr < KERNEL_STACK_TOP; stack_ptr += PAGE_SIZE) {
-       *(uint32_t *)stack_ptr = *(uint32_t *)stack_ptr; 
+       //*(uint32_t *)stack_ptr = *(uint32_t *)stack_ptr;
+       kernel_map_page(stack_ptr, get_page(), PAGE_PERMISSION_READ_WRITE);
    }
+   enable_paging();
 
 }
 void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)

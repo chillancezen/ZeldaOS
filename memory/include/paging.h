@@ -133,4 +133,7 @@ void kernel_map_page(uint32_t virt_addr,
 void enable_paging(void);
 void disable_paging(void);
 void flush_tlb(void);
+uint32_t get_kernel_page_directory(void);
+void dump_page_tables(uint32_t page_directory);
+
 #endif
