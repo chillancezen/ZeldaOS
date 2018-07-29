@@ -13,6 +13,7 @@
 #include <memory/include/kernel_vma.h>
 #include <device/include/serial.h>
 #include <lib/include/string.h>
+#include <memory/include/malloc.h>
 
 static struct multiboot_info * boot_info;
 
@@ -32,6 +33,7 @@ init2(void)
     paging_init();
     paging_fault_init();
     kernel_vma_init();
+    malloc_init();
 }
 static void
 init3(void)
@@ -43,7 +45,7 @@ static void
 post_init(void)
 {
    /*
-    * switch stack too newly mapped stack top
+    * switch stack to newly mapped stack top
     * NOTE that the invalid ESP will not cause page fault exception.
     * to work this around, we premap them before performing stack switching.
     * here we do walk through the STACK area. let the page fault handler
@@ -69,10 +71,12 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init3();
     sti();
     post_init();
+
     /*
      * perform stack switching with newly mapped stack area
      * prepare the return address of last frame in new stack
      */
+    dump_recycle_bins();
     asm volatile("movl 4(%%ebp), %%eax;"
         "movl %0, %%ebx;"
         //"sub $0x4, %%ebx;" //actually, it's not necessary
