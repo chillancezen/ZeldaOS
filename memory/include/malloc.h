@@ -5,25 +5,28 @@
 #define _MALLOC_H
 #include <lib/include/types.h>
 /*
-memory layout for allocated chunk
---------   +-----------+
- |         |           | malloc_header
- |         |           |
- |         +-+---------+
- |         | ^         |
- |         | |         |
- |         | |padding  |
- |         | |         |
- |         +-----------+
- |         |           | padding_header
- |         +-----------+
- |         |           | <-----------user ptr
- |size     |           |
- |         |           |
- |         |           |
----------  +-----------+
-for free chunk, the padding header is not present.
-*/
+ *memory layout for allocated chunk
+ *--------   +-----------+
+ * |         |           | malloc_header
+ * |         |           |
+ * |         +-+---------+
+ * |         | ^         |
+ * |         | |         |
+ * |         | |padding  |
+ * |         | |         |
+ * |         +-----------+
+ * |         |           | padding_header
+ * |         +-----------+
+ * |         |           | <-----------user ptr
+ * |size     |           |
+ * |         |           |
+ * |         |           |
+ *---------  +-----------+
+ *for free chunk, the padding header is not present.
+ *the available size is: size - len(malloc_hdr) - len(padding_hdr)
+ *and the available size is used to index the recycle bin when a memory chunk
+ *is freed. so remember to use available size to calculate the bin index.
+ */
 #define MALLOC_MAGIC 0x5555
 #define RECYCLE_BIN_SIZE (12 + 1)
 #define MISC_BIN (RECYCLE_BIN_SIZE - 1)
@@ -63,6 +66,9 @@ struct padding_header {
             break; \
     _idx; \
 })
+
+void * malloc(int len);
+void * malloc_align(int len, int align);
 void dump_recycle_bins(void);
 void malloc_init(void);
 #endif

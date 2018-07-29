@@ -7,11 +7,32 @@
 static struct malloc_header _recycle_bins[RECYCLE_BIN_SIZE];
 
 
+#define VALIDATE_ALIGNMENT(align) {\
+    int32_t _idx = 0; \
+    ASSERT((align)); \
+    for(; _idx < 32; _idx++)  \
+        if((align) & (1 << _idx)) { \
+            ASSERT((align) == (1 << _idx)); \
+            break; \
+        }\
+}
+
+
 void *
 __malloc(struct malloc_header * hdr, int len, int align)
 {
+
+    uint32_t mask = align -1;
+    uint32_t usr_ptr = 0;
+    uint32_t padding = 0;
+    uint32_t left = 0;
+    struct malloc_header * prev;
+    struct malloc_header * next;
+    struct malloc_header * hdr1 = NULL;
+    struct padding_header * padding_hdr = NULL;
     ASSERT(hdr->free);
     ASSERT(hdr->magic == MALLOC_MAGIC);
+    VALIDATE_ALIGNMENT(align);
     /*
      * 1st step: ensure the memory chunk is big enough to contain
      * the required user length plus metadata.
@@ -25,19 +46,105 @@ __malloc(struct malloc_header * hdr, int len, int align)
     /*
      * 2nd step: determine the extra space for alignment
      */
-    return NULL;
+    usr_ptr = ((uint32_t)hdr) +
+        sizeof(struct malloc_header) +
+        sizeof(struct padding_header);
+    if(usr_ptr & mask) {
+        padding = align - ((uint32_t)(usr_ptr & mask));
+    }
+    usr_ptr += padding;
+    ASSERT(!(usr_ptr & mask));
+    /*
+     * 3rd step: calculate the left bytes 
+     * and decide whether to split into halves. 
+     */
+    left = hdr->size -
+        sizeof(struct malloc_header) -
+        sizeof(struct padding_header) -
+        padding -
+        len;
+    /*
+     * 4th step: detach the malloc_header from the bin list
+     */
+    next = (struct malloc_header *)hdr->next;
+    prev = (struct malloc_header *)hdr->prev;
+    ASSERT(prev);
+    prev->next = hdr->next;
+    if(next)
+        next->prev = hdr->prev;
+
+    if(left > (sizeof(struct malloc_header) + sizeof(struct padding_header))) {
+        hdr1 = (struct malloc_header*)(((uint32_t)hdr) + hdr->size - left);
+        hdr1->magic = MALLOC_MAGIC;
+        hdr1->free = 1;
+        hdr1->padding = 0;
+        hdr1->size = left;
+        hdr1->prev = 0;
+        hdr1->next = 0;
+        hdr->size -=left;
+    }
+    /*
+     * 5th step: prepare allodated memory chunk.
+     */
+    hdr->prev = 0;
+    hdr->next = 0;
+    hdr->padding = padding;
+    hdr->free = 0;
+    padding_hdr = (struct padding_header *)
+        (((uint32_t)hdr) + sizeof(struct malloc_header) + padding);
+    padding_hdr->padding = padding;
+    padding_hdr->free = 1;
+    padding_hdr->magic = MALLOC_MAGIC;
+    /*
+     *6th step: free the splited bottom half
+     */
+
+    return (void *)usr_ptr;
 }
 
 void *
 malloc_align(int len, int align)
 {
-    int least_len = len +
-         sizeof(struct malloc_header) +
-         sizeof(struct padding_header);
-    int bin_idx = LENGTH_TO_RECYCLE_BIN_INDEX(least_len);
-
-    return __malloc(&_recycle_bins[bin_idx], len, align);
+    uint32_t free_chunk_addr;
+    void * user_ptr = NULL;
+    int bin_idx = LENGTH_TO_RECYCLE_BIN_INDEX(len);
+    for (; bin_idx < RECYCLE_BIN_SIZE; bin_idx++) {
+        for (free_chunk_addr = _recycle_bins[bin_idx].next;
+            free_chunk_addr;
+            free_chunk_addr = ((struct malloc_header *)free_chunk_addr)->next) {
+            user_ptr = __malloc((struct malloc_header *)free_chunk_addr,
+                len,
+                align);
+            if (user_ptr)
+                return user_ptr;
+        }
+    }
+    return NULL;
 }
+
+void
+__free(struct malloc_header * hdr)
+{
+
+}
+void
+free(void * mem)
+{
+    struct malloc_header * malloc_hdr = NULL;
+    struct padding_header * padding_hdr = (struct padding_header *)
+        (((uint32_t)mem) - sizeof(struct padding_header));
+    ASSERT(padding_hdr->magic == MALLOC_MAGIC);
+    malloc_hdr = (struct malloc_header *)(((uint32_t)padding_hdr) -
+        padding_hdr->padding - sizeof(struct malloc_header));
+    __free(malloc_hdr);
+}
+
+void *
+malloc(int len)
+{
+    return malloc_align(len, 1);
+}
+
 void
 dump_recycle_bins(void)
 {
