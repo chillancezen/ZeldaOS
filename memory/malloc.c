@@ -6,6 +6,7 @@
 #include <kernel/include/printk.h>
 static struct malloc_header _recycle_bins[RECYCLE_BIN_SIZE];
 
+void __free(struct malloc_header * hdr);
 
 #define VALIDATE_ALIGNMENT(align) {\
     int32_t _idx = 0; \
@@ -17,6 +18,13 @@ static struct malloc_header _recycle_bins[RECYCLE_BIN_SIZE];
         }\
 }
 
+#define NEXT_BLOCK(hdr) ({\
+    struct malloc_header * _hdr = (hdr); \
+    struct malloc_header * _hdr1 = NULL; \
+    if ((hdr->size + (uint32_t)_hdr) < KERNEL_HEAP_TOP) \
+        _hdr1 = (struct malloc_header *)(hdr->size + (uint32_t)_hdr); \
+    _hdr1; \
+})
 
 void *
 __malloc(struct malloc_header * hdr, int len, int align)
@@ -54,6 +62,15 @@ __malloc(struct malloc_header * hdr, int len, int align)
     }
     usr_ptr += padding;
     ASSERT(!(usr_ptr & mask));
+    /*
+     * 2.5th step, re-check the length to prevent overflow
+     */
+    if((len +
+        sizeof(struct malloc_header) +
+        sizeof(struct padding_header) +
+        padding) >
+        hdr->size)
+        return NULL;
     /*
      * 3rd step: calculate the left bytes 
      * and decide whether to split into halves. 
@@ -93,12 +110,12 @@ __malloc(struct malloc_header * hdr, int len, int align)
     padding_hdr = (struct padding_header *)
         (((uint32_t)hdr) + sizeof(struct malloc_header) + padding);
     padding_hdr->padding = padding;
-    padding_hdr->free = 1;
+    padding_hdr->free = 0;
     padding_hdr->magic = MALLOC_MAGIC;
     /*
      *6th step: free the splited bottom half
      */
-
+    __free(hdr1);
     return (void *)usr_ptr;
 }
 
@@ -125,7 +142,45 @@ malloc_align(int len, int align)
 void
 __free(struct malloc_header * hdr)
 {
-
+    int32_t bin_index = 0;
+    int32_t avail_size = 0;
+    struct malloc_header * next_hdr = NEXT_BLOCK(hdr);
+    struct malloc_header * _ptr = NULL;
+    ASSERT(hdr->size >= sizeof(struct malloc_header));
+    if (next_hdr && next_hdr->free) {
+        ASSERT(next_hdr->magic == MALLOC_MAGIC);
+        struct malloc_header * _prev = (struct malloc_header *)next_hdr->prev;
+        struct malloc_header * _next = (struct malloc_header *)next_hdr->next;
+        ASSERT(_prev);
+        _prev->next = next_hdr->next;
+        if(_next)
+            _next->prev = next_hdr->prev;
+        hdr->size += next_hdr->size;
+    }
+    avail_size = hdr->size -
+        sizeof(struct malloc_header) -
+        sizeof(struct padding_header);
+    bin_index = LENGTH_TO_RECYCLE_BIN_INDEX(avail_size);
+    for(_ptr = (struct malloc_header *)_recycle_bins[bin_index].next;
+        _ptr;
+        _ptr = (struct malloc_header *)_ptr->next) {
+        if(_ptr->size >= hdr->size)
+            break;
+    }
+    hdr->free = 1;
+    hdr->padding = 0;
+    if (_ptr) {
+        hdr->prev = _ptr->prev;
+        hdr->next = (uint32_t)_ptr;
+        _ptr->prev = (uint32_t)hdr;
+        ((struct malloc_header *)(hdr->prev))->next = (uint32_t)hdr;
+    } else {
+        _ptr = (struct malloc_header *)&_recycle_bins[bin_index];
+        for(; _ptr->next; _ptr = (struct malloc_header *)_ptr->next);
+        hdr->prev = (uint32_t)_ptr;
+        hdr->next = (uint32_t)NULL;
+        _ptr->next = (uint32_t)hdr;
+    }
 }
 void
 free(void * mem)
@@ -170,6 +225,30 @@ dump_recycle_bins(void)
         }
     }
 }
+#if defined(INLINE_TEST)
+static void
+malloc_test(void)
+{
+    void * ptr = NULL;
+    struct padding_header * padding;
+    struct malloc_header * hdr;
+    ptr = malloc_align(1, 1024);
+    ASSERT(!(1023 & (uint32_t)ptr));
+    padding = ((struct padding_header *)ptr) - 1;
+    ASSERT(!padding->free);
+    ASSERT(padding->magic == MALLOC_MAGIC);
+
+    hdr = (struct malloc_header *)(((uint32_t)padding) -
+        padding->padding -
+        sizeof(struct malloc_header));
+    ASSERT(!hdr->free);
+    ASSERT(hdr->magic == MALLOC_MAGIC);
+    ASSERT(hdr->padding == padding->padding);
+    free(ptr);
+    ASSERT(hdr->free);
+    dump_recycle_bins();
+}
+#endif
 void
 malloc_init(void)
 {
@@ -189,5 +268,8 @@ malloc_init(void)
 
     _malloc_hdr->prev = (uint32_t)&_recycle_bins[MISC_BIN];
     _recycle_bins[MISC_BIN].next  = KERNEL_HEAP_BOTTOM;
+#if defined(INLINE_TEST)
+    malloc_test();
+#endif
 }
 

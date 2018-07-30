@@ -1,4 +1,4 @@
-DEFS = -DSERIAL_OUTPUT
+DEFS = -DSERIAL_OUTPUT -DINLINE_TEST
 GCCPARAMS = -m32 -O0 -g -ffreestanding -nostdlib -fno-builtin -fno-exceptions -Werror -Wall -Wstrict-prototypes
 #Do not use c11, the gnu syntax extension is needed
 #GCCPARAMS = -m32 -std=c11 -O0 -g -Wall -Wextra -Wpedantic -Werror -Wno-error=missing-field-initializers -nostdlib -ffreestanding

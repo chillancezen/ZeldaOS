@@ -76,9 +76,6 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
      * perform stack switching with newly mapped stack area
      * prepare the return address of last frame in new stack
      */
-    printk("malloc:%x\n", malloc_align(123, 4096));
-    printk("malloc:%x\n", malloc_align(123, 8));
-    dump_recycle_bins();
     asm volatile("movl 4(%%ebp), %%eax;"
         "movl %0, %%ebx;"
         //"sub $0x4, %%ebx;" //actually, it's not necessary

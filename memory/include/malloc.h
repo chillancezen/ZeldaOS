@@ -69,6 +69,7 @@ struct padding_header {
 
 void * malloc(int len);
 void * malloc_align(int len, int align);
+void free(void * mem);
 void dump_recycle_bins(void);
 void malloc_init(void);
 #endif
