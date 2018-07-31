@@ -22,11 +22,11 @@ void probe_physical_mmeory(struct multiboot_info * boot_info)
         LOG_INFO("%d: type:%x baseaddr:0x%x length:0x%x %s\n",
             idx, mmap->type, mmap->baseaddr_low, mmap->length_low,
             LOW_MEMORY_DELIMITER == mmap->baseaddr_low? "(*system main memory)":
-            "");
+            mmap->baseaddr_high? "(*not addressable in ia32)": "");
         if (LOW_MEMORY_DELIMITER == mmap->baseaddr_low)
             physical_memory_length = mmap->baseaddr_low + mmap->length_low;
     }
-    LOG_INFO("Set physical memory boundary:0x%x(%d in MiB)\n",
+    LOG_INFO("Set physical memory boundary:0x%x(%d MiB)\n",
         physical_memory_length,
-        physical_memory_length);
+        physical_memory_length/1024/1024);
 }
