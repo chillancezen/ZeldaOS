@@ -33,13 +33,16 @@ void probe_physical_mmeory(struct multiboot_info * boot_info)
     LOG_INFO("Set physical memory boundary:0x%x(%d MiB)\n",
         physical_memory_length,
         physical_memory_length/1024/1024);
-    text_size_aligned = &_kernel_text_end - &_kernel_text_start;
-    data_size_aligned = &_kernel_data_end - &_kernel_data_start;
-    bss_size_aligned = &_kernel_bss_end - &_kernel_bss_start;
+    text_size_aligned =
+        (int32_t)&_kernel_text_end - (int32_t)&_kernel_text_start;
+    data_size_aligned =
+        (int32_t)&_kernel_data_end - (int32_t)&_kernel_data_start;
+    bss_size_aligned =
+        (int32_t)&_kernel_bss_end - (int32_t)&_kernel_bss_start;
     
-    text_size_aligned = (int32_t)page_align_addr(text_size_aligned);
-    data_size_aligned = (int32_t)page_align_addr(data_size_aligned);
-    bss_size_aligned = (int32_t)page_align_addr(bss_size_aligned);
+    text_size_aligned = (int32_t)page_round_addr(text_size_aligned);
+    data_size_aligned = (int32_t)page_round_addr(data_size_aligned);
+    bss_size_aligned = (int32_t)page_round_addr(bss_size_aligned);
 
     LOG_INFO("kernel text starts at 0x%x\n", &_kernel_text_start);
     LOG_INFO("kernel text ends at 0x%x (aligned size:%d)\n",

@@ -27,7 +27,7 @@ typedef unsigned long long uint64_t;
 #define PAGE_MASK (PAGE_SIZE - 1)
 
 static inline uint32_t
-page_align_addr(uint32_t addr)
+page_round_addr(uint32_t addr)
 {
     return (addr & PAGE_MASK) ?
         PAGE_SIZE + (uint32_t)(addr & (~PAGE_MASK)) :
