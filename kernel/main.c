@@ -76,6 +76,7 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
      * perform stack switching with newly mapped stack area
      * prepare the return address of last frame in new stack
      */
+    ASSERT(1);
     asm volatile("movl 4(%%ebp), %%eax;"
         "movl %0, %%ebx;"
         //"sub $0x4, %%ebx;" //actually, it's not necessary

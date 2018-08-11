@@ -5,7 +5,7 @@
  * The keyboad module code only process the standard scancode of set1
  * , i.e. US QWERTY keyboard layout is recoginized.
  */
-
+#include <kernel/include/kernel.h>
 #include <device/include/keyboard.h>
 #include <device/include/keyboard_scancode.h>
 #include <x86/include/interrupt.h>

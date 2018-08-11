@@ -20,3 +20,10 @@
 #define KERNEL_STACK_BOTTOM KERNEL_HEAP_TOP
 #define KERNEL_STACK_TOP 0x20000000
 
+
+/*
+ *The MAX_FRAME_ON_DUMPSTACK indicates the maximum frames to dump
+ *the calling stack.
+ */
+#define MAX_FRAME_ON_DUMPSTACK 64
+

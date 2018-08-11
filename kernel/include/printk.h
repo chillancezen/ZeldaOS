@@ -4,6 +4,8 @@
 #ifndef _PRINTK_H
 #define _PRINTK_H
 #include <lib/include/types.h>
+#include <kernel/include/kernel.h>
+
 void printk_init(void);
 void printk_flush(void);
 void printk(const char * format, ...);
@@ -26,8 +28,11 @@ void printk(const char * format, ...);
 #define ASSERT(cond) {\
     if (!(cond)){ \
         printk("[assert] %s.%d %s failed\n", __FILE__, __LINE__, #cond); \
+        panic(); \
+        asm volatile("1:cli;" \
+            "hlt;" \
+            "jmp 1b;"); \
     }\
 }
 #define VAR64(val)  (uint32_t)((val) >> 32), (uint32_t)(val)
-void dump_registers(void);
 #endif

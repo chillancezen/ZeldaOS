@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2018 Jie Zheng
  */
+#include <kernel/include/kernel.h>
 #include <memory/include/malloc.h>
 #include <lib/include/string.h>
 #include <kernel/include/printk.h>

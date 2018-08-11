@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2018 Jie Zheng
  */
+#include <kernel/include/kernel.h>
 #include <x86/include/gdt.h>
 #include <kernel/include/printk.h>
 #include <lib/include/string.h>
