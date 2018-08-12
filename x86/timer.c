@@ -25,7 +25,7 @@ refresh_pit_channel0(void)
 }
 
 static void
-pit_handler(struct interrupt_argument * pit __used)
+pit_handler(struct x86_cpustate * pit __used)
 {
     pit_ticks++;
     if(pit_ticks % TIMER_RESOLUTION_HZ == 0) {

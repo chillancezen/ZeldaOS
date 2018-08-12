@@ -138,7 +138,7 @@ hook_scancode(uint8_t scancode, uint8_t keystate)
         shortcut_entries[idx].handler(shortcut_entries[idx].arg);
 }
 
-void keyboard_interrupt_handler(struct interrupt_argument * parg __used)
+void keyboard_interrupt_handler(struct x86_cpustate * parg __used)
 {
     uint8_t scancode = retrieve_scancode();
     uint8_t asciicode;

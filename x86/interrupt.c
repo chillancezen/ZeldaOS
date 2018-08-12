@@ -37,7 +37,7 @@ set_interrupt_gate(int vector_number, void (*entry)(void))
     IDT[vector_number].offset_high = (((uint32_t)entry) >> 16) & 0xffff;
 }
 
-void interrupt_handler(struct interrupt_argument * arg)
+void interrupt_handler(struct x86_cpustate * arg)
 {
     int_handler * device_interrup_handler = NULL;
     int vector = arg->vector;

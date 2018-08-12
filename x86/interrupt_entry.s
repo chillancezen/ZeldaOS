@@ -5,17 +5,21 @@
 .extern interrupt_handler    
 
 per_vector_entry:
-    push %eax
-    push %ecx
-    push %edx
-    push %ds  # to now, the ESP contains the address of the interrupt_argument
-    push %esp # push it as arguments
+    pushl %ds
+    pushl %es
+    pushl %fs
+    pushl %gs
+    pushal
+    #till now, the ESP contains the address of the x86_cpustate
+    #because we push the 32bit cpu state on the stack.
+    pushl %esp # push it as arguments
     call interrupt_handler
-    pop %eax  #pop the argument
-    pop %ds
-    pop %edx
-    pop %ecx
-    pop %eax
+    pop %eax  #pop the argument, also we can use add $4, %esp
+    popal
+    popl %gs
+    popl %fs
+    popl %fs
+    popl %ds
     add $8, %esp # skip interrup vector number and errorcode
     #sti
     iret

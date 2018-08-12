@@ -6,13 +6,50 @@
 #include <lib/include/types.h>
 
 
-struct interrupt_argument {
-    uint32_t ds;
+struct x86_cpustate {
+    /*
+     * all general purpose registers, the order:
+     * http://www.fermimn.gov.it/linux/quarta/x86/pusha.htm
+     */
+    uint32_t edi;
+    uint32_t esi;
+    uint32_t ebp;
+    uint32_t esp_temp;
+    uint32_t ebx;
     uint32_t edx;
     uint32_t ecx;
     uint32_t eax;
+    /*
+     * segment register excluding cs and ss
+     */
+    uint32_t gs;
+    uint32_t fs;
+    uint32_t es;
+    uint32_t ds;
+    /*
+     * the interrupt number which cause context switch to a interrupt gate
+     */
     uint32_t vector;
+    /*
+     * in whatever cases, an errorcode should be put in the stack
+     * never the code shoud call int n instructuion where nth exception
+     * generates an errorcode, or the program can not find the EIP to return.
+     */
     uint32_t errorcode;
+    /*
+     * when interrupt/exception is happening, the eflags/cs/eip is also pushed
+     * into the PL0 stack.
+     */
+    uint32_t eip;
+    uint32_t cs;
+    uint32_t eflags;
+    /*
+     * inter-privilege level context switching will need a stack switched to
+     * privilege level 0, and the privilege level 3 stack is stored in the
+     * PL 0 stack.
+     */
+    uint32_t esp;
+    uint32_t ss;
 }__attribute__((packed));
 
 #define IDT_SIZE 256
@@ -33,7 +70,7 @@ struct idt_pointer {
     uint32_t base;
 }__attribute__((packed));
 
-typedef void int_handler(struct interrupt_argument *);
+typedef void int_handler(struct x86_cpustate *);
 
 void register_interrupt_handler(int vector_number,
     int_handler * handler,
