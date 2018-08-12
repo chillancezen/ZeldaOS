@@ -5,6 +5,18 @@
 #define _INTERRUPT_H
 #include <lib/include/types.h>
 
+#define EFLAGS_CF 0x0001
+#define EFLAGS_ONE 0x0002
+#define EFLAGS_PARITY 0x0004
+#define EFLAGS_ADJUST 0x0010
+#define EFLAGS_ZERO 0x0040
+#define EFLAGS_SIGN 0x0080
+#define EFLAGS_TRAP 0x0100
+#define EFLAGS_INTERRUPT 0x0200
+#define EFLAGS_DIRECTION 0x0400
+#define EFLAGS_OVERFLOW 0x0800
+#define EFLAGS_NESTTASK 0x4000
+
 
 struct x86_cpustate {
     /*

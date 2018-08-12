@@ -24,6 +24,8 @@ struct task {
      */
     void * privilege_level0_stack;
     void * privilege_level3_stack;
+    uint32_t privilege_level0_stack_top;
+    uint32_t privilege_level3_stack_top;
     uint32_t entry;
     /*
      * this field specifies in which PL the task runs
@@ -35,10 +37,10 @@ struct task {
 #define IS_TASK_KERNEL_TYPE (_task) ((_task)->privilege_level == DPL_0)
 
 #define RUNTIME_STACK(_task) ({\
-    void * _stack = NULL; \
+    uint32_t _stack = 0; \
     _stack = ((_task)->privilege_level == DPL_0)? \
-        (_task)->privilege_level0_stack: \
-        (_task)->privilege_level3_stack; \
+        (_task)->privilege_level0_stack_top: \
+        (_task)->privilege_level3_stack_top; \
     ASSERT(_stack); \
     _stack; \
 })
