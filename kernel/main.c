@@ -14,6 +14,7 @@
 #include <device/include/serial.h>
 #include <lib/include/string.h>
 #include <memory/include/malloc.h>
+#include <kernel/include/task.h>
 
 static struct multiboot_info * boot_info;
 
@@ -61,7 +62,10 @@ post_init(void)
        kernel_map_page(stack_ptr, get_page(), PAGE_PERMISSION_READ_WRITE);
    }
    enable_paging();
-
+   /*
+    * task initialization
+    */
+   task_init();
 }
 void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
 {
@@ -71,12 +75,13 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init3();
     sti();
     post_init();
-
     /*
      * perform stack switching with newly mapped stack area
      * prepare the return address of last frame in new stack
+     * actually, this is not necessry, because we are going to run procedure
+     * in task unit context.
      */
-    ASSERT(1);
+    LOG_INFO("Switch stack to newly mapped space.\n");
     asm volatile("movl 4(%%ebp), %%eax;"
         "movl %0, %%ebx;"
         //"sub $0x4, %%ebx;" //actually, it's not necessary
