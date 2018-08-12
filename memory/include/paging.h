@@ -69,22 +69,25 @@ create_pde32(uint32_t write_permission,
 #define INVALID_PAGE 0xffffffff
 
 #define IS_PAGE_FREE(pg_fn) ({\
-    uint32_t _byte_index = AT_BYTE((pg_fn)); \
-    uint8_t _bit_index = AT_BIT((pg_fn)); \
+    uint32_t _pg_fn = (pg_fn) >> 12; \
+    uint32_t _byte_index = AT_BYTE((_pg_fn)); \
+    uint8_t _bit_index = AT_BIT((_pg_fn)); \
     !((free_page_bitmap[_byte_index] >> _bit_index) & 0x1); \
 })
 
 #define MAKR_PAGE_AS_FREE(pg_fn) {\
-    uint32_t _byte_index = AT_BYTE((pg_fn)); \
-    uint8_t _bit_index = AT_BIT((pg_fn)); \
+    uint32_t _pg_fn = (pg_fn) >> 12; \
+    uint32_t _byte_index = AT_BYTE((_pg_fn)); \
+    uint8_t _bit_index = AT_BIT((_pg_fn)); \
     uint8_t _mask = 1 << _bit_index; \
     _mask = ~_mask; \
     free_page_bitmap[_byte_index] &= _mask; \
 }
 
 #define MARK_PAGE_AS_OCCUPIED(pg_fn) { \
-    uint32_t _byte_index = AT_BYTE((pg_fn)); \
-    uint8_t _bit_index = AT_BIT((pg_fn)); \
+    uint32_t _pg_fn = (pg_fn) >> 12; \
+    uint32_t _byte_index = AT_BYTE((_pg_fn)); \
+    uint8_t _bit_index = AT_BIT((_pg_fn)); \
     uint8_t _mask = 1 << _bit_index; \
     free_page_bitmap[_byte_index] |= _mask; \
 }
