@@ -14,6 +14,20 @@ struct interrupt_gate_entry IDT[IDT_SIZE] __attribute__((aligned(8)));
 int_handler *  handlers[IDT_SIZE];
 
 void
+dump_x86_cpustate(struct x86_cpustate *cpu)
+{
+    LOG_INFO("Dump cpu state: cpu(esp) 0x%x\n", cpu);
+    printk("   edi:%x esi:%x ebp:%x\n", cpu->edi, cpu->esi, cpu->ebp);
+    printk("   ebx:%x edx:%x ecx:%x eax:%x\n",
+        cpu->ebx, cpu->edx, cpu->ecx, cpu->eax);
+    printk("   gs:%x fs:%x, es:%x ds:%x\n",
+        cpu->gs, cpu->fs, cpu->es, cpu->ds);
+    printk("   vector:%x errorcode:%x eip:%x cs:%x\n",
+        cpu->vector, cpu->errorcode, cpu->eip, cpu->cs);
+    printk("   eflags:%x esp:%x ss:%x\n",
+        cpu->eflags, cpu->esp, cpu->ss);
+}
+void
 register_interrupt_handler(
     int vector_number,
     int_handler * handler,
@@ -37,8 +51,9 @@ set_interrupt_gate(int vector_number, void (*entry)(void))
     IDT[vector_number].offset_high = (((uint32_t)entry) >> 16) & 0xffff;
 }
 
-void interrupt_handler(struct x86_cpustate * arg)
+uint32_t interrupt_handler(struct x86_cpustate * arg)
 {
+    uint32_t ESP = (uint32_t)arg;
     int_handler * device_interrup_handler = NULL;
     int vector = arg->vector;
     ASSERT(((vector >= 0) && (vector < IDT_SIZE)));
@@ -46,12 +61,13 @@ void interrupt_handler(struct x86_cpustate * arg)
     if (!device_interrup_handler) {
         LOG_WARN("Can not find the interrup handler for vector:%d\n", vector);
     } else {
-        device_interrup_handler(arg);
+        ESP = device_interrup_handler(arg);
     }
     if (vector >= 40) {
         outb(PIC_SLAVE_COMMAND_PORT, 0x20);
     }
     outb(PIC_MASTER_COMMAND_PORT, 0x20);
+    return ESP;
 }
 
 void idt_init(void)

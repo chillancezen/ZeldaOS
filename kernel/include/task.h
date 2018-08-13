@@ -8,11 +8,11 @@
 #include <lib/include/types.h>
 #include <x86/include/interrupt.h>
 #include <kernel/include/printk.h>
+#include <lib/include/list.h>
 
 
 struct task {
-    struct task * prev;
-    struct task * next;
+    struct list_elem list;
     /*
      * The x86 cpu state, please refer to x86/include/interrupt.h
      */
@@ -33,7 +33,7 @@ struct task {
      */
     uint32_t privilege_level:2;
 };
-
+extern struct task * current;
 #define IS_TASK_KERNEL_TYPE (_task) ((_task)->privilege_level == DPL_0)
 
 #define RUNTIME_STACK(_task) ({\
@@ -45,5 +45,12 @@ struct task {
     _stack; \
 })
 
+uint32_t schedule(struct x86_cpustate * cpu);
 void task_init(void);
+void task_put(struct task * _task);
+struct task * task_get(void);
+
+void schedule_enable(void);
+void schedule_disable(void);
+int ready_to_schedule(void);
 #endif

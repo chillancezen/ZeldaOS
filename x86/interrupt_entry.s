@@ -9,19 +9,31 @@ per_vector_entry:
     pushl %es
     pushl %fs
     pushl %gs
-    pushal
+    pushl %eax
+    pushl %ecx
+    pushl %edx
+    pushl %ebx
+    pushl %ebp
+    pushl %esi
+    pushl %edi
     #till now, the ESP contains the address of the x86_cpustate
     #because we push the 32bit cpu state on the stack.
     pushl %esp # push it as arguments
     call interrupt_handler
-    pop %eax  #pop the argument, also we can use add $4, %esp
-    popal
+    movl %eax, %esp#STACK maybe switched to another one, in interrupt_handler.
+    #pop %eax #pop the argument, also we can use add $4, %esp
+    popl %edi
+    popl %esi
+    popl %ebp
+    popl %ebx
+    popl %edx
+    popl %ecx
+    popl %eax
     popl %gs
     popl %fs
     popl %fs
     popl %ds
     add $8, %esp # skip interrup vector number and errorcode
-    #sti
     iret
 
 .macro DEF_INT_ENTRY_WITH_ERRORCODE vectoor

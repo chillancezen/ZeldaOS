@@ -36,4 +36,10 @@ page_round_addr(uint32_t addr)
         addr;
 }
 
+
+
+#define OFFSET_OF(structure, field) ((int32_t)(&(((structure *)0)->field)))
+#define CONTAINER_OF(ptr, structure, field) \
+    (structure *)(((uint32_t)(ptr)) - OFFSET_OF(structure, field))
+
 #endif

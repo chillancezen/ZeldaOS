@@ -138,7 +138,7 @@ hook_scancode(uint8_t scancode, uint8_t keystate)
         shortcut_entries[idx].handler(shortcut_entries[idx].arg);
 }
 
-void keyboard_interrupt_handler(struct x86_cpustate * parg __used)
+uint32_t keyboard_interrupt_handler(struct x86_cpustate * parg __used)
 {
     uint8_t scancode = retrieve_scancode();
     uint8_t asciicode;
@@ -149,6 +149,7 @@ void keyboard_interrupt_handler(struct x86_cpustate * parg __used)
     if (key_state & KEY_STATE_PRESSED && asciicode != 0xff){
         //printk("%c", asciicode); 
     }
+    return (uint32_t)parg;
 }
 
 int32_t register_shortcut_entry(uint8_t scancode,

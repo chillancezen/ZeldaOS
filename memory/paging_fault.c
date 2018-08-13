@@ -39,7 +39,7 @@ do_kernel_page_fault(uint32_t error_code, uint32_t linear_addr)
     }
 }
 
-static void
+static uint32_t
 paging_fault_handler(struct x86_cpustate * pt_regs)
 {
     uint32_t linear_addr;
@@ -52,6 +52,7 @@ paging_fault_handler(struct x86_cpustate * pt_regs)
     do_kernel_page_fault(pt_regs->errorcode, linear_addr);
     //flush_tlb();
     enable_paging();
+    return (uint32_t)pt_regs;
 }
 
 void

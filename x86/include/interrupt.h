@@ -26,7 +26,7 @@ struct x86_cpustate {
     uint32_t edi;
     uint32_t esi;
     uint32_t ebp;
-    uint32_t esp_temp;
+    //uint32_t esp_temp;//Do not modify ESP register
     uint32_t ebx;
     uint32_t edx;
     uint32_t ecx;
@@ -82,7 +82,8 @@ struct idt_pointer {
     uint32_t base;
 }__attribute__((packed));
 
-typedef void int_handler(struct x86_cpustate *);
+void dump_x86_cpustate(struct x86_cpustate *cpu);
+typedef uint32_t int_handler(struct x86_cpustate *);
 
 void register_interrupt_handler(int vector_number,
     int_handler * handler,

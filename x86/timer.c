@@ -8,7 +8,7 @@
 #include <x86/include/ioport.h>
 #include <x86/include/interrupt.h>
 #include <kernel/include/printk.h>
-
+#include <kernel/include/task.h>
 
 #define TIMER_RESOLUTION_HZ 100 //10 ms tick
 #define PIT_CHANNEL0_INTERRUPT_VECTOR (0x20 + 0)
@@ -24,13 +24,20 @@ refresh_pit_channel0(void)
     outb(PIT_CHANNEL0_PORT, (divisor >> 8) & 0xff);
 }
 
-static void
-pit_handler(struct x86_cpustate * pit __used)
+static uint32_t
+pit_handler(struct x86_cpustate * _cpu __used)
 {
+    uint32_t esp = (uint32_t)_cpu;
     pit_ticks++;
     if(pit_ticks % TIMER_RESOLUTION_HZ == 0) {
         //printk("pit interrupted\n");
     }
+    if (ready_to_schedule()) {
+        //dump_x86_cpustate(_cpu);
+        esp = schedule(_cpu);
+        //dump_x86_cpustate((struct x86_cpustate*)esp);
+    }
+    return esp;
 }
 
 void

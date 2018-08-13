@@ -31,3 +31,9 @@
 #define DEFAULT_TASK_PRIVILEGED_STACK_SIZE (8*1024)
 #define DEFAULT_TASK_NON_PRIVILEGED_STACK_SIZE (8*1024)
 
+
+/*
+ * enable/disable task preemption
+ */
+#define TASK_PREEMPTION 1
+

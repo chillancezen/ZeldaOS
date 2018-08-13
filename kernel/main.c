@@ -66,6 +66,7 @@ post_init(void)
     * task initialization
     */
    task_init();
+   schedule_enable();
 }
 void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
 {
@@ -73,7 +74,6 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init1();
     init2();
     init3();
-    sti();
     post_init();
     /*
      * perform stack switching with newly mapped stack area
@@ -87,9 +87,10 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
         //"sub $0x4, %%ebx;" //actually, it's not necessary
         "movl %%ebx, %%esp;"
         "push %%eax;"
+        "sti;"
         "ret;"
         :
-        :"i"(KERNEL_STACK_TOP)
+        :"i"(KERNEL_STACK_TOP - 0x100)
         :"%eax", "%ebx");
     /*
      * do not put any code below this line
