@@ -59,7 +59,10 @@ post_init(void)
    disable_paging();
    for (; stack_ptr < KERNEL_STACK_TOP; stack_ptr += PAGE_SIZE) {
        //*(uint32_t *)stack_ptr = *(uint32_t *)stack_ptr;
-       kernel_map_page(stack_ptr, get_page(), PAGE_PERMISSION_READ_WRITE);
+        kernel_map_page(stack_ptr, get_page(),
+            PAGE_PERMISSION_READ_WRITE,
+            PAGE_WRITEBACK,
+            PAGE_CACHE_ENABLED);
    }
    enable_paging();
    /*

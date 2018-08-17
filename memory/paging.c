@@ -73,7 +73,9 @@ create_pde32(uint32_t write_permission,
 void
 kernel_map_page(uint32_t virt_addr,
     uint32_t phy_addr,
-    uint32_t write_permission)
+    uint32_t write_permission,
+    uint32_t page_writethrough,
+    uint32_t page_cachedisable)
 {
     uint32_t page_table = 0;
     uint32_t * page_table_ptr;
@@ -102,8 +104,8 @@ kernel_map_page(uint32_t virt_addr,
     page_table_ptr = (uint32_t *)(pde->pt_frame << 12);
     page_table_ptr[pt_index] = create_pte32(write_permission,
         PAGE_PERMISSION_SUPERVISOR,
-        PAGE_WRITEBACK,
-        PAGE_CACHE_ENABLED,
+        page_writethrough,
+        page_cachedisable,
         phy_addr);
     pte = PTE32_PTR(&page_table_ptr[pt_index]);
     ASSERT(pte->present);
@@ -268,7 +270,9 @@ paging_init(void)
             (phy_addr >= (uint32_t)&_kernel_text_start &&
             phy_addr < (uint32_t)&_kernel_data_start) ?
             PAGE_PERMISSION_READ_ONLY :
-            PAGE_PERMISSION_READ_WRITE);
+            PAGE_PERMISSION_READ_WRITE,
+            PAGE_WRITEBACK,
+            PAGE_CACHE_ENABLED);
     }
     
     //dump_page_tables((uint32_t)kernel_page_directory);

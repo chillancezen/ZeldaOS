@@ -31,7 +31,10 @@ do_kernel_page_fault(uint32_t error_code, uint32_t linear_addr)
              * because it's already mapped as Low1MB area
              */ 
             ASSERT(phy_addr);
-            kernel_map_page(linear_addr, phy_addr, PAGE_PERMISSION_READ_WRITE);
+            kernel_map_page(linear_addr, phy_addr,
+                vma->write_permission,
+                vma->page_writethrough,
+                vma->page_cachedisable);
         } else {
             LOG_ERROR("no VMA found for addr:0x%x\n", linear_addr);
         }

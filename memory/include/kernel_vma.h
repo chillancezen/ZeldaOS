@@ -17,6 +17,9 @@ struct kernel_vma
      * if the vma set exact to 1, the continuous phy_addr
      */
     uint32_t exact:1;
+    uint32_t write_permission:1;
+    uint32_t page_writethrough:1;
+    uint32_t page_cachedisable:1;
     /*
      * both virt_addr and phy_addr must be PAGE_SIZE aligned
      */

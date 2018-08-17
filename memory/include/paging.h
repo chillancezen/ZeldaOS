@@ -132,7 +132,9 @@ void paging_init(void);
 void paging_fault_init(void);
 void kernel_map_page(uint32_t virt_addr,
     uint32_t phy_addr,
-    uint32_t write_permission);
+    uint32_t write_permission,
+    uint32_t page_writethrough,
+    uint32_t page_cachedisable);
 void enable_paging(void);
 void disable_paging(void);
 void flush_tlb(void);

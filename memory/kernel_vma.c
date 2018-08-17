@@ -5,7 +5,7 @@
 #include <lib/include/string.h>
 #include <kernel/include/printk.h>
 #include <memory/include/physical_memory.h>
-
+#include <memory/include/paging.h>
 static struct kernel_vma _kernel_vma[KERNEL_VMA_ARRAY_LENGTH];
 
 struct kernel_vma *
@@ -55,6 +55,9 @@ register_kernel_vma(struct kernel_vma * vma)
     strcpy(_vma->name, vma->name);
     _vma->present = 1;
     _vma->exact = vma->exact;
+    _vma->write_permission = vma->write_permission;
+    _vma->page_writethrough = vma->page_writethrough;
+    _vma->page_cachedisable = vma->page_cachedisable;
     _vma->virt_addr = vma->virt_addr;
     _vma->phy_addr = vma->phy_addr;
     _vma->length = vma->length;
@@ -70,12 +73,16 @@ void dump_kernel_vma(void)
         _vma = &_kernel_vma[idx];
         if (!_vma->present)
             continue;
-    LOG_INFO("   vma entry %d: name:%s virt:0x%x phy:0x%x len:0x%x %s\n",
+    LOG_INFO("   vma entry %d: name:%s virt:0x%x phy:0x%x len:0x%x "
+        "permission:0x%x %s\n",
         idx,
         _vma->name,
         _vma->virt_addr,
         _vma->phy_addr,
         _vma->length,
+        _vma->write_permission |
+            _vma->page_writethrough << 1|
+            _vma->page_cachedisable << 2,
         _vma->exact ? "(*use exact mapping)" : "");
     }
 }
@@ -92,6 +99,9 @@ kernel_vma_init(void)
      */
     strcpy(_vma.name, (const uint8_t*)"Low1MB");
     _vma.exact = 1;
+    _vma.write_permission = PAGE_PERMISSION_READ_WRITE;
+    _vma.page_writethrough = PAGE_WRITEBACK;
+    _vma.page_cachedisable = PAGE_CACHE_ENABLED;
     _vma.virt_addr = 0;
     _vma.phy_addr = 0;
     _vma.length = 0x100000;
@@ -99,6 +109,9 @@ kernel_vma_init(void)
 
     strcpy(_vma.name, (const uint8_t*)"KernelImage");
     _vma.exact = 1;
+    _vma.write_permission = PAGE_PERMISSION_READ_WRITE;
+    _vma.page_writethrough = PAGE_WRITEBACK;
+    _vma.page_cachedisable = PAGE_CACHE_ENABLED;
     _vma.virt_addr = 0x100000;
     _vma.phy_addr = 0x100000;
     _vma.length = sys_mem_start - 0x100000;
@@ -106,6 +119,9 @@ kernel_vma_init(void)
 
     strcpy(_vma.name, (const uint8_t*)"KernelHeap");
     _vma.exact = 0;
+    _vma.write_permission = PAGE_PERMISSION_READ_WRITE;
+    _vma.page_writethrough = PAGE_WRITEBACK;
+    _vma.page_cachedisable = PAGE_CACHE_ENABLED;
     _vma.virt_addr = KERNEL_HEAP_BOTTOM;
     _vma.phy_addr = 0;
     _vma.length = KERNEL_HEAP_TOP - KERNEL_HEAP_BOTTOM;
@@ -113,6 +129,9 @@ kernel_vma_init(void)
 
     strcpy(_vma.name, (const uint8_t*)"KernelStack");
     _vma.exact = 0;
+    _vma.write_permission = PAGE_PERMISSION_READ_WRITE;
+    _vma.page_writethrough = PAGE_WRITEBACK;
+    _vma.page_cachedisable = PAGE_CACHE_ENABLED;
     _vma.virt_addr = KERNEL_STACK_BOTTOM;
     _vma.phy_addr = 0;
     _vma.length = KERNEL_STACK_TOP - KERNEL_STACK_BOTTOM;
