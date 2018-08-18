@@ -13,6 +13,7 @@
 #include <x86/include/ioport.h>
 #include <lib/include/string.h>
 #include <lib/include/errorcode.h>
+#include <memory/include/paging.h>
 
 #define KEYBOARD_INTERRUPT_VECTOR (0x20 + 1)
 #define KEY_SPACE_SIZE 256
@@ -182,7 +183,7 @@ int32_t register_shortcut_entry(uint8_t scancode,
 
 void CTRL_ALT_DELETE(void * arg __used)
 {
-    printk("%x\n", &arg);
+    //dump_page_tables(get_kernel_page_directory());
     dump_registers();
 }
 

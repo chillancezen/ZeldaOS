@@ -39,7 +39,7 @@ $(KERNEL_IMAGE): $(KERNEL_DEPENDS)
 	@echo "[LD] $@"
 	@ld $(LDPARAMS) -T linker.ld -o $@ $(KERNEL_DEPENDS)
 clean:
-	@rm -f $(KERNEL_IMAGE) $(KERNEL_DEPENDS)
+	@rm -f $(KERNEL_IMAGE) Zelda.map $(KERNEL_DEPENDS)
 	@rm -f $(OS_PACKAGE)
 	@rm -f iso/boot/$(KERNEL_IMAGE)
 $(OS_PACKAGE): $(KERNEL_IMAGE)

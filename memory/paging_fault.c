@@ -25,7 +25,7 @@ do_kernel_page_fault(uint32_t error_code, uint32_t linear_addr)
         if (vma) {
             phy_addr = vma->exact ?
                 vma->phy_addr + vma->virt_addr - linear_addr:
-                get_page();
+                get_base_page();
             /*
              * physical address is not supposed to be 0x0
              * because it's already mapped as Low1MB area

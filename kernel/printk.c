@@ -11,20 +11,30 @@
 #define VGA_MAX_COL 80
 #define VGA_MEMORY_BASE 0xb8000
 
+int __log_level = LOG_DEBUG;
+
 static int vga_row_front = 0;
 static int vga_row_idx = 0;
 static int vga_col_idx = 0;
 
 static uint8_t vga_shadow_memory[VGA_MAX_ROW+1][VGA_MAX_COL];
 static uint16_t (*vga_ptr)[VGA_MAX_COL] = (void *)VGA_MEMORY_BASE;
- 
-void printk_init()
+
+void
+set_log_level(int level)
+{
+    __log_level = level;
+}
+
+void
+printk_init()
 {
     int idx_row = 0;
     int idx_col = 0;
     for (idx_row = 0; idx_row < VGA_MAX_ROW + 1; idx_row++)
         for (idx_col = 0; idx_col < VGA_MAX_COL; idx_col++)
             vga_shadow_memory[idx_row][idx_col] = 0;
+    set_log_level(LOG_DEBUG);
 }
 int
 vga_enqueue_byte(uint8_t target)

@@ -69,4 +69,8 @@ void probe_physical_mmeory(struct multiboot_info * boot_info)
     LOG_INFO("kernel bss ends at 0x%x (aligned size:%d)\n",
         &_kernel_bss_end,
         bss_size_aligned);
+    /*
+     * check kernel image boundary, it should not exceed PAGE_SPACE_BOTTOM
+     */
+    ASSERT(((uint32_t)&_kernel_bss_end) <= PAGE_SPACE_BOTTOM);
 }

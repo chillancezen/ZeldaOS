@@ -141,4 +141,6 @@ void flush_tlb(void);
 uint32_t get_kernel_page_directory(void);
 void dump_page_tables(uint32_t page_directory);
 
+uint32_t get_base_page(void);
+void free_base_page(uint32_t);
 #endif

@@ -117,6 +117,16 @@ kernel_vma_init(void)
     _vma.length = sys_mem_start - 0x100000;
     ASSERT(register_kernel_vma(&_vma) == OK);
 
+    strcpy(_vma.name, (const uint8_t*)"PageInventory");
+    _vma.exact = 1;
+    _vma.write_permission = PAGE_PERMISSION_READ_WRITE;
+    _vma.page_writethrough = PAGE_WRITEBACK;
+    _vma.page_cachedisable = PAGE_CACHE_ENABLED;
+    _vma.virt_addr = PAGE_SPACE_BOTTOM;
+    _vma.phy_addr = PAGE_SPACE_BOTTOM;
+    _vma.length = PAGE_SPACE_TOP - PAGE_SPACE_BOTTOM;
+    ASSERT(register_kernel_vma(&_vma) == OK);
+
     strcpy(_vma.name, (const uint8_t*)"KernelHeap");
     _vma.exact = 0;
     _vma.write_permission = PAGE_PERMISSION_READ_WRITE;

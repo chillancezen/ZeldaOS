@@ -10,12 +10,16 @@
 
 
 /*
+ * page space bottom set to 0x4000000, i.e. 64MB
  * Kernel heap bottom set to 0x8000000, i.e. 128MB
  * kernel heap top set to 0x1F000000 : 496MB
  * kernel stack bottom set to 0x1F000000 : 496MB
  * while kernel stack top is set to 0x20000000, i.e. 512 MB
  */
-#define KERNEL_HEAP_BOTTOM 0x8000000
+
+#define PAGE_SPACE_BOTTOM 0x4000000
+#define PAGE_SPACE_TOP 0x8000000
+#define KERNEL_HEAP_BOTTOM PAGE_SPACE_TOP
 #define KERNEL_HEAP_TOP 0x1F000000
 #define KERNEL_STACK_BOTTOM KERNEL_HEAP_TOP
 #define KERNEL_STACK_TOP 0x20000000

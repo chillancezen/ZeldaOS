@@ -8,6 +8,12 @@
 
 static uint8_t free_page_bitmap[FREE_PAGE_BITMAP_SIZE];
 /*
+ * The bit map records the free pages in the page inventory
+ */
+#define FREE_BASE_PAGE_BITMAP_SIZE \
+    (((PAGE_SPACE_TOP - PAGE_SPACE_BOTTOM) >> 12) >> 3)
+static uint8_t free_base_page_bitmap[FREE_BASE_PAGE_BITMAP_SIZE];
+/*
  * the kernel page directory is the PDBR address.
  * NOTE the kernel_page_directory is not mapped into kernel virtual adddress
  * space, they are only accessable in page fault handler by disabling paging
@@ -66,6 +72,56 @@ create_pde32(uint32_t write_permission,
     return PTE32_TO_DWORD(&pde);
 }
 /*
+ *Get a free page from PageInventory VMA. usually these pages are to construct
+ *page directory/table for both kernnel and userspace.
+ *return 0 if no available page is found.
+ */
+uint32_t
+get_base_page(void)
+{
+    uint32_t _page = PAGE_SPACE_BOTTOM;
+    int32_t offset;
+    int32_t byte_idx = 0;
+    int32_t bit_idx = 0;
+    uint8_t bit_set_mask = 0;
+    for(; _page < PAGE_SPACE_TOP; _page += PAGE_SIZE) {
+        offset = _page - PAGE_SPACE_BOTTOM;
+        offset = offset >> 12;
+        byte_idx = offset >> 3;
+        bit_idx = offset & 0x7;
+        bit_set_mask = 1 << bit_idx;
+        if (free_base_page_bitmap[byte_idx] & bit_set_mask)
+            continue;
+        free_base_page_bitmap[byte_idx] |= bit_set_mask;
+        return _page;
+    }
+    return 0;
+}
+/*
+ * release a page which must be in PageInventory VMA.
+ */
+void
+free_base_page(uint32_t _page)
+{
+    int32_t offset;
+    int32_t byte_idx = 0;
+    int32_t bit_idx = 0;
+    uint8_t bit_set_mask = 0;
+    uint8_t bit_unset_mask = 0;
+    if (_page < PAGE_SPACE_BOTTOM ||
+        _page >= PAGE_SPACE_TOP) {
+        LOG_WARN("seem page:0x%x is not in PageInventory VMA\n");
+        return; 
+    }
+    offset = _page - PAGE_SPACE_BOTTOM;
+    offset = offset >> 12;
+    byte_idx = offset >> 3;
+    bit_idx = offset & 0x7;
+    bit_set_mask = 1 << bit_idx;
+    bit_unset_mask = ~bit_set_mask;
+    free_base_page_bitmap[byte_idx] &= bit_unset_mask;
+}
+/*
  * map phy_addr to virt_addr in kernel linear address space
  * if page table is not present for a page directory entry
  * allocate one page from physical page inventory
@@ -84,7 +140,7 @@ kernel_map_page(uint32_t virt_addr,
     struct pde32 * pde = PDE32_PTR(&kernel_page_directory[pd_index]);
     struct pte32 * pte;
     if(!pde->present) {
-        page_table = get_page();
+        page_table = get_base_page();
         ASSERT(page_table);
         /*
          * MY GOD, the page should be clear once allocated
@@ -246,6 +302,7 @@ paging_init(void)
     uint32_t frame_addr = 0;
     uint32_t sys_mem_start = get_system_memory_start();
     memset(free_page_bitmap, 0x0, sizeof(free_page_bitmap));
+    memset(free_base_page_bitmap, 0x0, sizeof(free_base_page_bitmap));
     /*
      * Mark pages whose address is lower than the _kernel_bss_end as occupied
      */
@@ -256,9 +313,18 @@ paging_init(void)
         ASSERT(!IS_PAGE_FREE(frame_addr));
     }
     /*
+     *Mark pages in page inventory as occupied
+     */
+    for(frame_addr = PAGE_SPACE_BOTTOM;
+        frame_addr < PAGE_SPACE_TOP;
+        frame_addr += PAGE_SIZE) {
+        MARK_PAGE_AS_OCCUPIED(frame_addr);
+        ASSERT(!IS_PAGE_FREE(frame_addr));
+    }
+    /*
      * Allocate the kernel page directory
      * */
-    kernel_page_directory = (uint32_t *)get_page();
+    kernel_page_directory = (uint32_t *)get_base_page();
     memset(kernel_page_directory, 0x0, PAGE_SIZE);
     LOG_INFO("kernel page directory address: 0x%x\n", kernel_page_directory);
     /*
@@ -285,7 +351,4 @@ paging_init(void)
         "movl %%eax, %%cr0;"
         :
         :"a"((uint32_t)kernel_page_directory));
-    
-    //*(uint32_t*)paging_init = 0;
-    //printk("%x\n", kernel_page_directory[0]);
 }
