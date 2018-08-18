@@ -24,17 +24,21 @@ do_kernel_page_fault(uint32_t error_code, uint32_t linear_addr)
         vma = search_kernel_vma(linear_addr);
         if (vma) {
             phy_addr = vma->exact ?
-                vma->phy_addr + vma->virt_addr - linear_addr:
-                get_base_page();
+                linear_addr - vma->virt_addr + vma->phy_addr:
+                get_page();
             /*
              * physical address is not supposed to be 0x0
              * because it's already mapped as Low1MB area
-             */ 
+             */
             ASSERT(phy_addr);
             kernel_map_page(linear_addr, phy_addr,
                 vma->write_permission,
                 vma->page_writethrough,
                 vma->page_cachedisable);
+            LOG_DEBUG("Map kernel page in VMA:%s 0x%x --> 0x%x\n",
+                vma->name,
+                linear_addr,
+                phy_addr);
         } else {
             LOG_ERROR("no VMA found for addr:0x%x\n", linear_addr);
         }
@@ -51,10 +55,8 @@ paging_fault_handler(struct x86_cpustate * pt_regs)
         :"=m"(linear_addr)
         :
         :"%edx");
-    disable_paging();
     do_kernel_page_fault(pt_regs->errorcode, linear_addr);
-    //flush_tlb();
-    enable_paging();
+    flush_tlb();
     return (uint32_t)pt_regs;
 }
 

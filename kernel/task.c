@@ -192,7 +192,7 @@ task_init(void)
     current = NULL;
     __ready_to_schedule = 0;
     list_init(&task_list_head);
-#if !defined(INLINE_TEST)
+#if defined(INLINE_TEST)
     struct task * _task = malloc_task();
     ASSERT(_task);
     ASSERT(!mockup_load_task(_task, DPL_0, mockup_entry));

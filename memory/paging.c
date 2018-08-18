@@ -153,7 +153,7 @@ kernel_map_page(uint32_t virt_addr,
             PAGE_WRITEBACK,
             PAGE_CACHE_ENABLED,
             page_table);
-        LOG_INFO("allocate page table for page directory index:%x\n", pd_index);
+        LOG_DEBUG("allocate page table for page directory index:%x\n", pd_index);
         pde = PDE32_PTR(&kernel_page_directory[pd_index]);
     }
     ASSERT(pde->present);
@@ -257,7 +257,6 @@ flush_tlb(void)
         :
         :
         :"%eax", "memory");
-    printk("flush TLB\n");
 }
 uint32_t
 get_kernel_page_directory(void)
@@ -313,7 +312,14 @@ paging_init(void)
         ASSERT(!IS_PAGE_FREE(frame_addr));
     }
     /*
+     * Allocate the kernel page directory
+     * */
+    kernel_page_directory = (uint32_t *)get_base_page();
+    memset(kernel_page_directory, 0x0, PAGE_SIZE);
+    LOG_INFO("kernel page directory address: 0x%x\n", kernel_page_directory);
+    /*
      *Mark pages in page inventory as occupied
+     *and map them in advance
      */
     for(frame_addr = PAGE_SPACE_BOTTOM;
         frame_addr < PAGE_SPACE_TOP;
@@ -321,12 +327,15 @@ paging_init(void)
         MARK_PAGE_AS_OCCUPIED(frame_addr);
         ASSERT(!IS_PAGE_FREE(frame_addr));
     }
-    /*
-     * Allocate the kernel page directory
-     * */
-    kernel_page_directory = (uint32_t *)get_base_page();
-    memset(kernel_page_directory, 0x0, PAGE_SIZE);
-    LOG_INFO("kernel page directory address: 0x%x\n", kernel_page_directory);
+    for(frame_addr = PAGE_SPACE_BOTTOM;
+        frame_addr < PAGE_SPACE_TOP;
+        frame_addr += PAGE_SIZE) {
+        kernel_map_page(frame_addr,
+            frame_addr,
+            PAGE_PERMISSION_READ_WRITE,
+            PAGE_WRITEBACK,
+            PAGE_CACHE_ENABLED);
+    }
     /*
      * Map all the pages before the returned address of 
      * get_system_memory_start()

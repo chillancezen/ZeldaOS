@@ -183,7 +183,7 @@ int32_t register_shortcut_entry(uint8_t scancode,
 
 void CTRL_ALT_DELETE(void * arg __used)
 {
-    //dump_page_tables(get_kernel_page_directory());
+    dump_page_tables(get_kernel_page_directory());
     dump_registers();
 }
 

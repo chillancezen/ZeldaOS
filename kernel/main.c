@@ -31,9 +31,9 @@ static void
 init2(void)
 {
     probe_physical_mmeory(boot_info);
-    paging_init();
-    paging_fault_init();
     kernel_vma_init();
+    paging_fault_init();
+    paging_init();
     malloc_init();
 }
 static void
@@ -56,15 +56,14 @@ post_init(void)
     */
    uint32_t stack_ptr = KERNEL_STACK_BOTTOM;
    LOG_INFO("Map kernel stack space:\n");
-   disable_paging();
+   //disable_paging();
    for (; stack_ptr < KERNEL_STACK_TOP; stack_ptr += PAGE_SIZE) {
-       //*(uint32_t *)stack_ptr = *(uint32_t *)stack_ptr;
         kernel_map_page(stack_ptr, get_base_page(),
             PAGE_PERMISSION_READ_WRITE,
             PAGE_WRITEBACK,
             PAGE_CACHE_ENABLED);
    }
-   enable_paging();
+   //enable_paging();
    /*
     * task initialization
     */
@@ -84,6 +83,7 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
      * actually, this is not necessry, because we are going to run procedure
      * in task unit context.
      */
+    //dump_page_tables(get_kernel_page_directory());
     LOG_INFO("Switch stack to newly mapped space.\n");
     asm volatile("movl 4(%%ebp), %%eax;"
         "movl %0, %%ebx;"
