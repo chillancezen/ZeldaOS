@@ -17,7 +17,10 @@ struct task {
      * The x86 cpu state, please refer to x86/include/interrupt.h
      */
     struct x86_cpustate * cpu;
-
+    /*
+     * per-task page Directory
+     */
+    uint32_t page_directory;
     /*
      * stack at PL 0 and 3, when privilege_level is DPL_0,
      * privilege_level3_stack is NULL.

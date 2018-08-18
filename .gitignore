@@ -54,3 +54,4 @@ dkms.conf
 *.bin
 *.iso
 *.map
+*.qcow2

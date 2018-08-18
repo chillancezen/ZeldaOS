@@ -15,7 +15,7 @@
 #include <lib/include/string.h>
 #include <memory/include/malloc.h>
 #include <kernel/include/task.h>
-
+#include <device/include/pci.h>
 static struct multiboot_info * boot_info;
 
 static void
@@ -41,6 +41,7 @@ init3(void)
 {
     pit_init();
     keyboard_init();
+    pci_init();
 }
 static void
 post_init(void)
