@@ -12,13 +12,21 @@
 #define ATA_MASTER 0x1
 #define ATA_SLAVE 0x0
 
+enum ata_device_type {
+    UNDEFINED_DEVICE_TYPE,
+    PATA_DEVICE,
+    SATA_DEVICE,
+    PATAPI_DEVICE,
+    SATAPI_DEVICE
+};
+
 struct ata_device {
     struct list_elem list;
     uint16_t io_base;
     uint16_t ctrl_base;
-
-    uint8_t primary_bus;
-    uint8_t master_drive;
+    uint8_t type;
+    uint8_t bus;
+    uint8_t drive;
 };
 
 /*
@@ -57,6 +65,10 @@ struct ata_device {
 #define STATUS_BUSY 0x80
 
 #define CMD_IDENTITY 0xec
+
+#define CMD_RESET 0x04
+#define CMD_DISABLE_INTERRUPT 0x2
+
 
 void
 ata_init(void);
