@@ -90,6 +90,14 @@ get_pci_bar_size(struct pci_device * _device, uint32_t bar)
         bar_origin);
     return size;
 }
+uint8_t
+get_pci_device_prog_if(uint8_t bus,
+    uint8_t device,
+    uint8_t function)
+{
+    uint16_t word = read_pci_config_space(bus, device, function, 0x8);
+    return (word >> 8) & 0xff;
+}
 uint16_t
 get_pci_device_vendor_id(uint8_t bus,
     uint8_t device,
@@ -151,6 +159,7 @@ enumerate_pci_devices(void)
     uint16_t vendor_id;
     uint16_t device_id;
     uint8_t header_type;
+    uint8_t prog_if;
     uint16_t interrupt;
     struct pci_device * _device;
     for(bus = 0; bus < 256; bus++) {
@@ -164,7 +173,7 @@ enumerate_pci_devices(void)
                 subclass = get_pci_device_subclass(bus, device, function);
                 header_type = get_pci_device_header_type(bus, device, function);
                 interrupt = get_pci_device_interrupt(bus, device, function);
-
+                prog_if = get_pci_device_prog_if(bus, device, function);
                 _device = malloc(sizeof(struct pci_device));
                 memset(_device, 0x0, sizeof(struct pci_device));
                 _device->bus = bus;
@@ -175,6 +184,7 @@ enumerate_pci_devices(void)
                 _device->class = class;
                 _device->subclass = subclass;
                 _device->header_type = header_type;
+                _device->prog_if = prog_if;
                 _device->irq_line = interrupt & 0xff;
                 _device->irq_pin = (interrupt >> 8) & 0xff;
                 for(bar = 0; bar < 6; bar++) {
@@ -197,7 +207,7 @@ dump_pci_devices(void)
         _device = CONTAINER_OF(_list, struct pci_device, list);
         LOG_INFO("%x:%x.%x vendor_id:%x device_id:%x class:%x "
             "subclass:%x\n       "
-            "header_type:%x irq_pin:%x irq_line:%x\n",
+            "header_type:%x prog_if:%x irq_pin:%x irq_line:%x\n",
             _device->bus,
             _device->device,
             _device->function,
@@ -206,6 +216,7 @@ dump_pci_devices(void)
             _device->class,
             _device->subclass,
             _device->header_type,
+            _device->prog_if,
             _device->irq_pin,
             _device->irq_line);
         for(bar = 0; bar < 6; bar++) {

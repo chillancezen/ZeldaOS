@@ -33,6 +33,7 @@ struct pci_device {
     uint16_t device_id;
     uint8_t class;
     uint8_t subclass;
+    uint8_t prog_if;
     uint8_t header_type;
 
     uint8_t irq_line;
