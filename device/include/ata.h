@@ -65,10 +65,25 @@ struct ata_device {
 #define STATUS_BUSY 0x80
 
 #define CMD_IDENTITY 0xec
-
+#define CMD_READ_SECTORS 0x20
+#define CMD_WRITE_SECTORS 0x30
+#define CMD_FLUSH_CACHE 0xe7
 #define CMD_RESET 0x04
 #define CMD_DISABLE_INTERRUPT 0x2
 
+void
+reset_ata_device(struct ata_device * _device);
+
+int
+ata_device_read_sectors(struct ata_device * _device,
+    uint32_t LBA28,
+    void * buffer,
+    int32_t count);
+int
+ata_device_write_sectors(struct ata_device * _device,
+    uint32_t LBA28,
+    void * buffer,
+    int32_t count);
 
 void
 ata_init(void);

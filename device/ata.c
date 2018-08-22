@@ -121,6 +121,16 @@ identify_drive(uint8_t bus, uint8_t drive)
     _device->drive = drive;
     _device->type = device_type;
     list_append(&ata_device_list, &_device->list);
+    if (_device->type == PATA_DEVICE){
+        uint8_t buff[64];
+        int rc;
+        memset(buff, 0x0, sizeof(buff));
+        rc = ata_device_write_sectors(_device, 0x0, "hello world", 12);
+        printk("write %d\n", rc);
+        rc = ata_device_read_sectors(_device, 0x0, buff, 12);
+        printk("read %d %s\n", rc, buff);
+
+    }
 }
 
 void
@@ -148,6 +158,109 @@ enable_interrupt(struct ata_device * _device)
 {
     outb(_device->ctrl_base, 0);
     ata_delay(_device->bus);
+}
+/*
+ * Poll devcie status util BUSY bit is clear and DRQ is set, return OK
+ * if ERR is set or DF(DRIVE FAULT) is set, return a negative interger
+ */
+inline int
+ata_device_poll(struct ata_device * _device)
+{
+    uint8_t status  = 0;
+    do {
+        status = inb(_device->io_base + STATUS_REGISTER_OFFSET);
+        if (status & STATUS_ERROR || status & STATUS_DRIVE_FAULT)
+            return -ERR_DEVICE_FAULT;
+        if (!(status & STATUS_BUSY) && status & STATUS_DATA_REQUEST)
+            break;
+    } while(1);
+    return OK;
+}
+/*
+ * here we use PIO LBA 28bit mode to write to sectores
+ * note the count is supposed to lower than 256*512 = 128KB
+ * in which case, we need a wrapper to split write operation into
+ * mutiple one
+ */
+int
+ata_device_write_sectors(struct ata_device * _device,
+    uint32_t LBA28,
+    void * buffer,
+    int32_t count)
+{
+    uint8_t status;
+    int poll_rc;
+    uint16_t * ptr = buffer;
+    int32_t left = count;
+    ASSERT(count >0 || count <= 256*512);
+    outb(_device->io_base + DRIVER_REGISTER_OFFSET,
+        ((_device->drive == ATA_MASTER) ? 0xe0 : 0xf0) |
+        ((LBA28 >> 24) & 0x0f));
+    ata_delay(_device->bus);
+    outb(_device->io_base + ERROR_REGISTER_OFFSET, 0x0);
+    outb(_device->io_base + SECTOR_COUNTER_REGISTER_OFFSET,
+        1);
+    outb(_device->io_base + LBA_LOW_OFFSET, (uint8_t)LBA28);
+    outb(_device->io_base + LBA_MID_OFFSET, (uint8_t)(LBA28 >> 8));
+    outb(_device->io_base + LBA_HIGH_OFFSET, (uint8_t)(LBA28 >> 16));
+    outb(_device->io_base + COMMAND_REGISTER_OFFSET, CMD_WRITE_SECTORS);
+    ata_delay(_device->bus);
+    while(left > 0) {
+        poll_rc = ata_device_poll(_device);
+        if(poll_rc != OK)
+            break;
+        outw(_device->io_base + DATA_REGISTER_OFFSET, *ptr);
+        printk("--0x%x\n", *ptr);
+        left -= 2;
+        ptr += 1;
+    }
+    ata_delay(_device->bus);
+    outb(_device->io_base + COMMAND_REGISTER_OFFSET, CMD_FLUSH_CACHE);
+    // Flush cache
+    ata_delay(_device->bus);
+    do {
+        status = inb(_device->io_base + STATUS_REGISTER_OFFSET);
+        if (!(status & STATUS_BUSY))
+            break;
+    }while(1);
+    return (uint32_t)ptr - (int32_t)buffer;
+}
+/*
+ * the read counterpart of ata_device_write_sectors.
+ */
+int
+ata_device_read_sectors(struct ata_device * _device,
+    uint32_t LBA28,
+    void * buffer,
+    int32_t count)
+{
+    int poll_rc;
+    uint16_t * ptr = buffer;
+    int32_t left = count;
+    ASSERT(count >0 || count <= 256*512);
+    outb(_device->io_base + DRIVER_REGISTER_OFFSET,
+        ((_device->drive == ATA_MASTER) ? 0xe0 : 0xf0) |
+        ((LBA28 >> 24) & 0x0f));
+    ata_delay(_device->bus);
+    outb(_device->io_base + ERROR_REGISTER_OFFSET, 0x0);
+    outb(_device->io_base + SECTOR_COUNTER_REGISTER_OFFSET,
+        1);
+    outb(_device->io_base + LBA_LOW_OFFSET, (uint8_t)LBA28);
+    outb(_device->io_base + LBA_MID_OFFSET, (uint8_t)(LBA28 >> 8));
+    outb(_device->io_base + LBA_HIGH_OFFSET, (uint8_t)(LBA28 >> 16));
+    outb(_device->io_base + COMMAND_REGISTER_OFFSET, CMD_READ_SECTORS);
+    ata_delay(_device->bus);
+    while(left > 0) {
+        poll_rc = ata_device_poll(_device);
+        if(poll_rc != OK)
+            break;
+        *ptr = inw(_device->io_base + DATA_REGISTER_OFFSET);
+        printk("0x%x\n", *ptr);
+        left -= 2;
+        ptr += 1;
+    }
+    ata_delay(_device->bus);
+    return (uint32_t)ptr - (int32_t)buffer;
 }
 
 void
