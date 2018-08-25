@@ -75,15 +75,15 @@ void
 reset_ata_device(struct ata_device * _device);
 
 int
-ata_device_read_sectors(struct ata_device * _device,
+ata_device_read_one_sector(struct ata_device * _device,
     uint32_t LBA28,
-    void * buffer,
-    int32_t count);
+    void * buffer);
 int
-ata_device_write_sectors(struct ata_device * _device,
+ata_device_write_one_sector(struct ata_device * _device,
     uint32_t LBA28,
-    void * buffer,
-    int32_t count);
+    void * buffer);
+void
+ata_device_flush_cache(struct ata_device * _device);
 
 void
 ata_init(void);

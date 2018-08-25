@@ -64,38 +64,50 @@ select_drive(uint8_t bus, uint8_t drive)
 void
 identify_drive(uint8_t bus, uint8_t drive)
 {
-    uint16_t port = bus == ATA_PRIMARY ?
+    uint16_t io_base = bus == ATA_PRIMARY ?
         ATA_PRIMARY_BUS_IO_BASE:
         ATA_SECONDARY_BUS_IO_BASE;
-    uint8_t status;
-    uint8_t mid;
-    uint8_t high;
+    uint16_t ctrl_base = bus == ATA_PRIMARY ?
+        ATA_PRIMARY_BUS_CONTROL_BASE:
+        ATA_SECONDARY_BUS_CONTROL_BASE;
+    uint8_t status = 0;
+    uint8_t mid = 0;
+    uint8_t high = 0;
     uint8_t device_type = UNDEFINED_DEVICE_TYPE;
     struct ata_device * _device;
-    ASSERT(bus == ATA_PRIMARY || bus == ATA_SECONDARY);
-    ASSERT(drive == ATA_MASTER || drive == ATA_SLAVE);
-    select_drive(bus, drive);
-    ata_delay(bus);
-    outb(port + SECTOR_COUNTER_REGISTER_OFFSET, 0);
-    outb(port + LBA_LOW_OFFSET, 0);
-    outb(port + LBA_MID_OFFSET, 0);
-    outb(port + LBA_HIGH_OFFSET, 0);
-    outb(port + COMMAND_REGISTER_OFFSET, CMD_IDENTITY);
-    status = inb(port + STATUS_REGISTER_OFFSET);
-    if (status == 0xff) {
-        LOG_WARN("Identifing %s bus %s drive fails: Floating Bus\n",
-            bus == ATA_PRIMARY? "primary" : "secondary",
-            drive == ATA_MASTER? "master" : "slave");
-        return;
-    } else if (status == 0x00) {
-        LOG_WARN("Identifing %s bus %s drive fails: Drive Not Present\n",
+    /*
+     * Reset the bus and wait until master drive is ready
+     */
+    outb(io_base + DRIVER_REGISTER_OFFSET, (drive == ATA_MASTER) ? 0xa0 : 0xb0);
+    outb(ctrl_base, 0);
+
+    outb(io_base + DRIVER_REGISTER_OFFSET, 0xa0);
+    status = inb(io_base + STATUS_REGISTER_OFFSET);
+    if(status == 0xff) {
+        LOG_WARN("Identifying %s bus %s drive fails: Floating Bus\n",
             bus == ATA_PRIMARY? "primary" : "secondary",
             drive == ATA_MASTER? "master" : "slave");
         return;
     }
-    while((status = inb(port + STATUS_REGISTER_OFFSET)) & STATUS_BUSY);
-    mid = inb(port + LBA_MID_OFFSET);
-    high = inb(port + LBA_HIGH_OFFSET);
+    /*
+     *Send IDENTIFY command to the drive
+     */
+    outb(io_base + DRIVER_REGISTER_OFFSET, (drive == ATA_MASTER) ? 0xa0 : 0xb0);
+    outb(io_base + SECTOR_COUNTER_REGISTER_OFFSET, 0);
+    outb(io_base + LBA_LOW_OFFSET, 0);
+    outb(io_base + LBA_MID_OFFSET, 0);
+    outb(io_base + LBA_HIGH_OFFSET, 0);
+    outb(io_base + COMMAND_REGISTER_OFFSET, CMD_IDENTITY);
+    status = inb(io_base + STATUS_REGISTER_OFFSET);
+    if(status == 0x00) {
+        LOG_WARN("Identifying %s bus %s drive fails: Drive Not Present\n",
+            bus == ATA_PRIMARY? "primary" : "secondary",
+            drive == ATA_MASTER? "master" : "slave");
+        return;
+    }
+    while((status = inb(io_base + STATUS_REGISTER_OFFSET)) & STATUS_BUSY);
+    mid = inb(io_base + LBA_MID_OFFSET);
+    high = inb(io_base + LBA_HIGH_OFFSET);
     if (mid == 0x14 && high == 0xeb)
         device_type = PATAPI_DEVICE;
     else if (mid == 0x69 && high == 0x96)
@@ -109,28 +121,16 @@ identify_drive(uint8_t bus, uint8_t drive)
         drive == ATA_MASTER? "master" : "slave",
         device_type_str[device_type]);
     /*
-     * make an ata_device descriptor
+     * Make a device entry
      */
     _device = malloc(sizeof(struct ata_device));
     memset(_device, 0x0, sizeof(struct ata_device));
-    _device->io_base = port;
-    _device->ctrl_base = bus == ATA_PRIMARY?
-        ATA_PRIMARY_BUS_CONTROL_BASE:
-        ATA_SECONDARY_BUS_CONTROL_BASE;
+    _device->io_base = io_base;
+    _device->ctrl_base = ctrl_base;
     _device->bus = bus;
     _device->drive = drive;
     _device->type = device_type;
     list_append(&ata_device_list, &_device->list);
-    if (_device->type == PATA_DEVICE){
-        uint8_t buff[64];
-        int rc;
-        memset(buff, 0x0, sizeof(buff));
-        rc = ata_device_write_sectors(_device, 0x0, "hello world", 12);
-        printk("write %d\n", rc);
-        rc = ata_device_read_sectors(_device, 0x0, buff, 12);
-        printk("read %d %s\n", rc, buff);
-
-    }
 }
 
 void
@@ -183,84 +183,66 @@ ata_device_poll(struct ata_device * _device)
  * mutiple one
  */
 int
-ata_device_write_sectors(struct ata_device * _device,
+ata_device_write_one_sector(struct ata_device * _device,
     uint32_t LBA28,
-    void * buffer,
-    int32_t count)
+    void * buffer)
 {
+    uint16_t * ptr = (uint16_t * )buffer;
+    int idx = 0;
     uint8_t status;
-    int poll_rc;
-    uint16_t * ptr = buffer;
-    int32_t left = count;
-    ASSERT(count >0 || count <= 256*512);
     outb(_device->io_base + DRIVER_REGISTER_OFFSET,
         ((_device->drive == ATA_MASTER) ? 0xe0 : 0xf0) |
         ((LBA28 >> 24) & 0x0f));
-    ata_delay(_device->bus);
+
     outb(_device->io_base + ERROR_REGISTER_OFFSET, 0x0);
-    outb(_device->io_base + SECTOR_COUNTER_REGISTER_OFFSET,
-        1);
+    outb(_device->io_base + SECTOR_COUNTER_REGISTER_OFFSET, 1);
     outb(_device->io_base + LBA_LOW_OFFSET, (uint8_t)LBA28);
     outb(_device->io_base + LBA_MID_OFFSET, (uint8_t)(LBA28 >> 8));
     outb(_device->io_base + LBA_HIGH_OFFSET, (uint8_t)(LBA28 >> 16));
     outb(_device->io_base + COMMAND_REGISTER_OFFSET, CMD_WRITE_SECTORS);
-    ata_delay(_device->bus);
-    while(left > 0) {
-        poll_rc = ata_device_poll(_device);
-        if(poll_rc != OK)
-            break;
-        outw(_device->io_base + DATA_REGISTER_OFFSET, *ptr);
-        printk("--0x%x\n", *ptr);
-        left -= 2;
-        ptr += 1;
+    while((status = inb(_device->io_base + STATUS_REGISTER_OFFSET)) & STATUS_BUSY);
+    //ata_device_poll(_device);
+    for(idx = 0; idx < 256; idx++) {
+        outw(_device->io_base + DATA_REGISTER_OFFSET, ptr[idx]);
     }
-    ata_delay(_device->bus);
+    return OK;
+}
+
+void
+ata_device_flush_cache(struct ata_device * _device)
+{
+    outb(_device->io_base + DRIVER_REGISTER_OFFSET,
+        _device->drive == ATA_MASTER ? 0xe0 : 0xf0);
     outb(_device->io_base + COMMAND_REGISTER_OFFSET, CMD_FLUSH_CACHE);
-    // Flush cache
-    ata_delay(_device->bus);
-    do {
-        status = inb(_device->io_base + STATUS_REGISTER_OFFSET);
-        if (!(status & STATUS_BUSY))
-            break;
-    }while(1);
-    return (uint32_t)ptr - (int32_t)buffer;
+
+    ata_device_poll(_device);
 }
 /*
  * the read counterpart of ata_device_write_sectors.
  */
 int
-ata_device_read_sectors(struct ata_device * _device,
+ata_device_read_one_sector(struct ata_device * _device,
     uint32_t LBA28,
-    void * buffer,
-    int32_t count)
+    void * buffer)
 {
-    int poll_rc;
-    uint16_t * ptr = buffer;
-    int32_t left = count;
-    ASSERT(count >0 || count <= 256*512);
+    int idx = 0;
+    uint16_t * ptr = (uint16_t *)buffer;
+    uint8_t status;
     outb(_device->io_base + DRIVER_REGISTER_OFFSET,
         ((_device->drive == ATA_MASTER) ? 0xe0 : 0xf0) |
         ((LBA28 >> 24) & 0x0f));
-    ata_delay(_device->bus);
     outb(_device->io_base + ERROR_REGISTER_OFFSET, 0x0);
-    outb(_device->io_base + SECTOR_COUNTER_REGISTER_OFFSET,
-        1);
+    outb(_device->io_base + SECTOR_COUNTER_REGISTER_OFFSET, 1);
     outb(_device->io_base + LBA_LOW_OFFSET, (uint8_t)LBA28);
     outb(_device->io_base + LBA_MID_OFFSET, (uint8_t)(LBA28 >> 8));
     outb(_device->io_base + LBA_HIGH_OFFSET, (uint8_t)(LBA28 >> 16));
     outb(_device->io_base + COMMAND_REGISTER_OFFSET, CMD_READ_SECTORS);
-    ata_delay(_device->bus);
-    while(left > 0) {
-        poll_rc = ata_device_poll(_device);
-        if(poll_rc != OK)
-            break;
-        *ptr = inw(_device->io_base + DATA_REGISTER_OFFSET);
-        printk("0x%x\n", *ptr);
-        left -= 2;
-        ptr += 1;
+    //ata_device_poll(_device);
+    while((status = inb(_device->io_base + STATUS_REGISTER_OFFSET)) & STATUS_BUSY);
+    for(idx = 0; idx < 256; idx++) {
+        ptr[idx] = inw(_device->io_base + DATA_REGISTER_OFFSET);
     }
-    ata_delay(_device->bus);
-    return (uint32_t)ptr - (int32_t)buffer;
+    return OK;
 }
 
 void
