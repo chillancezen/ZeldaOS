@@ -18,7 +18,7 @@
 #include <device/include/pci.h>
 #include <device/include/ata.h>
 #include <zelda_drive.h>
-
+#include <lib/include/generic_tree.h>
 static struct multiboot_info * boot_info;
 
 static void
@@ -82,6 +82,9 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init2();
     init3();
     post_init();
+#if defined(INLINE_TEST)
+    test_generic_tree();
+#endif
     /*
      * perform stack switching with newly mapped stack area
      * prepare the return address of last frame in new stack
