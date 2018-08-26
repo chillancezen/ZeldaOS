@@ -23,6 +23,9 @@ SECTIONS
     KEEP(*(SORT_BY_INIT_PRIORITY( .init_array.* )));
     end_ctors = .;
     *(.data)
+    _zelda_drive_start = .;
+    KEEP(*(.zelda_drive))
+    _zelda_drive_end = .;
   }
   _kernel_data_end = .;
   _kernel_bss_start = ALIGN(4096);

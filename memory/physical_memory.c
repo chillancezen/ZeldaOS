@@ -69,6 +69,9 @@ void probe_physical_mmeory(struct multiboot_info * boot_info)
     LOG_INFO("kernel bss ends at 0x%x (aligned size:%d)\n",
         &_kernel_bss_end,
         bss_size_aligned);
+    LOG_INFO("zelda drive starts at 0x%x\n", &_zelda_drive_start);
+    LOG_INFO("Zelda drive ends at 0x%x(size:%d)\n", &_zelda_drive_end,
+        ((uint32_t)&_zelda_drive_end) - ((uint32_t)&_zelda_drive_start));
     /*
      * check kernel image boundary, it should not exceed PAGE_SPACE_BOTTOM
      */

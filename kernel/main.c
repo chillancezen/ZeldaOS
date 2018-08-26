@@ -17,6 +17,7 @@
 #include <kernel/include/task.h>
 #include <device/include/pci.h>
 #include <device/include/ata.h>
+#include <zelda_drive.h>
 
 static struct multiboot_info * boot_info;
 

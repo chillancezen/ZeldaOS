@@ -50,5 +50,7 @@ extern uint8_t * _kernel_data_start;
 extern uint8_t * _kernel_data_end;
 extern uint8_t * _kernel_bss_start;
 extern uint8_t * _kernel_bss_end;
+extern uint8_t * _zelda_drive_start;
+extern uint8_t * _zelda_drive_end;
 
 #endif
