@@ -14,5 +14,6 @@ struct zelda_file {
     uint32_t length;
 };
 
+void zeldafs_init(void);
 #endif
 

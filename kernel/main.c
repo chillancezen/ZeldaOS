@@ -17,10 +17,9 @@
 #include <kernel/include/task.h>
 #include <device/include/pci.h>
 #include <device/include/ata.h>
-#include <zelda_drive.h>
 #include <lib/include/generic_tree.h>
 #include <filesystem/include/vfs.h>
-
+#include <filesystem/include/zeldafs.h>
 
 static struct multiboot_info * boot_info;
 
@@ -51,6 +50,12 @@ init3(void)
     ata_init();
 }
 static void
+init4(void)
+{
+    vfs_init();
+    zeldafs_init();
+}
+static void
 post_init(void)
 {
    /*
@@ -70,7 +75,6 @@ post_init(void)
             PAGE_WRITEBACK,
             PAGE_CACHE_ENABLED);
    }
-   vfs_init();
    task_init();
    schedule_enable();
 }
@@ -80,6 +84,7 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init1();
     init2();
     init3();
+    init4();
     post_init();
 #if defined(INLINE_TEST)
     test_generic_tree();

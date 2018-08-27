@@ -12,5 +12,10 @@ struct file {
 
 
 struct file_operation {
-    int (*open)(struct file * _file, uint32_t mode);
+    int32_t (*open)(struct file * _file, uint32_t mode);
+    int32_t (*read)(struct file * _file, int offset, void * buffer, int size);
+    int32_t (*write)(struct file * _file, int offset, void * buffer, int size);
+    int32_t (*truncate)(struct file * _file, int offset);
+    int32_t (*close)(struct file * _file);
+    int32_t (*ioctl)(struct file * _file, uint32_t request, ...);
 };
