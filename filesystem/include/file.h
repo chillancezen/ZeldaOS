@@ -3,14 +3,14 @@
  */
 #include <lib/include/types.h>
 #include <lib/include/generic_tree.h>
+#define MAX_PATH 256
 
-#define FILE_NAME_SIZE 64
 struct file {
-    uint8_t name[FILE_NAME_SIZE];
+    uint8_t name[MAX_PATH];
     struct generic_tree fs_node;
 };
 
 
 struct file_operation {
-    int (*open)(struct file * _file, int32_t mode);
+    int (*open)(struct file * _file, uint32_t mode);
 };

@@ -19,6 +19,9 @@
 #include <device/include/ata.h>
 #include <zelda_drive.h>
 #include <lib/include/generic_tree.h>
+#include <filesystem/include/vfs.h>
+
+
 static struct multiboot_info * boot_info;
 
 static void
@@ -61,17 +64,13 @@ post_init(void)
     */
    uint32_t stack_ptr = KERNEL_STACK_BOTTOM;
    LOG_INFO("Map kernel stack space:\n");
-   //disable_paging();
    for (; stack_ptr < KERNEL_STACK_TOP; stack_ptr += PAGE_SIZE) {
         kernel_map_page(stack_ptr, get_base_page(),
             PAGE_PERMISSION_READ_WRITE,
             PAGE_WRITEBACK,
             PAGE_CACHE_ENABLED);
    }
-   //enable_paging();
-   /*
-    * task initialization
-    */
+   vfs_init();
    task_init();
    schedule_enable();
 }
