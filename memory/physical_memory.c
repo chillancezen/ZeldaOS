@@ -36,7 +36,7 @@ void probe_physical_mmeory(struct multiboot_info * boot_info)
         (struct multiboot_mmap*)(boot_info->mmap_addr + boot_info->mmap_length);
     LOG_INFO("Probing physical memory with multiboot:0x%x... ...\n",boot_info);
     for (idx = 0; mmap < mmap_end; mmap++, idx++) {
-        LOG_INFO("%d: type:%x baseaddr:0x%x length:0x%x %s\n",
+        LOG_INFO("   %d: type:%x baseaddr:0x%x length:0x%x %s\n",
             idx, mmap->type, mmap->baseaddr_low, mmap->length_low,
             LOW_MEMORY_DELIMITER == mmap->baseaddr_low? "(*system main memory)":
             mmap->baseaddr_high? "(*not addressable in ia32)": "");

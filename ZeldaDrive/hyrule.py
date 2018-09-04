@@ -18,14 +18,18 @@ def string_to_array(arr, _str):
         arr[_idx] = _byte
         _idx = _idx + 1
 
+#please refer to filesystem/include/zeldafs.h for the definition and 
+#memory layout to serialization and deserialization
 
 def write_drive_file(_file_dst, _path):
     name = bytearray(PATH_NAME)
     size = os.path.getsize(_path)
-    string_to_array(name, _path)
+    string_to_array(name, _path.lstrip('.'))
     _file_dst.write(name)
     _file_dst.write(int32_to_array(size))
-    print('[File] Found file:%s size:%s' % (_path, size))
+    _file_dst.write(int32_to_array(0))
+    _file_dst.write(int32_to_array(0))
+    print('[File] Found file:%s size:%s' % (_path.lstrip('.'), size))
     with open(_path, 'rb') as f:
         while True:
             context = f.read(512)

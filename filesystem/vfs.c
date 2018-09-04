@@ -211,7 +211,7 @@ test_vfs(void)
         ASSERT(!register_file_system((uint8_t *)"/home/jie", &fs0));
 
         entry = search_mount_entry((uint8_t *)"//home/jied/../jie/./cute.txt");
-        LOG_DEBUG("Fount mount entry 0x%x(%s)\n", entry,
+        LOG_DEBUG("Found mount entry 0x%x(%s)\n", entry,
             entry ? (char *)entry->mount_point : "");
     }
     dump_mount_entries();
@@ -220,9 +220,13 @@ test_vfs(void)
 void
 vfs_init(void)
 {
-    memset(mount_entries, 0x0, sizeof(mount_entries));
 #if defined(INLINE_TEST)
     test_vfs();
 #endif
 }
 
+__attribute__((constructor)) void
+vfs_pre_init(void)
+{
+    memset(mount_entries, 0x0, sizeof(mount_entries));
+}

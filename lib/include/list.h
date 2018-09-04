@@ -4,7 +4,10 @@
 #ifndef _LIST_H
 #define _LIST_H
 #include <lib/include/types.h>
-
+/*
+ * CAVEATS: Do *NOT* modify the struct of list_elem, otherwise it may impact
+ * Zelda Drive serialization. 
+ */
 struct list_elem {
     struct list_elem * prev;
     struct list_elem * next;

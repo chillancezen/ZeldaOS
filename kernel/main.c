@@ -22,6 +22,18 @@
 #include <filesystem/include/zeldafs.h>
 
 static struct multiboot_info * boot_info;
+static void
+pre_init(void)
+{
+    uint32_t _start_addr = (uint32_t)&_kernel_constructor_start;
+    uint32_t _end_addr = (uint32_t)&_kernel_constructor_end;
+    uint32_t func_container = 0;
+    for(func_container = _start_addr;
+        func_container < _end_addr;
+        func_container += 4) {
+        ((void (*)(void))*(uint32_t *)func_container)();
+    }
+}
 
 static void
 init1(void)
@@ -81,6 +93,7 @@ post_init(void)
 void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
 {
     boot_info = _boot_info;
+    pre_init();
     init1();
     init2();
     init3();

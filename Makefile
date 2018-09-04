@@ -1,6 +1,5 @@
 include mk/Makefile.kernel
 
-
 app:
 	@echo "[ACTION] start to compile application packages."; \
 	for _dir in `ls application`; \
