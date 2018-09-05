@@ -26,6 +26,43 @@
 
 
 /*
+ * Userspace memory layout:
+ * the lower 1G address space is for kernel at PL0
+ * the upper 2.5G address space is for user application at PL3
+ * the memory layout:
+ *          +-------+
+ *          |       | (0.5G unused)
+ *          |       |
+ *0xE0000000+-------+ <--- USERSPACE_TOP
+ *     |    |       |
+ *     |    |       |
+ *     |    |       |
+ *     v    |       |   *(mmap)
+ *    1G    |       |   *(shared library)
+ *     ^    |       |
+ *     |    |       |
+ *     |    |       |
+ *0xA0000000+---+---+ <--- USERSPACE_STACK_TOP
+ *     |    |   |   |      (fixed,Do Not Overlap)
+ *     |    |   v   |
+ *     |    |       |
+ *     v    |       |
+ *    1.5G  |   ^   |
+ *     ^    +---+---+ <--- Heap Bottom
+ *     |    |       |      (variable)
+ *     |    |       | .data & .bss
+ *     |    |       | .text
+ *0x40000000+-------+ <--- USERSPACE_BOTTOM
+ *          |       |
+ *          |       | 1G kernel
+ *          |       |
+ *       0x0+-------+
+ */
+#define USERSPACE_BOTTOM 0x40000000
+#define USERSPACE_STACK_TOP 0xA0000000
+#define USERSPACE_TOP 0xE0000000
+
+/*
  *The MAX_FRAME_ON_DUMPSTACK indicates the maximum frames to dump
  *the calling stack.
  */
