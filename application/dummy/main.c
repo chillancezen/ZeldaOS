@@ -21,7 +21,7 @@ int main(void)
     int _start = (int)&_zelda_constructor_init_start;
     int _end = (int)&_zelda_constructor_init_end;
     int addr = 0;
-    for(addr = _start; addr < _end; addr++) {
+    for(addr = _start; addr < _end; addr += 4) {
         ((void (*)(void))*(int*)addr)();
     }
     return 0;

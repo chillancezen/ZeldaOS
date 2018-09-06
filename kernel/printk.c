@@ -37,7 +37,9 @@ printk_init()
     set_log_level(LOG_DEBUG);
 }
 int
-vga_enqueue_byte(uint8_t target)
+vga_enqueue_byte(uint8_t target,
+    void * opaque0 __used,
+    void * opaque1 __used)
 {
     int idx = 0;
 #if defined(SERIAL_OUTPUT)
@@ -73,14 +75,17 @@ void printk_flush()
 }
 #define DEFAULT_STACK_SIZE 64
 static void
-resolve_decimal(int32_t val)
+resolve_decimal(int32_t val,
+    int (*func)(uint8_t, void *, void *),
+    void * opaque0,
+    void * opaque1)
 {
     int8_t stack[DEFAULT_STACK_SIZE];
     int iptr = 0;
     int8_t mod;
     int8_t null_flag = 1;
     if (val < 0)
-        vga_enqueue_byte('-');
+        func('-', opaque0, opaque1);
     val = (val < 0) ? -val : val;
     while(val && iptr < DEFAULT_STACK_SIZE) {
         null_flag = 0;
@@ -92,11 +97,15 @@ resolve_decimal(int32_t val)
         stack[iptr++] = '0';
     }
     while(iptr > 0) {
-        vga_enqueue_byte(stack[--iptr]);
+        func(stack[--iptr], opaque0, opaque1);
     }
 }
 static void
-resolve_hexdecimal(int32_t _val, int lowcase)
+resolve_hexdecimal(int32_t _val,
+    int lowcase,
+    int (*func)(uint8_t, void *, void *),
+    void * opaque0,
+    void * opaque1)
 {
     uint8_t lower[] = "0123456789abcdef";
     uint8_t upper[] = "0123456789ABCDEF";
@@ -115,20 +124,32 @@ resolve_hexdecimal(int32_t _val, int lowcase)
         stack[iptr++] = '0';
     }
     while(iptr > 0) {
-        vga_enqueue_byte(stack[--iptr]);
+        func(stack[--iptr], opaque0, opaque1);
     }
 }
-void printk(const char * format, ...)
+
+static int
+sprintf_lambda_func(uint8_t c, void * opaque0, void * opaque1)
 {
+    uint8_t * dst = (uint8_t *)opaque0;
+    int32_t * pindex = (int32_t *)opaque1;
+    dst[*pindex] = c;
+    *pindex += 1;
+    return 0;
+}
+int
+sprintf(char * dst, const char * format, ...)
+{
+    int ret = 0;
     const char * ptr = format;
     char * str_arg;
     int int_arg;
     int _iptr;
     va_list arg_ptr;
     va_start(arg_ptr, format);
-    for(; *ptr; ptr++){
-        if (*ptr != '%'){
-            vga_enqueue_byte(*ptr);
+    for(; *ptr; ptr++) {
+        if(*ptr != '%') {
+            dst[ret++] = *ptr;
         } else {
             ++ptr;
             switch(*ptr)
@@ -136,30 +157,89 @@ void printk(const char * format, ...)
                 case 's':
                     str_arg = va_arg(arg_ptr, char *);
                     for (_iptr = 0; str_arg[_iptr]; _iptr++)
-                        vga_enqueue_byte(str_arg[_iptr]);
+                        dst[ret++] = str_arg[_iptr];  
+                    break;
+                case 'c':
+                    int_arg = va_arg(arg_ptr, int);
+                    dst[ret++] = (char)int_arg;
+                    break;
+                case 'd':
+                case 'h':
+                    int_arg = va_arg(arg_ptr, int32_t);
+                    resolve_decimal(int_arg, sprintf_lambda_func,
+                        dst, &ret);
+                    break;
+                case 'x':
+                    int_arg = va_arg(arg_ptr, int32_t);
+                    resolve_hexdecimal(int_arg, 1, sprintf_lambda_func,
+                        dst, &ret);
+                    break;
+                case 'X':
+                    int_arg = va_arg(arg_ptr, int32_t);
+                    resolve_hexdecimal(int_arg, 0, sprintf_lambda_func,
+                        dst, &ret);
+                    break;
+                case 'l':
+                    int_arg = va_arg(arg_ptr, int32_t);
+                    resolve_hexdecimal(int_arg, 0, sprintf_lambda_func,
+                        dst, &ret);
+                    int_arg = va_arg(arg_ptr, int32_t);
+                    resolve_hexdecimal(int_arg, 0, sprintf_lambda_func,
+                        dst, &ret);
+                    break;
+                default:
+                    break;
+
+            }
+        }
+
+    }
+    dst[ret++] = '\x0';
+    return ret; 
+}
+void
+printk(const char * format, ...)
+{
+    const char * ptr = format;
+    char * str_arg;
+    int int_arg;
+    int _iptr;
+    va_list arg_ptr;
+    va_start(arg_ptr, format);
+    for(; *ptr; ptr++) {
+        if (*ptr != '%') {
+            vga_enqueue_byte(*ptr, NULL, NULL);
+        } else {
+            ++ptr;
+            switch(*ptr)
+            {
+                case 's':
+                    str_arg = va_arg(arg_ptr, char *);
+                    for (_iptr = 0; str_arg[_iptr]; _iptr++)
+                        vga_enqueue_byte(str_arg[_iptr], NULL, NULL);
                     break;
                 case 'c': //as a character
                     int_arg = va_arg(arg_ptr, int);
-                    vga_enqueue_byte((char)int_arg);
+                    vga_enqueue_byte((char)int_arg, NULL, NULL);
                     break;
                 case 'd':
                 case 'h'://as a short in decimal format
                     int_arg = va_arg(arg_ptr, int32_t);
-                    resolve_decimal(int_arg);
+                    resolve_decimal(int_arg, vga_enqueue_byte, NULL, NULL);
                     break;
                 case 'x':
                     int_arg = va_arg(arg_ptr, int32_t);
-                    resolve_hexdecimal(int_arg, 1);
+                    resolve_hexdecimal(int_arg, 1, vga_enqueue_byte, NULL, NULL);
                     break;
                 case 'X':
                     int_arg = va_arg(arg_ptr, int32_t);
-                    resolve_hexdecimal(int_arg, 0);
+                    resolve_hexdecimal(int_arg, 0, vga_enqueue_byte, NULL, NULL);
                     break;
                 case 'l':
                     int_arg = va_arg(arg_ptr, int32_t);
-                    resolve_hexdecimal(int_arg, 0);
+                    resolve_hexdecimal(int_arg, 0, vga_enqueue_byte, NULL, NULL);
                     int_arg = va_arg(arg_ptr, int32_t);
-                    resolve_hexdecimal(int_arg, 0);
+                    resolve_hexdecimal(int_arg, 0, vga_enqueue_byte, NULL, NULL);
                     break;
             }
 

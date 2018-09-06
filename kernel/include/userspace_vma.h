@@ -15,18 +15,16 @@ struct vm_area {
     uint32_t write_permission:1;
     uint32_t page_writethrough:1;
     uint32_t page_cachedisable:1;
-    uint32_t readable:1;
-    uint32_t writable:1;
     uint32_t executable:1;
 
     uint64_t virt_addr;
     uint64_t phy_addr;
 
-    uint32_t length;
+    uint64_t length;
 };
 
-#define USER_VMA_TEXT "userspace.vma.text"
-#define USER_VMA_DATA "userspace.vma.data"
+#define KERNEL_VMA "kernelspace.vma"
+#define USER_VMA_TEXT_AND_DATA "userspace.vma.text&data"
 #define USER_VMA_HEAP "userspace.vma.heap"
 #define USER_VMA_STACK "userspace.vma.stack"
 

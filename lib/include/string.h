@@ -11,4 +11,7 @@ int strcmp(uint8_t * str1, uint8_t * str2);
 void strcpy(uint8_t * dst, const uint8_t * src);
 int start_with(const uint8_t * target, const uint8_t * sub);
 
+// The function body is in: kernel/printk.c
+int sprintf(char * dst, const char * format, ...);
+
 #endif

@@ -61,7 +61,7 @@
 #define USERSPACE_BOTTOM 0x40000000
 #define USERSPACE_STACK_TOP 0xA0000000
 #define USERSPACE_TOP 0xE0000000
-
+#define KERNELSPACE_TOP USERSPACE_BOTTOM
 /*
  *The MAX_FRAME_ON_DUMPSTACK indicates the maximum frames to dump
  *the calling stack.

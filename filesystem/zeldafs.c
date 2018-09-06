@@ -65,9 +65,11 @@ zeldafs_init(void)
     enumerate_files_in_zelda_drive();
     dump_zedla_drives();
     {
+        int rc = 0, rc1;
         struct zelda_file * _file = search_zelda_file("/usr/bin/dummy");
-        validate_static_elf32_format(_file->content, _file->length);
-        printk("rc:%x\n",  (int32_t)0x40000000 < (int32_t)0xE0000000);
-        printk("rc:%d %d\n", 0xA0000000 , 0xE0000000);
+        printk("found zelda file:%x\n", _file);
+        rc = validate_static_elf32_format(_file->content, _file->length);
+        rc1 = load_static_elf32(_file->content, (uint8_t *)"");
+        printk("%d %d\n", rc, rc1);
     }
 }
