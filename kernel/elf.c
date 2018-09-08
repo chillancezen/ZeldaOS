@@ -54,7 +54,7 @@ validate_static_elf32_format(uint8_t * mem, int32_t length)
 }
 
 /*
- *Load ELF32 executable at PL3 as a tasks
+ *Load ELF32 executable at PL3 as a task
  */
 int
 load_static_elf32(uint8_t * mem, uint8_t * command)
@@ -259,8 +259,6 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         if (_task) {
             if (_task->privilege_level0_stack)
                 free(_task->privilege_level0_stack);
-            if (_task->privilege_level3_stack)
-                free(_task->privilege_level3_stack);
             free_task(_task);
         }
     return ret;

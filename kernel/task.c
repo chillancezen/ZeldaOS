@@ -116,25 +116,19 @@ int32_t
 mockup_spawn_task(struct task * _task)
 {
     struct x86_cpustate * cpu = NULL;
-    uint32_t runtime_stack = (uint32_t)RUNTIME_STACK(_task);
-    LOG_INFO("task-%x's runtime stack:%x\n",_task, runtime_stack);
     cpu = (struct x86_cpustate *)
-        (_task->privilege_level0_stack_top - sizeof(struct x86_cpustate));
+        (_task->privilege_level0_stack +
+        DEFAULT_TASK_PRIVILEGED_STACK_SIZE -
+        sizeof(struct x86_cpustate));
+    cpu = (struct x86_cpustate *)(((uint32_t)cpu) & ~0x3f);
     ASSERT(!(((uint32_t)cpu) & 0x3));
     memset(cpu, 0x0, sizeof(struct task));
     if (_task->privilege_level == DPL_3) {
-        cpu->ss = USER_DATA_SELECTOR;
-        cpu->esp = _task->privilege_level3_stack_top;
-        cpu->eflags = EFLAGS_ONE | EFLAGS_INTERRUPT;
-        cpu->cs = USER_CODE_SELECTOR;
-        cpu->eip = _task->entry;
-        cpu->gs = USER_DATA_SELECTOR;
-        cpu->fs = USER_DATA_SELECTOR;
-        cpu->es = USER_DATA_SELECTOR;
-        cpu->ds = USER_DATA_SELECTOR;
+        ASSERT(0);
     } else {
         cpu->ss = KERNEL_DATA_SELECTOR;
-        cpu->esp = _task->privilege_level0_stack_top;
+        cpu->esp = (uint32_t)_task->privilege_level0_stack +
+            DEFAULT_TASK_PRIVILEGED_STACK_SIZE;
         cpu->eflags = EFLAGS_ONE | EFLAGS_INTERRUPT;
         cpu->cs = KERNEL_CODE_SELECTOR;
         cpu->eip = _task->entry;
@@ -158,25 +152,11 @@ mockup_load_task(struct task * _task,
 
     _task->privilege_level0_stack =
         malloc(DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
-    _task->privilege_level3_stack =
-        malloc(DEFAULT_TASK_NON_PRIVILEGED_STACK_SIZE);
-    _task->privilege_level0_stack_top =
-        (uint32_t)_task->privilege_level0_stack +
-        DEFAULT_TASK_PRIVILEGED_STACK_SIZE;
-    _task->privilege_level3_stack_top =
-        (uint32_t)_task->privilege_level3_stack +
-        DEFAULT_TASK_NON_PRIVILEGED_STACK_SIZE;
-    _task->privilege_level0_stack_top &= ~0xff;
-    _task->privilege_level3_stack_top &= ~0xff;
 
     LOG_INFO("task-%x's PL0 stack:0x%x - 0x%x\n",
         _task,
         _task->privilege_level0_stack,
-        _task->privilege_level0_stack_top);
-    LOG_INFO("task-%x's PL3 stack:0x%x - 0x%x\n",
-        _task,
-        _task->privilege_level3_stack,
-        _task->privilege_level3_stack_top);
+        _task->privilege_level0_stack + DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
     return OK;
 }
 void
