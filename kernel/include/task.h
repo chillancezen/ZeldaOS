@@ -62,4 +62,16 @@ struct task * task_get(void);
 void schedule_enable(void);
 void schedule_disable(void);
 int ready_to_schedule(void);
+
+int vma_in_task(struct task * task, struct vm_area * vma);
+
+void dump_task_vm_areas(struct task * _task);
+int userspace_map_vm_area(struct task * task, struct vm_area * vma);
+int
+userspace_map_page(struct task * task,
+    uint32_t virt_addr,
+    uint32_t phy_addr,
+    uint8_t write_permission,
+    uint8_t page_writethrough,
+    uint8_t page_cachedisable);
 #endif

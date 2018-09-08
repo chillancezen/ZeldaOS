@@ -53,137 +53,6 @@ validate_static_elf32_format(uint8_t * mem, int32_t length)
 #undef _
 }
 
-void
-dump_task_vm_areas(struct task * _task)
-{
-    struct list_elem * _list;
-    struct vm_area * _vma;
-    LOG_DEBUG("Dump task.vma_list\n");
-    LIST_FOREACH_START(&_task->vma_list, _list) {
-        _vma = CONTAINER_OF(_list, struct vm_area, list);
-        LOG_DEBUG("   vma name:%s virt:0x%x length:0x%x permission:[%s%s]\n",
-            _vma->name,
-            (uint32_t)_vma->virt_addr,
-            (uint32_t)_vma->length,
-            _vma->write_permission == PAGE_PERMISSION_READ_WRITE ?
-                "read-write" : "read-only",
-            _vma->executable ? ",executable" : "");
-    }
-    LIST_FOREACH_END();
-}
-/*
- * Try to premap the VM area into task, if there is no enough memory(for 
- *  both base page table for page directory and oridinary page table),
- *  return ERR_PARTIAL. the function do not roll back upon it.
- */
-int
-userspace_map_vm_area(struct task * task, struct vm_area * vma)
-{
-    int rc = 0;
-    int found = 0;
-    int partially_mapped = 0;
-    struct list_elem * _list;
-    struct vm_area * _vma;
-    uint64_t addr = 0;
-    uint32_t v_addr = 0;
-    uint32_t p_addr = 0;
-
-    LIST_FOREACH_START(&task->vma_list, _list) {
-        _vma = CONTAINER_OF(_list, struct vm_area, list);
-        if (_vma == vma) {
-            found = 1;
-            break;
-        }
-    }
-    LIST_FOREACH_END();
-    if (!found) {
-        LOG_ERROR("The vma:0x%x is not in task:0x%x\n", vma, task);
-        return -ERR_INVALID_ARG;
-    }
-    for (addr = vma->virt_addr;
-        addr < (vma->virt_addr + vma->length); addr += PAGE_SIZE) {
-        v_addr = (uint32_t)addr;
-        // Prepare physical address
-        if (!vma->exact) {
-            p_addr = get_page();
-            if (!p_addr) {
-                LOG_DEBUG("can not allocate generic page for task:0x%x"
-                    " vma:0x%x\n", task, vma);
-                return partially_mapped ? -ERR_PARTIAL : -ERR_OUT_OF_MEMORY;
-            }
-        } else {
-            p_addr = (uint32_t)(vma->phy_addr + addr - vma->virt_addr);
-        }
-        // Then try to map them.
-        rc = userspace_map_page(task,
-            v_addr,
-            p_addr,
-            vma->write_permission,
-            vma->page_writethrough,
-            vma->page_cachedisable);
-        if (rc != OK) {
-            if (!vma->exact)
-                free_page(p_addr);
-            return partially_mapped ? -ERR_PARTIAL : -ERR_OUT_OF_MEMORY;
-        } else {
-            partially_mapped = 1;
-        }
-    }
-    return OK;
-}
-
-int
-userspace_map_page(struct task * task,
-    uint32_t virt_addr,
-    uint32_t phy_addr,
-    uint8_t write_permission,
-    uint8_t page_writethrough,
-    uint8_t page_cachedisable)
-{
-    uint32_t page_table = 0;
-    uint32_t * page_table_ptr;
-    uint32_t pd_index = (virt_addr >> 22) & 0x3ff;
-    uint32_t pt_index = (virt_addr >> 12) & 0x3ff;
-    struct pde32 * pde = NULL;
-    struct pte32 * pte;
-    ASSERT(task->page_directory);
-    if (virt_addr < (uint32_t)USERSPACE_BOTTOM) {
-        LOG_DEBUG("Not userspace virtual address:0x%x\n", virt_addr);
-        return -ERR_INVALID_ARG;
-    }
-    pde = PDE32_PTR(&task->page_directory[pd_index]);
-    if(!pde->present) {
-        page_table = get_base_page();
-        if(!page_table) {
-            LOG_DEBUG("Failed to allocate page table for directory"
-                " vaddr:0x%x\n",
-                virt_addr);
-            return -ERR_OUT_OF_MEMORY;
-        }
-        memset((void*)page_table, 0x0, PAGE_SIZE);
-        task->page_directory[pd_index] = create_pde32(
-            PAGE_PERMISSION_READ_WRITE,
-            PAGE_PERMISSION_USER,
-            PAGE_WRITEBACK,
-            PAGE_CACHE_ENABLED,
-            page_table);
-        LOG_DEBUG("allocate page table for task:0x%x's page directory"
-            " index:%x\n", task, pd_index);
-        pde = PDE32_PTR(&task->page_directory[pd_index]);
-    }
-    ASSERT(pde->present);
-    page_table_ptr = (uint32_t *)(pde->pt_frame << 12);
-    page_table_ptr[pt_index] = create_pte32(
-        write_permission,
-        PAGE_PERMISSION_USER,
-        page_writethrough,
-        page_cachedisable,
-        phy_addr);
-    pte = PTE32_PTR(&page_table_ptr[pt_index]);
-    ASSERT(pte->present);
-    ASSERT((pte->pg_frame << 12) == (phy_addr & (~PAGE_MASK)));
-    return OK;
-}
 /*
  *Load ELF32 executable at PL3 as a tasks
  */
@@ -227,6 +96,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     }
     memset(_vma, 0x0, sizeof(struct vm_area));
     strcpy(_vma->name, (uint8_t *)KERNEL_VMA);
+    _vma->kernel_vma = 1;
     _vma->pre_map = 0;
     _vma->exact = 0;
     _vma->write_permission = PAGE_PERMISSION_READ_ONLY;
@@ -257,6 +127,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         sprintf((char *)_text_and_data_vma_name, "%s.%d", 
             USER_VMA_TEXT_AND_DATA, _text_and_data_counter++);
         strcpy(_vma->name, (uint8_t *)_text_and_data_vma_name);
+        _vma->kernel_vma = 0;
         _vma->pre_map = 1;
         _vma->exact = 0;
         _vma->page_writethrough = PAGE_WRITEBACK;
@@ -282,6 +153,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     }
     memset(_vma, 0x0, sizeof(struct vm_area));
     strcpy(_vma->name, (uint8_t *)USER_VMA_HEAP);
+    _vma->kernel_vma = 0;
     _vma->pre_map = 0;
     _vma->exact = 0;
     _vma->page_writethrough = PAGE_WRITEBACK;
@@ -301,6 +173,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     }
     memset(_vma, 0x0, sizeof(struct vm_area));
     strcpy(_vma->name, (uint8_t *)USER_VMA_STACK);
+    _vma->kernel_vma = 0;
     _vma->pre_map = 1;
     _vma->exact = 0;
     _vma->page_writethrough = PAGE_WRITEBACK;
@@ -341,7 +214,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     LIST_FOREACH_END();
 
 
-    printk("comparison:%d\n", ((uint32_t)USERSPACE_STACK_TOP) > (int32_t)0 );
+    //printk("comparison:%d\n", ((uint32_t)USERSPACE_STACK_TOP) > (int32_t)0 );
     //printk("Heap begin:%x\n", *(uint32_t *)USERSPACE_BOTTOM);
     return ret;
     page_error:

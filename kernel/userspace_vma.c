@@ -5,7 +5,6 @@
 #include <lib/include/string.h>
 #include <lib/include/errorcode.h>
 #include <kernel/include/printk.h>
-
 struct vm_area *
 search_userspace_vma(struct list_elem * head, uint8_t * vma_name)
 {
@@ -18,6 +17,23 @@ search_userspace_vma(struct list_elem * head, uint8_t * vma_name)
     }
     LIST_FOREACH_END();
     return _vma;
+}
+
+struct vm_area *
+search_userspace_vma_by_addr(struct list_elem * head, uint32_t vaddr)
+{
+    struct list_elem * _list = NULL;
+    struct vm_area * _vma = NULL;
+    uint64_t _vaddr = vaddr;
+    
+    LIST_FOREACH_START(head, _list) {
+        _vma = CONTAINER_OF(_list, struct vm_area, list);
+        if (_vaddr >= _vma->virt_addr &&
+            _vaddr < (_vma->virt_addr + _vma->length))
+            return _vma;
+    }
+    LIST_FOREACH_END();
+    return NULL;
 }
 
 int

@@ -4,6 +4,7 @@
 #ifndef _ELF_H
 #define _ELF_H
 #include <lib/include/types.h>
+
 /*
  * I borrow the definition from /uer/include/elf.h
  */
@@ -63,11 +64,4 @@ struct elf32_program_header{
 #define PROGRAM_EXECUTE (1 << 0)
 int validate_static_elf32_format(uint8_t * mem, int32_t length);
 int load_static_elf32(uint8_t * mem, uint8_t * command);
-int
-userspace_map_page(struct task * task,
-    uint32_t virt_addr,
-    uint32_t phy_addr,
-    uint8_t write_permission,
-    uint8_t page_writethrough,
-    uint8_t page_cachedisable);
 #endif

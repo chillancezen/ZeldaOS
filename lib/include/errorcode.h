@@ -11,7 +11,10 @@ enum errorcode {
     ERR_OUT_OF_RESOURCE,
     ERR_INVALID_ARG,
     ERR_DEVICE_FAULT,
-    ERR_PARTIAL
+    ERR_PARTIAL,
+    ERR_NOT_PRESENT,
+    ERR_NOT_FOUND,
+    ERR_BUSY,
 };
 
 #endif

@@ -75,11 +75,38 @@ create_pde32(uint32_t write_permission,
  *Get a free page from PageInventory VMA. usually these pages are to construct
  *page directory/table for both kernnel and userspace.
  *return 0 if no available page is found.
- * FIXME: create a *FAST* method to seach free base page ... as it makes 
- * significient sense.
+ * FIXED: create a *FAST* method to seach free base page ... as it makes 
+ * significant sense.
  */
+static uint32_t fast_base_page_addr = 0;
 uint32_t
-get_base_page(void)
+get_base_page_fast(void)
+{
+    int32_t offset;
+    int32_t byte_idx = 0;
+    int32_t bit_idx = 0;
+    uint8_t bit_set_mask = 0;
+    uint32_t target_page = 0;
+    if (fast_base_page_addr < PAGE_SPACE_BOTTOM ||
+        fast_base_page_addr >= PAGE_SPACE_TOP)
+        fast_base_page_addr = PAGE_SPACE_BOTTOM;
+    for(; fast_base_page_addr < PAGE_SPACE_TOP;
+        fast_base_page_addr += PAGE_SIZE) {
+        offset = fast_base_page_addr - PAGE_SPACE_BOTTOM;
+        offset = offset >> 12;
+        byte_idx = offset >> 3;
+        bit_idx = offset & 0x7;
+        bit_set_mask = 1 << bit_idx;
+        if(free_base_page_bitmap[byte_idx] & bit_set_mask)
+            continue;
+        free_base_page_bitmap[byte_idx] |= bit_set_mask;
+        target_page = fast_base_page_addr;
+        break;
+    }
+    return target_page;
+}
+uint32_t
+get_base_page_slow(void)
 {
     uint32_t _page = PAGE_SPACE_BOTTOM;
     int32_t offset;
@@ -98,6 +125,14 @@ get_base_page(void)
         return _page;
     }
     return 0;
+}
+uint32_t
+get_base_page(void)
+{
+    uint32_t target_page = get_base_page_fast();
+    if (!target_page)
+        target_page = get_base_page_slow();
+    return target_page;
 }
 /*
  * release a page which must be in PageInventory VMA.

@@ -5,12 +5,12 @@
 #define _USERSPACE_VMA_H
 #include <lib/include/types.h>
 #include <lib/include/list.h>
-
 #define VM_AREA_NAME_SIZE 64
 struct vm_area {
     struct list_elem list;
     uint8_t name[VM_AREA_NAME_SIZE];
-
+    
+    uint32_t kernel_vma:1;
     uint32_t pre_map:1;
     uint32_t exact:1;
     uint32_t write_permission:1;
@@ -34,6 +34,9 @@ struct vm_area {
 
 struct vm_area *
 search_userspace_vma(struct list_elem * head, uint8_t * vma_name);
+
+struct vm_area *
+search_userspace_vma_by_addr(struct list_elem * head, uint32_t vaddr);
 
 int __extend_vm_area(struct vm_area * _vma, int direction, int length);
 #endif
