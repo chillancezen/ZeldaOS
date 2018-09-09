@@ -32,9 +32,21 @@ void __initialize_tss(struct task_state_segment * tss,
     tss->eflags = 0;
 }
 
+/*
+ * Set the ss0:esp0 of the static tss. thus when a PL3 task is interruped
+ * , the task switching occurs and a right PL0 stack can be found and serve the
+ * trapped services.
+ */
+void
+set_tss_privilege_level0_stack(uint32_t esp0)
+{
+    static_tss0.ss0 = KERNEL_DATA_SELECTOR;
+    static_tss0.esp0 = esp0;
+} 
 static void
 tss0_entry(void)
 {
+    ASSERT(0);
     //while(1) {
     //    dump_registers();
     //}
@@ -47,4 +59,5 @@ void tss_init(void)
         USER_CODE_SELECTOR,
         USER_DATA_SELECTOR,
         tss0_entry);
+
 }

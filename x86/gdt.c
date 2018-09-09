@@ -76,5 +76,14 @@ gdt_init(void)
         :"m"(gdtr)
         :"%edx");
     LOG_INFO("load GDT with size:0x%x, base:0x%x\n", gdtr.size, gdtr.offset);
+
+    /*
+     *  After loading the TSS selector, the processor knows how to find
+     *  the target task state segment.
+     */
+    asm volatile("ltr %%ax;"
+        :
+        :"a"(TSS0_SELECTOR));
+
     dump_registers();
 }

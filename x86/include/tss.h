@@ -54,5 +54,6 @@ struct task_state_segment {
     uint16_t iomap;
 }__attribute__((packed));
 
+void set_tss_privilege_level0_stack(uint32_t esp0);
 void tss_init(void);
 #endif
