@@ -25,7 +25,7 @@ def write_drive_file(_file_dst, _path):
     string_to_array(name, _path)
     _file_dst.write(name)
     _file_dst.write(int32_to_array(size))
-    print('Found file:%s size:%s' % (_path, size))
+    print('[File] Found file:%s size:%s' % (_path, size))
     with open(_path, 'rb') as f:
         while True:
             context = f.read(512)

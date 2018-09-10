@@ -1,0 +1,46 @@
+#Copyright (c) 2018 Jie Zheng
+#the generic application Makefile to compile app with
+#Zelda C runtime and library.
+
+#per-app Makefile must include the following fields
+#CFLAGS LDFLAGS SRCS MAPS
+#APP
+ifeq ($(APP),)
+$(error 'please specify variable:APP')
+endif
+
+
+
+OBJS = $(patsubst %.c,%.o,$(SRCS))
+
+%.o:%.c
+	@echo "[CC] $(APP):$<"
+	@gcc -m32 $(CFLAGS) -c -o $@ $<
+
+$(APP):$(OBJS)
+	@echo "[LD] $(APP):$@"
+	@ld -melf_i386 $(LDFLAGS) -Map=$(APP).map -T $(ZELDA)/mk/linker.ld.application -o $(APP) $(OBJS)
+
+clean:
+	@rm -f $(APP) *.o *.map; \
+    for _map in $(MAPS);\
+    do \
+        _dst=`echo $$_map |tr -d ' '|cut -d ':' -f 1`; \
+        _src=`echo $$_map |tr -d ' '|cut -d ':' -f 2`; \
+        _file="$(ZELDA)/ZeldaDrive/root/$$_dst/"; \
+		_basename=`basename $$_src`; \
+		_file="$$_file/$$_basename"; \
+		rm -f $$_file; \
+    done
+install:$(APP)
+	@echo "[INSTALL] $(APP)"; \
+	for _map in $(MAPS);\
+	do \
+		_dst=`echo $$_map |tr -d ' '|cut -d ':' -f 1`; \
+		_src=`echo $$_map |tr -d ' '|cut -d ':' -f 2`; \
+		echo "  copy $$_src to (root)$$_dst"; \
+		_dst="$(ZELDA)/ZeldaDrive/root/$$_dst"; \
+		mkdir -p $$_dst; \
+		test -e "$$_dst/$$_src" || cp $$_src $$_dst; \
+	done
+

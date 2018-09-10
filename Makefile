@@ -1,55 +1,23 @@
-DEFS = -DSERIAL_OUTPUT -DINLINE_TEST -DKERNEL_CONTEXT
-GCCPARAMS = -m32 -O0 -g -ffreestanding -nostdlib -fno-builtin -fno-exceptions -Werror -Wall -Wstrict-prototypes
-#Do not use c11, the gnu syntax extension is needed
-#GCCPARAMS = -m32 -std=c11 -O0 -g -Wall -Wextra -Wpedantic -Werror -Wno-error=missing-field-initializers -nostdlib -ffreestanding
-ASMPARAMS = -f elf32
-ASPARAMS = --32
-LDPARAMS = -melf_i386 -Map=Zelda.map
+include mk/Makefile.kernel
 
-DIRS = x86 kernel lib device memory filesystem
-KERNEL_IMAGE = Zelda.bin
-OS_PACKAGE = Zelda.iso
 
-C_FILES = $(foreach item,$(DIRS),$(wildcard $(item)/*.c))
-C_OBJS = $(patsubst %.c,%.o,$(C_FILES))
+app:
+	@echo "[ACTION] start to compile application packages."; \
+	for _dir in `ls application`; \
+	do \
+		ZELDA=$(ZELDA) make -C application/$$_dir; \
+	done
 
-ASM_FILES = $(foreach item,$(DIRS),$(wildcard $(item)/*.asm))
-ASM_OBJS = $(patsubst %.asm,%.o,$(ASM_FILES))
-
-AS_FILES = $(foreach item,$(DIRS),$(wildcard $(item)/*.s))
-AS_OBJS = $(patsubst %.s,%.o,$(AS_FILES))
-
-KERNEL_DEPENDS = $(C_OBJS) $(ASM_OBJS) $(AS_OBJS)
-
-%.o: %.c
-	@echo "[CC] $<"
-	@gcc $(GCCPARAMS) $(DEFS) -I . -include zelda_config.h  -o $@ -c $<
-
-%.o: %.asm
-	@echo "[AS] $<"
-	@nasm $(ASMPARAMS) -o $@ $<
-
-%.o: %.s
-	@echo "[AS] $<"
-	@as $(ASPARAMS) -o $@ $<
-
-$(OS_PACKAGE):
-
-$(KERNEL_IMAGE): $(KERNEL_DEPENDS)
-	@echo "[LD] $@"
-	@ld $(LDPARAMS) -T linker.ld -o $@ $(KERNEL_DEPENDS)
-clean:
-	@make clean -C ZeldaDrive
-	@rm -f $(KERNEL_IMAGE) Zelda.map $(KERNEL_DEPENDS)
-	@rm -f $(OS_PACKAGE)
-	@rm -f iso/boot/$(KERNEL_IMAGE)
-$(OS_PACKAGE): $(KERNEL_IMAGE)
-	@cp $(KERNEL_IMAGE) iso/boot
-	@grub2-mkrescue -o $(OS_PACKAGE) iso
-
-install:$(OS_PACKAGE)
-	@cp $(OS_PACKAGE) /mnt/projects
-
-drive:
-	make -C ZeldaDrive
+app_install:
+	@echo "[ACTION] start to install application packages."; \
+	for _dir in `ls application`; \
+	do \
+		ZELDA=$(ZELDA) make install -C application/$$_dir; \
+	done
+app_clean:
+	@echo "[ACTION] start to clean application packages."; \
+	for _dir in `ls application`; \
+	do \
+		ZELDA=$(ZELDA) make clean -C application/$$_dir; \
+	done
 
