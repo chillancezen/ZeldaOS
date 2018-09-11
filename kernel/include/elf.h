@@ -50,4 +50,12 @@ struct elf32_program_header{
     uint32_t p_align;        /* Segment alignment */
 };
 
+#define ELF32_IDENTITY_ELF 0x464c457f
+#define ELF32_CLASS_ELF32 0x1
+#define ELF32_ENDIAN_LITTLE 0x1
+
+#define ELF32_TYPE_EXEC 0x2
+#define ELF32_MACHINE_I386 0x3 
+
+int validate_static_elf32_format(uint8_t * mem, int32_t length);
 #endif

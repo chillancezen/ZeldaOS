@@ -5,6 +5,8 @@
 #include <memory/include/physical_memory.h>
 #include <kernel/include/printk.h>
 #include <lib/include/list.h>
+#include <lib/include/string.h>
+#include <kernel/include/elf.h>
 
 static uint32_t zelda_drive_start = (uint32_t)&_zelda_drive_start;
 static uint32_t zelda_drive_end =(uint32_t)&_zelda_drive_end;
@@ -13,6 +15,20 @@ static struct list_elem head = {
     .prev = NULL,
     .next = NULL   
 };
+
+struct zelda_file *
+search_zelda_file(char * name)
+{
+    struct zelda_file * _file;
+    struct list_elem * _list;
+    LIST_FOREACH_START(&head, _list) {
+        _file = CONTAINER_OF(_list, struct zelda_file, list);
+        if (!strcmp(_file->path, (uint8_t *)name))
+            return _file;
+    }
+    LIST_FOREACH_END();
+    return NULL;
+}
 
 void
 dump_zedla_drives(void)
@@ -43,10 +59,14 @@ enumerate_files_in_zelda_drive(void)
 }
 
 
-
 void
 zeldafs_init(void)
 {
     enumerate_files_in_zelda_drive();
     dump_zedla_drives();
+    {
+        struct zelda_file * _file = search_zelda_file("/usr/bin/dummy");
+        int rc = validate_static_elf32_format(_file->content, _file->length);
+        printk("rc:%x\n", rc);
+    }
 }

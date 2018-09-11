@@ -47,6 +47,9 @@ extern struct task * current;
     ASSERT(_stack); \
     _stack; \
 })
+struct task * malloc_task(void);
+void free_task(struct task * _task);
+
 
 uint32_t schedule(struct x86_cpustate * cpu);
 void task_init(void);

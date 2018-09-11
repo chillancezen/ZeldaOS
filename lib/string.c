@@ -14,6 +14,12 @@ memset(void * dst, uint8_t target, int32_t size)
     }
 }
 
+int
+strcmp(uint8_t * str1, uint8_t * str2)
+{
+    for(; *str1 && *str2 && *str1 == *str2; str1++, str2++);
+    return *str1 - *str2;
+}
 
 void
 strcpy(uint8_t * dst, const uint8_t * src)
