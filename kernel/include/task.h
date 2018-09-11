@@ -9,6 +9,7 @@
 #include <x86/include/interrupt.h>
 #include <kernel/include/printk.h>
 #include <lib/include/list.h>
+#include <kernel/include/userspace_vma.h>
 
 
 struct task {
@@ -18,8 +19,10 @@ struct task {
      */
     struct x86_cpustate * cpu;
     /*
-     * per-task page Directory
+     * per-task VMAs and  page Directory
      */
+    struct list_elem vma_list;
+
     uint32_t page_directory;
     /*
      * stack at PL 0 and 3, when privilege_level is DPL_0,
