@@ -10,7 +10,8 @@ void printk_init(void);
 void printk_flush(void);
 void printk(const char * format, ...);
 enum log_level {
-    LOG_DEBUG = 0,
+    LOG_TRIVIA = 0,
+    LOG_DEBUG,
     LOG_INFO,
     LOG_WARN,
     LOG_ERROR,
@@ -18,30 +19,37 @@ enum log_level {
 };
 extern int __log_level;
 
+#define LOG_TRIVIA(format, ...) {\
+    if(__log_level <= LOG_TRIVIA) { \
+        printk("[trivia] %s:%d ", __FILE__, __LINE__); \
+        printk(format, ##__VA_ARGS__); \
+    } \
+}
+
 #define LOG_DEBUG(format, ...) {\
     if (__log_level <= LOG_DEBUG) { \
-        printk("[debug] "); \
+        printk("[debug] %s:%d ", __FILE__, __LINE__); \
         printk(format, ##__VA_ARGS__); \
     } \
 }
 
 #define LOG_INFO(format, ...) { \
     if (__log_level <= LOG_INFO) { \
-        printk("[info] "); \
+        printk("[info] %s:%d ", __FILE__, __LINE__); \
         printk(format, ##__VA_ARGS__); \
     } \
 }
 
 #define LOG_ERROR(format, ...) {\
     if (__log_level <= LOG_ERROR) { \
-        printk("[error] "); \
+        printk("[error] %s:%d ", __FILE__, __LINE__); \
         printk(format, ##__VA_ARGS__); \
     } \
 }
 
 #define LOG_WARN(format, ...) {\
     if (__log_level <= LOG_WARN) { \
-        printk("[warn] "); \
+        printk("[warn] %s:%d ", __FILE__, __LINE__); \
         printk(format, ##__VA_ARGS__); \
     } \
 }

@@ -123,7 +123,7 @@ create_pde32(uint32_t write_permission,
 
 #define PAGE_CACHE_DISABLED 0x1
 #define PAGE_CACHE_ENABLED 0x0
-
+uint32_t get_kernel_page_directory(void);
 uint32_t get_pages(int nr_pages);
 uint32_t get_page(void);
 void free_pages(uint32_t pg_addr, int nr_pages);
@@ -138,9 +138,13 @@ void kernel_map_page(uint32_t virt_addr,
 void enable_paging(void);
 void disable_paging(void);
 void flush_tlb(void);
-uint32_t get_kernel_page_directory(void);
 void dump_page_tables(uint32_t page_directory);
 
 uint32_t get_base_page(void);
 void free_base_page(uint32_t);
+
+__attribute__((always_inline)) inline uint32_t
+virt2phy(uint32_t * page_directory, uint32_t virt_addr);
+
+
 #endif

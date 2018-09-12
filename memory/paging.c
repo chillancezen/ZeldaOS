@@ -22,7 +22,6 @@ static uint8_t free_base_page_bitmap[FREE_BASE_PAGE_BITMAP_SIZE];
  */
 static uint32_t * kernel_page_directory;
 
-
 /*
  * Function to create a 4k page table entry
  * write_permission: in [PAGE_PERMISSION_READ_ONLY, PAGE_PERMISSION_READ_WRITE]
@@ -357,7 +356,27 @@ dump_page_tables(uint32_t page_directory)
         }
     }
 }
-
+__attribute__((always_inline)) inline uint32_t
+virt2phy(uint32_t * page_directory, uint32_t virt_addr)
+{
+#define _(con) if(!(con)) goto out;
+    uint32_t phy_addr = 0;
+    uint32_t pd_index = (virt_addr >> 22) & 0x3ff;
+    uint32_t pt_index = (virt_addr >> 12) & 0x3ff;
+    uint32_t * page_table_ptr = NULL;
+    struct pde32 * pde = NULL;
+    struct pte32 * pte = NULL;
+    pde = PDE32_PTR(&page_directory[pd_index]);
+    _(pde->present);
+    page_table_ptr = (uint32_t *)(pde->pt_frame << 12);
+    pte = PTE32_PTR(&page_table_ptr[pt_index]);
+    _(pte->present);
+    phy_addr = (((uint32_t)pte->pg_frame) << 12);
+    phy_addr |= virt_addr & PAGE_MASK;
+    out:
+    return phy_addr;
+#undef _
+}
 void
 paging_init(void)
 {

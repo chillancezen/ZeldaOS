@@ -212,12 +212,22 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         }
     }
     LIST_FOREACH_END();
-
-
+    /*
+     * 3. switch to task paging directory base and load the elf's program
+     * segment into task memory
+     */
+    enable_task_paging(_task);
     //printk("comparison:%d\n", ((uint32_t)USERSPACE_STACK_TOP) > (int32_t)0 );
-    //printk("Heap begin:%x\n", *(uint32_t *)USERSPACE_BOTTOM);
+    *(uint32_t *)0x40001000 = 0x234567;
+    printk("Heap begin:%x\n", *(uint32_t *)0x40001000);
     return ret;
     page_error:
+        LIST_FOREACH_START(&_task->vma_list, _list) {
+            _vma = CONTAINER_OF(_list, struct vm_area, list);
+            if (!_vma->kernel_vma)
+                userspace_evict_vma(_task, _vma);
+        }
+        LIST_FOREACH_END();
     vma_error:
         while(!list_empty(&_task->vma_list)) {
             _list = list_pop(&_task->vma_list);

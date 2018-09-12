@@ -74,4 +74,16 @@ userspace_map_page(struct task * task,
     uint8_t write_permission,
     uint8_t page_writethrough,
     uint8_t page_cachedisable);
+
+
+int userspace_evict_vma(struct task * task, struct vm_area * vma);
+int
+userspace_evict_page(struct task * task,
+    uint32_t virt_addr,
+    int _reclaim_page_table);
+int reclaim_page_table(struct task * task, uint32_t virt_addr);
+
+
+int enable_task_paging(struct task * task);
+
 #endif

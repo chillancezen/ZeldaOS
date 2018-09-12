@@ -183,6 +183,8 @@ reclaim_page_table(struct task * task, uint32_t virt_addr)
     }
     free_base_page((uint32_t)page_table_ptr);
     task->page_directory[pd_index] = 0x0;
+    LOG_DEBUG("reclaim task:0x%x's page directory entry:0x%x\n",
+        task, pd_index);
     return OK;
 }
 /*
@@ -190,6 +192,7 @@ reclaim_page_table(struct task * task, uint32_t virt_addr)
  * it only examine userspace pages and ignore kernel pages
  * if reclaim_page_table is set, the function will check whether the page table
  * is all non-present, reclaim it if so.
+ * FIXME: Do not search vma here. it takes much time
  */
 int
 userspace_evict_page(struct task * task,
@@ -222,7 +225,9 @@ userspace_evict_page(struct task * task,
         return -ERR_NOT_PRESENT;   
     }
     phy_page = (((uint32_t)pte->pg_frame) << 12);
-    free_page(phy_page);
+    if (!_vma->exact) {
+        free_page(phy_page);
+    }
     page_table_ptr[pt_index] = 0x0;
     if (_reclaim_page_table) {
         reclaim_page_table(task, virt_addr);
@@ -232,6 +237,9 @@ userspace_evict_page(struct task * task,
 /*
  * Evict all pages in a vma, it automatically reclaim the unsed page 
  * tables and physical pages.
+ * FIXME: Do not reclaim page directory each time to evict a page, instead,
+ * accumulate the address space and call reclaim_page_table() once we are sure
+ * to reclaim it.
  */
 int
 userspace_evict_vma(struct task * task, struct vm_area * vma)
@@ -247,3 +255,29 @@ userspace_evict_vma(struct task * task, struct vm_area * vma)
     }
     return OK;
 }
+
+/*
+ * Load per-task page directory into PDBR(CR3), each time the per-task page
+ * directory is about to be loaded, the kernel part of directory entries will
+ * be copied to local directory.
+ * TODO: need investigation on why Loading a different page directory into CR3
+ * can cause a messy crash.
+ * FIXME: currently we have a workaround: COPY pages directory entry to kernel
+ * space directory, not in the opposite direction.
+ * CAVEAT: for each task, we do the same operation, at very low risk.
+ */
+int
+enable_task_paging(struct task * task)
+{
+    int idx = 0;
+    uint32_t directory_index_top = USERSPACE_BOTTOM >> 12 >> 10;
+    uint32_t * kernel_page_directory = (uint32_t *)get_kernel_page_directory();
+    for(idx = directory_index_top; idx < 1024; idx++)
+        kernel_page_directory[idx] = task->page_directory[idx];
+    __asm__ volatile("movl %%eax, %%cr3;"
+        :
+        :"a"(kernel_page_directory));
+    LOG_TRIVIA("enable page directory of task:0x%x\n", task);
+    return OK;
+}
+
