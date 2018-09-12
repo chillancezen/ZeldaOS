@@ -23,7 +23,7 @@ struct task {
      */
     struct list_elem vma_list;
 
-    uint32_t page_directory;
+    uint32_t * page_directory;
     /*
      * stack at PL 0 and 3, when privilege_level is DPL_0,
      * privilege_level3_stack is NULL.

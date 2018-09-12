@@ -192,6 +192,8 @@ free(void * mem)
     ASSERT(padding_hdr->magic == MALLOC_MAGIC);
     malloc_hdr = (struct malloc_header *)(((uint32_t)padding_hdr) -
         padding_hdr->padding - sizeof(struct malloc_header));
+    if (malloc_hdr->free)
+        return;
     __free(malloc_hdr);
 }
 

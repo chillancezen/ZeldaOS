@@ -60,10 +60,12 @@ void
 free_task(struct task * _task)
 {
     if (_task) {
+#if 0
         if(_task->privilege_level0_stack)
             free(_task->privilege_level0_stack);
         if(_task->privilege_level3_stack)
             free(_task->privilege_level3_stack);
+#endif
         free(_task);
     }
 }

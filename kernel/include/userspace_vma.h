@@ -8,9 +8,10 @@
 
 #define VM_AREA_NAME_SIZE 64
 struct vm_area {
-    uint8_t name[VM_AREA_NAME_SIZE];
     struct list_elem list;
+    uint8_t name[VM_AREA_NAME_SIZE];
 
+    uint32_t pre_map:1;
     uint32_t exact:1;
     uint32_t write_permission:1;
     uint32_t page_writethrough:1;

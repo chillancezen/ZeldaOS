@@ -75,6 +75,8 @@ create_pde32(uint32_t write_permission,
  *Get a free page from PageInventory VMA. usually these pages are to construct
  *page directory/table for both kernnel and userspace.
  *return 0 if no available page is found.
+ * FIXME: create a *FAST* method to seach free base page ... as it makes 
+ * significient sense.
  */
 uint32_t
 get_base_page(void)
@@ -205,11 +207,38 @@ get_pages(int nr_pages)
     }
     return 0;
 }
+/*
+ * It's crutial to import fast free page searching method, it save lots of time
+ * and it almost approches o(1) time.
+ */
+static uint32_t fast_page_addr = 0;
+uint32_t
+get_page_fast(void)
+{
+    uint32_t target_page = 0;
+    uint32_t addr = get_system_memory_start();
+    uint32_t boundary = get_system_memory_boundary();
+    if (fast_page_addr < addr || fast_page_addr >= boundary)
+        fast_page_addr = addr;
+    for (; fast_page_addr < boundary; fast_page_addr += PAGE_SIZE) {
+        if(IS_PAGE_FREE(fast_page_addr)) {
+            target_page = fast_page_addr;
+            MARK_PAGE_AS_OCCUPIED(fast_page_addr);
+            ASSERT(!IS_PAGE_FREE(fast_page_addr));
+            fast_page_addr += PAGE_SIZE;
+            break;
+        }
+    }
+    return target_page;
+}
 
 uint32_t
 get_page(void)
 {
-    return get_pages(1);
+    uint32_t _page = get_page_fast();
+    if (!_page)
+        _page = get_pages(1);
+    return _page;
 }
 
 void
@@ -297,11 +326,22 @@ dump_page_tables(uint32_t page_directory)
 void
 paging_init(void)
 {
+    int idx = 0;
     uint32_t phy_addr = 0;
     uint32_t frame_addr = 0;
     uint32_t sys_mem_start = get_system_memory_start();
+    uint32_t sys_mem_boundary = get_system_memory_boundary();
     memset(free_page_bitmap, 0x0, sizeof(free_page_bitmap));
     memset(free_base_page_bitmap, 0x0, sizeof(free_base_page_bitmap));
+    /*
+     * Marks pages above system memory boundary as occupised
+     *
+     */
+    for(idx = AT_BYTE(sys_mem_boundary >> 12);
+        idx < FREE_PAGE_BITMAP_SIZE;
+        idx++) {
+        free_page_bitmap[idx] = 0xff;
+    }
     /*
      * Mark pages whose address is lower than the _kernel_bss_end as occupied
      */

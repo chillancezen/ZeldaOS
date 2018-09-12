@@ -58,9 +58,16 @@ struct elf32_program_header{
 #define ELF32_MACHINE_I386 0x3 
 
 #define PROGRAM_TYPE_LOAD 1
-#define PROGRAM_READ (1 << 0)
+#define PROGRAM_READ (1 << 2)
 #define PROGRAM_WRITE (1 << 1)
-#define PROGRAM_EXECUTE (1 << 2)
+#define PROGRAM_EXECUTE (1 << 0)
 int validate_static_elf32_format(uint8_t * mem, int32_t length);
 int load_static_elf32(uint8_t * mem, uint8_t * command);
+int
+userspace_map_page(struct task * task,
+    uint32_t virt_addr,
+    uint32_t phy_addr,
+    uint8_t write_permission,
+    uint8_t page_writethrough,
+    uint8_t page_cachedisable);
 #endif
