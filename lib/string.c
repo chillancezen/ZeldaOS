@@ -13,7 +13,18 @@ memset(void * dst, uint8_t target, int32_t size)
         ptr[idx] = target;
     }
 }
-
+/*
+ * XXX:make sure dst and src do not overlap.
+ */
+void
+memcpy(void * dst, const void * src, int length)
+{
+    int idx = 0;
+    uint8_t * _dst = (uint8_t *)dst;
+    const uint8_t * _src = (const uint8_t *)src;
+    for (idx = 0; idx < length; idx++)
+        _dst[idx] = _src[idx];
+}
 int
 strcmp(uint8_t * str1, uint8_t * str2)
 {

@@ -132,8 +132,13 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         _vma->exact = 0;
         _vma->page_writethrough = PAGE_WRITEBACK;
         _vma->page_cachedisable = PAGE_CACHE_ENABLED;
-        _vma->write_permission = program_hdr->p_flags & PROGRAM_WRITE ?
-            PAGE_PERMISSION_READ_WRITE : PAGE_PERMISSION_READ_ONLY;
+        _vma->write_permission = PAGE_PERMISSION_READ_WRITE;
+        /*
+         * Temporarily make any text&data vma writable.
+         * after copying the program segmet, re-map it as needed.
+         */
+        //_vma->write_permission = program_hdr->p_flags & PROGRAM_WRITE ?
+        //    PAGE_PERMISSION_READ_WRITE : PAGE_PERMISSION_READ_ONLY;
         _vma->executable = program_hdr->p_flags & PROGRAM_EXECUTE ? 1 : 0;
         _vma->virt_addr = program_hdr->p_vaddr;
         _vma->phy_addr = program_hdr->p_paddr;
@@ -217,9 +222,24 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
      * segment into task memory
      */
     enable_task_paging(_task);
-    //printk("comparison:%d\n", ((uint32_t)USERSPACE_STACK_TOP) > (int32_t)0 );
-    *(uint32_t *)0x40001000 = 0x234567;
-    printk("Heap begin:%x\n", *(uint32_t *)0x40001000);
+    /*
+     * 4. copy program segments into VMA.
+     */
+    for (idx = 0; idx < elf_hdr->e_phnum; idx++) {
+        program_hdr = (struct elf32_program_header *)(mem + elf_hdr->e_phoff
+            + idx * sizeof(struct elf32_program_header));
+        if (program_hdr->p_type != PROGRAM_TYPE_LOAD)
+            continue;
+        memcpy((void *)program_hdr->p_vaddr,
+            (void *)(((uint32_t)mem) + program_hdr->p_offset),
+            (int)program_hdr->p_filesz);
+        _vma = search_userspace_vma_by_addr(&_task->vma_list,
+            (uint32_t)program_hdr->p_vaddr);
+        ASSERT(_vma);
+        _vma->write_permission = program_hdr->p_flags & PROGRAM_WRITE ?
+            PAGE_PERMISSION_READ_WRITE : PAGE_PERMISSION_READ_ONLY;
+        userspace_remap_vm_area(_task, _vma);
+    }
     return ret;
     page_error:
         LIST_FOREACH_START(&_task->vma_list, _list) {

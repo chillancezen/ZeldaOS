@@ -281,3 +281,31 @@ enable_task_paging(struct task * task)
     return OK;
 }
 
+
+int
+userspace_remap_vm_area(struct task * task, struct vm_area * vma)
+{
+    uint32_t pd_index;
+    uint32_t pt_index;
+    struct pde32 * pde;
+    struct pte32 * pte;
+    uint32_t * page_table_ptr;
+    uint64_t addr = 0;
+    for (addr = vma->virt_addr;
+        addr < (vma->virt_addr + vma->length); addr += PAGE_SIZE) {
+        pd_index = (addr >> 22) & 0x3ff;
+        pt_index = (addr >> 12) & 0x3ff;
+        pde = PDE32_PTR(&task->page_directory[pd_index]);
+        ASSERT(pde->present);
+        page_table_ptr = (uint32_t *)(pde->pt_frame << 12);
+        pte = PTE32_PTR(&page_table_ptr[pt_index]);
+        ASSERT(pte->present);
+        page_table_ptr[pt_index] = create_pte32(
+            vma->write_permission,
+            PAGE_PERMISSION_USER,
+            vma->page_writethrough,
+            vma->page_cachedisable,
+            pte->pg_frame << 12);
+    }
+    return OK;   
+}

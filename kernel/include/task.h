@@ -75,6 +75,7 @@ userspace_map_page(struct task * task,
     uint8_t page_writethrough,
     uint8_t page_cachedisable);
 
+int userspace_remap_vm_area(struct task * task, struct vm_area * vma);
 
 int userspace_evict_vma(struct task * task, struct vm_area * vma);
 int
