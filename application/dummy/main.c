@@ -45,7 +45,7 @@ __attribute__((constructor)) void
 foo(void)
 {
     __asm__ volatile("movl $0x1, %%eax;"
-        "int $0x80;"
+        "int $0x87;"
         :
         :
         :"%eax");
@@ -68,5 +68,6 @@ int main(void)
     for(addr = _start; addr < _end; addr += 4) {
         ((void (*)(void))*(int*)addr)();
     }
+    print_serial("End of Application\n");
     return 0;
 }

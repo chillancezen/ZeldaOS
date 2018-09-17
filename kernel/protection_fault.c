@@ -13,7 +13,6 @@ protection_fault_handler(struct x86_cpustate * cpu)
     uint32_t esp = (uint32_t)cpu;
     printk("GP: current:%x\n", current);
     dump_x86_cpustate(cpu);
-    dump_x86_cpustate(current->cpu);
     hlt();
     return esp;
 }

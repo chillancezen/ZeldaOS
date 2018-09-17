@@ -51,6 +51,17 @@ set_interrupt_gate(int vector_number, void (*entry)(void))
     IDT[vector_number].offset_high = (((uint32_t)entry) >> 16) & 0xffff;
 }
 
+static void
+set_dpl3_interrupt_gate(int vector_number, void (*entry)(void))
+{
+    IDT[vector_number].offset_low = ((uint32_t)entry) & 0xffff;
+    IDT[vector_number].selector = KERNEL_CODE_SELECTOR;
+    IDT[vector_number].reserved0 = 0;
+    IDT[vector_number].gate_size = GATE_SIZE_32;
+    IDT[vector_number].DPL = DPL_3;
+    IDT[vector_number].present = 1;
+    IDT[vector_number].offset_high = (((uint32_t)entry) >> 16) & 0xffff;
+}
 uint32_t interrupt_handler(struct x86_cpustate * arg)
 {
     uint32_t ESP = (uint32_t)arg;
@@ -213,7 +224,7 @@ void idt_init(void)
     set_interrupt_gate(132, int132);
     set_interrupt_gate(133, int133);
     set_interrupt_gate(134, int134);
-    set_interrupt_gate(135, int135);
+    set_dpl3_interrupt_gate(135, int135);
     set_interrupt_gate(136, int136);
     set_interrupt_gate(137, int137);
     set_interrupt_gate(138, int138);

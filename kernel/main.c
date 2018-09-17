@@ -20,7 +20,7 @@
 #include <lib/include/generic_tree.h>
 #include <filesystem/include/vfs.h>
 #include <filesystem/include/zeldafs.h>
-
+#include <kernel/include/system_call.h>
 static struct multiboot_info * boot_info;
 static void
 pre_init(void)
@@ -43,6 +43,7 @@ init1(void)
     gdt_init();
     idt_init();
     gp_init();
+    system_call_init();
 }
 
 static void
