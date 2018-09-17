@@ -145,6 +145,6 @@ void free_base_page(uint32_t);
 
 __attribute__((always_inline)) inline uint32_t
 virt2phy(uint32_t * page_directory, uint32_t virt_addr);
-
+void enable_kernel_paging(void);
 
 #endif

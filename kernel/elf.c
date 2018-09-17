@@ -246,27 +246,30 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
             PAGE_PERMISSION_READ_WRITE : PAGE_PERMISSION_READ_ONLY;
         userspace_remap_vm_area(_task, _vma);
     }
+    enable_kernel_paging();
     /*
      * 5. Prepare initial PL0 stack.
      */
+    _task->entry = elf_hdr->e_entry;
     _vma = search_userspace_vma(&_task->vma_list, (uint8_t *)USER_VMA_STACK);
     ASSERT(_vma);
     _cpu = (struct x86_cpustate *)((((uint32_t)_task->privilege_level0_stack) +
         DEFAULT_TASK_PRIVILEGED_STACK_SIZE -
         sizeof(struct x86_cpustate) -
         0x40) & (~0xf));
+    memset(_cpu, 0x0, sizeof(struct x86_cpustate));
     _cpu->ss = USER_DATA_SELECTOR;
-    _cpu->esp = (uint32_t)(_vma->virt_addr + _vma->length);
+    _cpu->esp = (uint32_t)(_vma->virt_addr + _vma->length - 0x10);
     ASSERT(!(_cpu->esp & 0x3));
-    _cpu->eflags = EFLAGS_ONE | EFLAGS_INTERRUPT;
-    _cpu->cs = KERNEL_CODE_SELECTOR;
+    _cpu->eflags = EFLAGS_ONE | EFLAGS_INTERRUPT | EFLAGS_PL3_IOPL;
+    _cpu->cs = USER_CODE_SELECTOR;
     _cpu->eip = elf_hdr->e_entry;
     _cpu->errorcode = 0;
     _cpu->vector = 0;
-    _cpu->ds = 0;
-    _cpu->es = 0;
-    _cpu->fs = 0;
-    _cpu->gs = 0;
+    _cpu->ds = USER_DATA_SELECTOR;
+    _cpu->es = USER_DATA_SELECTOR;
+    _cpu->fs = USER_DATA_SELECTOR;
+    _cpu->gs = USER_DATA_SELECTOR;
     _cpu->eax = 0;
     _cpu->ecx = 0;
     _cpu->edx = 0;
@@ -274,8 +277,11 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     _cpu->ebp = 0;
     _cpu->esi = 0;
     _cpu->edi = 0;
-
-    printk("cpu state;%x\n", _cpu);
+    _task->cpu = _cpu;
+    /*
+     * 6. Prepare to be scheduled.
+     */
+    task_put(_task);
     return ret;
     page_error:
         LIST_FOREACH_START(&_task->vma_list, _list) {

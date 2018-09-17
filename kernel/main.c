@@ -42,6 +42,7 @@ init1(void)
     printk_init();
     gdt_init();
     idt_init();
+    gp_init();
 }
 
 static void

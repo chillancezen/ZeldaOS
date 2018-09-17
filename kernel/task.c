@@ -7,7 +7,7 @@
 #include <lib/include/string.h>
 #include <kernel/include/printk.h>
 #include <x86/include/gdt.h>
-
+#include <x86/include/tss.h>
 static struct list_elem task_list_head;
 struct task * current;
 static uint32_t __ready_to_schedule;
@@ -79,6 +79,7 @@ schedule(struct x86_cpustate * cpu)
 {
     uint32_t esp = (uint32_t)cpu;
     struct task * _next_task = NULL;
+    //dump_tasks();
     /*
      * save current for cpu state
      * and cleanup current task
@@ -95,6 +96,11 @@ schedule(struct x86_cpustate * cpu)
     if(_next_task) {
         esp = (uint32_t)_next_task->cpu;
         current = _next_task;
+        if (_next_task->privilege_level == DPL_3) {
+            enable_task_paging(_next_task);
+            set_tss_privilege_level0_stack((uint32_t)_next_task->privilege_level0_stack + 
+                DEFAULT_TASK_PRIVILEGED_STACK_SIZE - 0x100);
+        }
     }
     return esp;
 }
@@ -185,9 +191,6 @@ mockup_entry1(void)
 void
 task_init(void)
 {
-    current = NULL;
-    __ready_to_schedule = 0;
-    list_init(&task_list_head);
 #if !defined(INLINE_TEST)
     struct task * _task = malloc_task();
     ASSERT(_task);
@@ -202,3 +205,10 @@ task_init(void)
     dump_tasks();
 }
 
+__attribute__((constructor)) void
+task_pre_init(void)
+{
+    current = NULL;
+    __ready_to_schedule = 0;
+    list_init(&task_list_head);
+}

@@ -16,6 +16,7 @@
 #define EFLAGS_DIRECTION 0x0400
 #define EFLAGS_OVERFLOW 0x0800
 #define EFLAGS_NESTTASK 0x4000
+#define EFLAGS_PL3_IOPL 0x3000
 
 
 struct x86_cpustate {
@@ -100,6 +101,13 @@ cli(void)
 {
     asm volatile("cli;");
 }
+
+static inline void
+hlt(void)
+{
+    asm volatile("hlt;");
+}
+
 #define PIC_MASTER_COMMAND_PORT 0x20
 #define PIC_MASTER_DATA_PORT 0x21
 #define PIC_SLAVE_COMMAND_PORT 0xa0

@@ -356,6 +356,10 @@ dump_page_tables(uint32_t page_directory)
         }
     }
 }
+/*
+ * Convert to virtual/linear address into physical address by search the
+ * page directory/tables.
+ */
 __attribute__((always_inline)) inline uint32_t
 virt2phy(uint32_t * page_directory, uint32_t virt_addr)
 {
@@ -376,6 +380,19 @@ virt2phy(uint32_t * page_directory, uint32_t virt_addr)
     out:
     return phy_addr;
 #undef _
+}
+
+void
+enable_kernel_paging(void)
+{
+    int idx = 0;
+    uint32_t directory_index_top = USERSPACE_BOTTOM >> 12 >> 10;
+    uint32_t * kernel_page_directory = (uint32_t *)get_kernel_page_directory();
+    for(idx = directory_index_top; idx < 1024; idx++)
+        kernel_page_directory[idx] = 0x0;
+    __asm__ volatile("movl %%eax, %%cr3;"
+        :
+        :"a"(kernel_page_directory));
 }
 void
 paging_init(void)

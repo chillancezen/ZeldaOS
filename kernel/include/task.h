@@ -23,6 +23,10 @@ struct task {
      */
     struct list_elem vma_list;
 
+    /*
+     * If the task is in PL3 context, before switching task, we should 
+     * invoke enable_task_paging().
+     */
     uint32_t * page_directory;
     /*
      * stack at PL 0 and 3, when privilege_level is DPL_0,
@@ -75,5 +79,5 @@ int reclaim_page_table(struct task * task, uint32_t virt_addr);
 
 
 int enable_task_paging(struct task * task);
-
+void dump_tasks(void);
 #endif
