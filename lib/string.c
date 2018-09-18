@@ -39,6 +39,13 @@ strcpy(uint8_t * dst, const uint8_t * src)
     for(; (dst[idx] = src[idx]); idx++);
 }
 
+uint32_t
+strlen(const uint8_t * str)
+{
+    uint32_t iptr = 0;
+    for(; str[iptr]; iptr++);
+    return iptr;
+}
 /*
  * This is to judge whether the target string starts with sub string
  * non-Zero indicates check failure.

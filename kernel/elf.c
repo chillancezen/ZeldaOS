@@ -57,11 +57,59 @@ validate_static_elf32_format(uint8_t * mem, int32_t length)
  * onto the PL3 stack.
  * http://ethv.net/weblog/004-program-loading-on-linux-3.html
  * note auxiliary vector is not supported for now.
+ * the returned value is the new PL3 stack position
  */
 uint32_t
 resolve_commands(uint32_t pl3_stack_top, uint8_t * command)
 {
-    return 0;
+#define QUOTE '\"'
+#define APOSTROPHE '\''
+
+    int length = 0;
+    uint8_t * esp = (uint8_t *)pl3_stack_top;
+    uint8_t * ptr = NULL;
+    uint8_t * start_ptr = NULL;
+    uint8_t * end_ptr = NULL;
+    int quote_count;
+    int apostrophe_count;
+    length = strlen(command);
+    esp -= length + 1;
+    memcpy(esp, command, length + 1);
+    ASSERT(esp[length] == '\x0');
+
+    ptr = esp;
+    esp = (uint8_t *)(((uint32_t)esp) & (~0x3));
+
+    while(*ptr) {
+        for(; *ptr && *ptr == ' '; ptr++);
+        if(!*ptr)
+            break; 
+        start_ptr = ptr;
+        end_ptr = start_ptr + 1;
+        /*
+         * Try to find word within a sematic,
+         * i,e, an env variable, the application path name,
+         * or an arumnent
+         */
+        quote_count = 0;
+        apostrophe_count = 0;
+        for (; *end_ptr; end_ptr++) {
+            if (*end_ptr == ' ') {
+                if (!(apostrophe_count & 0x1) &&
+                    !(apostrophe_count & 0x1))
+                    break;
+            } else if (*end_ptr == QUOTE || *end_ptr == APOSTROPHE) {
+                quote_count += *end_ptr == QUOTE ? 1 : 0;
+                apostrophe_count += *end_ptr == APOSTROPHE ? 1 : 0;
+                if (!(apostrophe_count & 0x1) &&
+                    !(apostrophe_count & 0x1))
+                    break;
+            }
+        }
+        //if (*ptr)
+    }
+    printk("%x %x\n", esp, ptr);
+    return pl3_stack_top;
 }
 /*
  *Load ELF32 executable at PL3 as a task
@@ -260,7 +308,6 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
             PAGE_PERMISSION_READ_WRITE : PAGE_PERMISSION_READ_ONLY;
         userspace_remap_vm_area(_task, _vma);
     }
-    enable_kernel_paging();
     /*
      * 5. Prepare initial PL0 stack.
      */
@@ -273,7 +320,9 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         0x40) & (~0xf));
     memset(_cpu, 0x0, sizeof(struct x86_cpustate));
     _cpu->ss = USER_DATA_SELECTOR;
-    _cpu->esp = (uint32_t)(_vma->virt_addr + _vma->length - 0x10);
+    _cpu->esp = resolve_commands(
+        (uint32_t)(_vma->virt_addr + _vma->length - 0x10),
+        command);
     ASSERT(!(_cpu->esp & 0x3));
     _cpu->eflags = EFLAGS_ONE | EFLAGS_INTERRUPT | EFLAGS_PL3_IOPL;
     _cpu->cs = USER_CODE_SELECTOR;
@@ -295,6 +344,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     /*
      * 6. Prepare to be scheduled.
      */
+    enable_kernel_paging();
     task_put(_task);
     return ret;
     page_error:
