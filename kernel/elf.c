@@ -52,7 +52,17 @@ validate_static_elf32_format(uint8_t * mem, int32_t length)
         return ret;
 #undef _
 }
-
+/*
+ * parse commands and put environment variables and arguments
+ * onto the PL3 stack.
+ * http://ethv.net/weblog/004-program-loading-on-linux-3.html
+ * note auxiliary vector is not supported for now.
+ */
+uint32_t
+resolve_commands(uint32_t pl3_stack_top, uint8_t * command)
+{
+    return 0;
+}
 /*
  *Load ELF32 executable at PL3 as a task
  */
@@ -84,6 +94,10 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         ret = -ERR_OUT_OF_MEMORY;
         goto task_error;
     }
+    _task->privilege_level0_stack_top =
+        ((uint32_t)_task->privilege_level0_stack) +
+        DEFAULT_TASK_PRIVILEGED_STACK_SIZE -
+        0x100;
     LOG_DEBUG("task:0x%x's PL0 stack:0x%x<---->0x%x\n",
         _task,
         _task->privilege_level0_stack,

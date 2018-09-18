@@ -33,6 +33,15 @@ struct task {
      * privilege_level3_stack is NULL.
      */
     void * privilege_level0_stack;
+    /*
+     * each time the PL3 code traps into PL0, the priviege level 0 stack
+     * top is switched to. 
+     * This requires that before the task is scheduled, the 
+     * privilege_level0_stack_top is put into TSS(loaded into task register)'s
+     * esp0
+     */
+    uint32_t privilege_level0_stack_top;
+
     uint32_t entry;
     /*
      * this field specifies in which PL the task runs

@@ -69,5 +69,6 @@ int main(void)
         ((void (*)(void))*(int*)addr)();
     }
     print_serial("End of Application\n");
+    *(uint32_t *)0x507 = 0;
     return 0;
 }

@@ -5,13 +5,15 @@
 #include <memory/include/kernel_vma.h>
 #include <kernel/include/printk.h>
 #include <x86/include/interrupt.h>
+#include <kernel/include/task.h>
 
 #define PAGING_FAULT_INTERRUPT_VECTOR 14
 
 
 static void
-do_kernel_page_fault(uint32_t error_code, uint32_t linear_addr)
+do_kernel_page_fault(struct x86_cpustate * cpu, uint32_t linear_addr)
 {
+    uint32_t error_code = cpu->errorcode;
     struct kernel_vma * vma;
     uint32_t phy_addr = 0;;
     if ((error_code & 0x1) == 0x0) {
@@ -43,21 +45,27 @@ do_kernel_page_fault(uint32_t error_code, uint32_t linear_addr)
             LOG_ERROR("no VMA found for addr:0x%x\n", linear_addr);
         }
 
+    } else {
+        LOG_ERROR("Paging permission issue, task:0x%x linear_addr:0x%x\n",
+            current, linear_addr);
+        dump_x86_cpustate(cpu);
+        hlt();
     }
 }
 
 static uint32_t
-paging_fault_handler(struct x86_cpustate * pt_regs)
+paging_fault_handler(struct x86_cpustate * cpu)
 {
+    uint32_t esp = (uint32_t)cpu;
     uint32_t linear_addr;
     asm volatile("movl %%cr2, %%edx;"
         "movl %%edx, %0;"
         :"=m"(linear_addr)
         :
         :"%edx");
-    do_kernel_page_fault(pt_regs->errorcode, linear_addr);
+    do_kernel_page_fault(cpu, linear_addr);
     flush_tlb();
-    return (uint32_t)pt_regs;
+    return esp;
 }
 
 void

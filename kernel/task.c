@@ -98,8 +98,8 @@ schedule(struct x86_cpustate * cpu)
         current = _next_task;
         if (_next_task->privilege_level == DPL_3) {
             enable_task_paging(_next_task);
-            set_tss_privilege_level0_stack((uint32_t)_next_task->privilege_level0_stack + 
-                DEFAULT_TASK_PRIVILEGED_STACK_SIZE - 0x100);
+            set_tss_privilege_level0_stack(
+                _next_task->privilege_level0_stack_top);
         }
     }
     return esp;
