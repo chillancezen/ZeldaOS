@@ -90,4 +90,9 @@ int reclaim_page_table(struct task * task, uint32_t virt_addr);
 uint32_t reclaim_task(struct task * task);
 int enable_task_paging(struct task * task);
 void dump_tasks(void);
+
+uint32_t
+handle_userspace_page_fault(struct task * task,
+    struct x86_cpustate * cpu,
+    uint32_t linear_addr);
 #endif

@@ -74,7 +74,7 @@ zeldafs_init(void)
 
         rc = validate_static_elf32_format(_file->content, _file->length);
         rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy 212");
-        {
+        if(0){
             struct list_elem * task_head = get_task_list_head();
             struct list_elem * _list;
             struct task * _task;

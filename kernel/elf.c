@@ -313,7 +313,6 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     _vma->phy_addr = 0;
     _vma->length = DEFAULT_TASK_NON_PRIVILEGED_STACK_SIZE;
     list_append(&_task->vma_list, &_vma->list);
-    dump_task_vm_areas(_task);
     /*
      * 2. Page directory setup and pre-map the text&data and stack vm area
      */
@@ -363,6 +362,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
             PAGE_PERMISSION_READ_WRITE : PAGE_PERMISSION_READ_ONLY;
         userspace_remap_vm_area(_task, _vma);
     }
+    dump_task_vm_areas(_task);
     /*
      * 5. Prepare initial PL0 stack.
      */

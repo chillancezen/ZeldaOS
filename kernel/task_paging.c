@@ -6,6 +6,8 @@
 #include <kernel/include/printk.h>
 #include <memory/include/paging.h>
 #include <lib/include/string.h>
+#include <kernel/include/userspace_vma.h>
+#include <x86/include/gdt.h>
 int vma_in_task(struct task * task, struct vm_area * vma)
 {
     struct list_elem * _list;
@@ -308,4 +310,45 @@ userspace_remap_vm_area(struct task * task, struct vm_area * vma)
             pte->pg_frame << 12);
     }
     return OK;   
+}
+
+uint32_t
+handle_userspace_page_fault(struct task * task,
+    struct x86_cpustate * cpu,
+    uint32_t linear_addr)
+{
+    uint32_t result;
+    uint32_t paddr = 0;
+    struct vm_area * vma = NULL;
+    ASSERT(task->privilege_level == DPL_3);
+    ASSERT(linear_addr >= ((uint32_t)USERSPACE_BOTTOM));
+    vma = search_userspace_vma_by_addr(&task->vma_list, linear_addr);
+    if (!vma) {
+        return -ERR_NOT_FOUND;
+    }
+    if (vma->exact) {
+        paddr = (uint32_t)(vma->phy_addr + linear_addr - vma->virt_addr);
+    } else {
+        paddr = get_page();
+        if (!paddr) {
+            LOG_DEBUG("can not allocate generic free page for task:0x%x's "
+                "vma:0x%x\n", task, vma);
+            return -ERR_OUT_OF_RESOURCE;
+        }
+    }
+    result = userspace_map_page(task,
+        linear_addr,
+        paddr,
+        vma->write_permission,
+        vma->page_writethrough,
+        vma->page_cachedisable);
+    if (result != OK) {
+        if (!vma->exact) {
+            free_page(paddr);
+        }
+        return result;
+    }
+    LOG_TRIVIA("Finished mapping task:0x%s's vma:0x%x virt:0x%x to phy:0x%x",
+        task, vma, linear_addr, paddr);
+    return OK;
 }

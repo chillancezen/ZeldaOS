@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
         print_serial(argv[idx]);
         print_serial("\n");
     }
+    *(uint32_t *)0x42802000 = 0;
 #if 0
     int _start = (int)&_zelda_constructor_init_start;
     int _end = (int)&_zelda_constructor_init_end;

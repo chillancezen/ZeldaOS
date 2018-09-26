@@ -10,12 +10,13 @@
 #define PAGING_FAULT_INTERRUPT_VECTOR 14
 
 
-static void
-do_kernel_page_fault(struct x86_cpustate * cpu, uint32_t linear_addr)
+static uint32_t
+handle_kernel_page_fault(struct x86_cpustate * cpu, uint32_t linear_addr)
 {
     uint32_t error_code = cpu->errorcode;
     struct kernel_vma * vma;
-    uint32_t phy_addr = 0;;
+    uint32_t phy_addr = 0;
+    ASSERT(linear_addr < ((uint32_t)USERSPACE_BOTTOM));
     if ((error_code & 0x1) == 0x0) {
         /*
          * the 0th bit of errorcode indicates whether the exception is caused
@@ -51,11 +52,13 @@ do_kernel_page_fault(struct x86_cpustate * cpu, uint32_t linear_addr)
         dump_x86_cpustate(cpu);
         hlt();
     }
+    return OK;
 }
 
 static uint32_t
 paging_fault_handler(struct x86_cpustate * cpu)
 {
+    uint32_t result = OK;
     uint32_t esp = (uint32_t)cpu;
     uint32_t linear_addr;
     asm volatile("movl %%cr2, %%edx;"
@@ -63,8 +66,24 @@ paging_fault_handler(struct x86_cpustate * cpu)
         :"=m"(linear_addr)
         :
         :"%edx");
-    do_kernel_page_fault(cpu, linear_addr);
-    flush_tlb();
+    if (linear_addr < ((uint32_t)USERSPACE_BOTTOM)) {
+        result = handle_kernel_page_fault(cpu, linear_addr);
+        if (result == OK) {
+            enable_kernel_paging();
+        }
+    } else {
+        result = handle_userspace_page_fault(current, cpu, linear_addr);
+        if (result == OK) {
+            enable_task_paging(current);
+        }
+    }
+
+    /*
+     * Page Fault is not occuring as expected.
+     */
+    if (result != OK) {
+        __not_reach();
+    }
     return esp;
 }
 
