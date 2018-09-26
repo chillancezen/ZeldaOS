@@ -71,3 +71,36 @@ list_fetch(struct list_elem * head)
     return _elem;
 }
 
+void
+list_delete(struct list_elem * head, struct list_elem * elem)
+{
+    int found = 0;
+    struct list_elem * _list = NULL;
+    LIST_FOREACH_START(head, _list) {
+        if (_list == elem) {
+            found = 1;
+            break;
+        }
+    }
+    LIST_FOREACH_END();
+    ASSERT(found);
+    if (head->prev == elem) {
+        ASSERT(!elem->next);
+        head->prev = elem->prev;
+    }
+
+    if (head->next == elem) {
+        ASSERT(!elem->prev);
+        head->next = elem->next;
+    }
+    
+    if (elem->next) {
+        elem->next->prev = elem->prev;
+    }
+
+    if (elem->prev) {
+        elem->prev->next = elem->next;
+    }
+    elem->prev = NULL;
+    elem->next = NULL;
+}

@@ -7,7 +7,7 @@
 #include <lib/include/list.h>
 #include <lib/include/string.h>
 #include <kernel/include/elf.h>
-
+#include <kernel/include/task.h>
 static uint32_t zelda_drive_start = (uint32_t)&_zelda_drive_start;
 static uint32_t zelda_drive_end =(uint32_t)&_zelda_drive_end;
 
@@ -74,5 +74,22 @@ zeldafs_init(void)
 
         rc = validate_static_elf32_format(_file->content, _file->length);
         rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy 212");
+        {
+            struct list_elem * task_head = get_task_list_head();
+            struct list_elem * _list;
+            struct task * _task;
+            struct task * tasks[256];
+            int iptr = 0;
+            int idx = 0;
+            LIST_FOREACH_START(task_head, _list) {
+                _task = CONTAINER_OF(_list, struct task, list);
+                tasks[iptr++] = _task;
+            }
+            LIST_FOREACH_END();
+            for(idx = 0; idx < iptr; idx++) {
+                reclaim_task(tasks[idx]);
+            }
+        }
+        dump_tasks();
     }
 }

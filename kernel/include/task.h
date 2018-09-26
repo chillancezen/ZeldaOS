@@ -52,6 +52,7 @@ struct task {
 extern struct task * current;
 #define IS_TASK_KERNEL_TYPE (_task) ((_task)->privilege_level == DPL_0)
 
+struct list_elem * get_task_list_head(void);
 struct task * malloc_task(void);
 void free_task(struct task * _task);
 
@@ -86,7 +87,7 @@ userspace_evict_page(struct task * task,
     int _reclaim_page_table);
 int reclaim_page_table(struct task * task, uint32_t virt_addr);
 
-
+uint32_t reclaim_task(struct task * task);
 int enable_task_paging(struct task * task);
 void dump_tasks(void);
 #endif

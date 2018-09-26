@@ -403,12 +403,15 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     task_put(_task);
     return ret;
     page_error:
+        enable_kernel_paging();
         LIST_FOREACH_START(&_task->vma_list, _list) {
             _vma = CONTAINER_OF(_list, struct vm_area, list);
             if (!_vma->kernel_vma)
                 userspace_evict_vma(_task, _vma);
         }
         LIST_FOREACH_END();
+        if (_task->page_directory)
+            free_base_page((uint32_t)_task->page_directory);
     vma_error:
         while(!list_empty(&_task->vma_list)) {
             _list = list_pop(&_task->vma_list);

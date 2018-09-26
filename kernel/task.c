@@ -8,9 +8,18 @@
 #include <kernel/include/printk.h>
 #include <x86/include/gdt.h>
 #include <x86/include/tss.h>
+#include <memory/include/paging.h>
+
 static struct list_elem task_list_head;
 struct task * current;
 static uint32_t __ready_to_schedule;
+
+struct list_elem *
+get_task_list_head(void)
+{
+    return &task_list_head;
+}
+
 int
 ready_to_schedule(void)
 {
@@ -100,11 +109,56 @@ schedule(struct x86_cpustate * cpu)
             enable_task_paging(_next_task);
             set_tss_privilege_level0_stack(
                 _next_task->privilege_level0_stack_top);
+        } else {
+            enable_kernel_paging();
         }
     }
     return esp;
 }
-
+/*
+ * This is to reclaim the resources which were allocated for the task.
+ * free anything include the task itself.
+ */
+uint32_t
+reclaim_task(struct task * task)
+{
+    LOG_DEBUG("Reclaiming task:0x%x starts\n", task);
+    // Detach the task from the global task list
+    list_delete(&task_list_head, &task->list);
+    // Do not access per-task memory any more
+    enable_kernel_paging();
+    // Evict all the userspace pages
+    {
+        struct vm_area * _vma;
+        struct list_elem * _list;
+        LIST_FOREACH_START(&task->vma_list, _list) {
+            _vma = CONTAINER_OF(_list, struct vm_area, list);
+            if(!_vma->kernel_vma)
+                userspace_evict_vma(task, _vma);
+        }
+        LIST_FOREACH_END();
+        if(task->page_directory) {
+            free_base_page((uint32_t)task->page_directory);
+        }
+    }
+    // Free all the vm areas
+    {
+        struct vm_area * _vma;
+        struct list_elem * _list;
+        while (!list_empty(&task->vma_list)) {
+            _list = list_pop(&task->vma_list);
+            ASSERT(_list);
+            _vma = CONTAINER_OF(_list, struct vm_area, list);
+            free(_vma);
+        }
+    }
+    // Free task's PL0 stack and task itself
+    if(task->privilege_level0_stack)
+        free(task->privilege_level0_stack);
+    free_task(task);
+    LOG_DEBUG("Finished reclaiming task::0x%x\n", task);
+    return OK;
+}
 void
 dump_tasks(void)
 {

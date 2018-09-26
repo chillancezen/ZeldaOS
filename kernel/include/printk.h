@@ -57,7 +57,7 @@ extern int __log_level;
 #define ASSERT(cond) {\
     if (__log_level <= LOG_WARN) { \
         if (!(cond)){ \
-            printk("[assert] %s.%d %s failed\n", __FILE__, __LINE__, #cond); \
+            printk("[assert] %s:%d %s failed\n", __FILE__, __LINE__, #cond); \
             panic(); \
             asm volatile("1:cli;" \
                 "hlt;" \
@@ -66,5 +66,6 @@ extern int __log_level;
     } \
 }
 #define VAR64(val)  (uint32_t)((val) >> 32), (uint32_t)(val)
+#define __not_reach() ASSERT(0)
 void set_log_level(int);
 #endif

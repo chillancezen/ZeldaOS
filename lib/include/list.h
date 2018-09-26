@@ -40,9 +40,17 @@ struct list_elem * list_pop(struct list_elem * head);
  */
 struct list_elem * list_fetch(struct list_elem * head);
 
+/*
+ * delete an element at any place,
+ * it will panic if the elem is not in the list
+ */
+void list_delete(struct list_elem * head, struct list_elem * elem);
+
 #define LIST_FOREACH_START(head, elem) { \
     struct list_elem * __elem = (head)->next; \
-    for(; __elem; __elem = __elem->next) { \
+    struct list_elem * __next = NULL; \
+    for(; __elem; __elem = __next) { \
+        __next = __elem->next; \
         (elem) = __elem;
 
 #define LIST_FOREACH_END() }}
