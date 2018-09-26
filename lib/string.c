@@ -46,6 +46,20 @@ strlen(const uint8_t * str)
     for(; str[iptr]; iptr++);
     return iptr;
 }
+
+int
+strchr(const uint8_t * str, uint8_t target)
+{
+    int index = -1;
+    const uint8_t * ptr = str;
+    for(; *ptr; ptr++) {
+        if (*ptr == target) {
+            index = ptr - str;
+            break;
+        }
+    }
+    return index;
+}
 /*
  * This is to judge whether the target string starts with sub string
  * non-Zero indicates check failure.

@@ -56,19 +56,44 @@ print_serial(char * str)
      while(*str)
          write_serial(*str++);
 }
+
+void
+print_hexdecimal(uint32_t val)
+{
+    int idx = 0;
+    uint8_t dict[] = "0123456789abcdef";
+    uint8_t * ptr = (uint8_t *)&val;
+
+    for(idx = 0, ptr += 3; idx < 4; idx++, ptr--) {
+        write_serial(dict[((*ptr) >> 4) & 0xf]);
+        write_serial(dict[*ptr & 0xf]);
+    }
+}
 extern void * _zelda_constructor_init_start;
 extern void * _zelda_constructor_init_end;
 
-int main(void)
+int main(int argc, char *argv[])
 {
+    int idx = 0;
+    for (idx = 0; idx < argc; idx++) {
+        print_serial(argv[idx]);
+        print_serial("\n");
+    }
+#if 0
     int _start = (int)&_zelda_constructor_init_start;
     int _end = (int)&_zelda_constructor_init_end;
     int addr = 0;
+    int idx = 0;
     print_serial("hello Application\n");
     for(addr = _start; addr < _end; addr += 4) {
         ((void (*)(void))*(int*)addr)();
     }
+    for(idx = 0; idx < argc; idx++) {
+        print_hexdecimal(argv[idx]);
+        print_serial("\n");
+    }
     print_serial("End of Application\n");
     *(uint32_t *)0x507 = 0;
+#endif
     return 0;
 }

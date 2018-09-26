@@ -62,12 +62,22 @@ validate_static_elf32_format(uint8_t * mem, int32_t length)
 uint32_t
 resolve_commands(uint32_t pl3_stack_top, uint8_t * command)
 {
-#define QUOTE '\"'
+#define QUOTE '"'
 #define APOSTROPHE '\''
+#define PUSH(esp, val) {\
+    *(uint32_t *)(((uint32_t)(esp))) = (uint32_t)(val); \
+    esp -= 4; /*this requires esp is the type: uint8_t **/\
+}
 
+    int executable_index = -1;
+    uint8_t * start_stack[128];
+    uint8_t * end_stack[128];
+    int stack_ptr = 0;
+    int idx = 0;
     int length = 0;
     uint8_t * esp = (uint8_t *)pl3_stack_top;
     uint8_t * ptr = NULL;
+    uint8_t * ptr_another = NULL;
     uint8_t * start_ptr = NULL;
     uint8_t * end_ptr = NULL;
     int quote_count;
@@ -85,7 +95,7 @@ resolve_commands(uint32_t pl3_stack_top, uint8_t * command)
         if(!*ptr)
             break; 
         start_ptr = ptr;
-        end_ptr = start_ptr + 1;
+        end_ptr = start_ptr;
         /*
          * Try to find word within a sematic,
          * i,e, an env variable, the application path name,
@@ -95,21 +105,66 @@ resolve_commands(uint32_t pl3_stack_top, uint8_t * command)
         apostrophe_count = 0;
         for (; *end_ptr; end_ptr++) {
             if (*end_ptr == ' ') {
-                if (!(apostrophe_count & 0x1) &&
+                if (!(quote_count & 0x1) &&
                     !(apostrophe_count & 0x1))
                     break;
             } else if (*end_ptr == QUOTE || *end_ptr == APOSTROPHE) {
                 quote_count += *end_ptr == QUOTE ? 1 : 0;
                 apostrophe_count += *end_ptr == APOSTROPHE ? 1 : 0;
-                if (!(apostrophe_count & 0x1) &&
+                if (!(quote_count & 0x1) &&
                     !(apostrophe_count & 0x1))
                     break;
             }
         }
-        //if (*ptr)
+        if (!*ptr)
+            break;
+        start_stack[stack_ptr] = start_ptr;
+        end_stack[stack_ptr] = end_ptr;
+        stack_ptr++;
+        ptr = end_ptr + 1;
     }
-    printk("%x %x\n", esp, ptr);
-    return pl3_stack_top;
+    /*
+     * Simplify the variables
+     */
+    for (idx = 0; idx < stack_ptr; idx++) {
+        *end_stack[idx] = '\x0';
+        ptr = start_stack[idx];
+        ptr_another = start_stack[idx];
+        for(; *ptr_another; ptr_another++) {
+            if(*ptr_another == QUOTE || *ptr_another == APOSTROPHE)
+                continue;
+            *ptr++ = *ptr_another;
+        }
+        *ptr = '\x0';
+    }
+    /*
+     * Find the executable
+     */
+    for (idx = 0; idx < stack_ptr; idx++) {
+        if (strchr(start_stack[idx], '=') == -1) {
+            executable_index = idx;
+            break;
+        }
+    }
+    /*
+     * PUSH all the environment viriables and arguments
+     */
+    PUSH(esp, NULL);
+    for (idx = 0; idx < executable_index; idx++) {
+        PUSH(esp, start_stack[idx]);
+    }
+    PUSH(esp, NULL);
+    for (idx = stack_ptr -1; idx >=executable_index; idx--) {
+        PUSH(esp, start_stack[idx]);
+    }
+    /*
+     * Prepare the <argc, argv> pairs, put them also on the stack.
+     */
+    PUSH(esp, esp + 4);
+    PUSH(esp, stack_ptr - executable_index);
+    ASSERT(!(((uint32_t)esp) & 0x1));
+    return (uint32_t)esp;
+#undef PUSH
 }
 /*
  *Load ELF32 executable at PL3 as a task
