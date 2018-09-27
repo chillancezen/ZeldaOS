@@ -20,7 +20,9 @@
 #include <lib/include/generic_tree.h>
 #include <filesystem/include/vfs.h>
 #include <filesystem/include/zeldafs.h>
+#include <filesystem/include/dummyfs.h>
 #include <kernel/include/system_call.h>
+
 static struct multiboot_info * boot_info;
 static void
 pre_init(void)
@@ -68,6 +70,7 @@ init4(void)
 {
     vfs_init();
     zeldafs_init();
+    dummyfs_init();
 }
 static void
 post_init(void)
@@ -101,6 +104,10 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init3();
     init4();
     post_init();
+    {
+        do_vfs_open((uint8_t *)"/dev/pts", 0, 0);
+        do_vfs_open((uint8_t *)"/dummy/cute", 0, 0);
+    }
 #if defined(INLINE_TEST)
     test_generic_tree();
 #endif

@@ -5,11 +5,26 @@
 #include <lib/include/generic_tree.h>
 #define MAX_PATH 256
 
+struct file_operation;
+
+enum FILE_TYPE{
+    FILE_TYPE_NONE = 0,
+    FILE_TYPE_MARK,
+    FILE_TYPE_REGULAR,
+    FILE_TYPE_DIR
+};
+
 struct file {
     uint8_t name[MAX_PATH];
     struct generic_tree fs_node;
+    uint8_t type;
+    uint32_t mode;
+    void * priv;
 };
 
+/*
+ * https://github.com/freebsd/freebsd/blob/master/sys/sys/file.h#L128
+ */
 
 struct file_operation {
     int32_t (*open)(struct file * _file, uint32_t mode);
