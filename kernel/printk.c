@@ -34,7 +34,7 @@ printk_init()
     for (idx_row = 0; idx_row < VGA_MAX_ROW + 1; idx_row++)
         for (idx_col = 0; idx_col < VGA_MAX_COL; idx_col++)
             vga_shadow_memory[idx_row][idx_col] = 0;
-    set_log_level(LOG_TRIVIA);
+    set_log_level(KERNEL_LOGGING_LEVEL);
 }
 int
 vga_enqueue_byte(uint8_t target,

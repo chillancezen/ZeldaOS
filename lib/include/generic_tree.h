@@ -4,7 +4,7 @@
 #ifndef _GENERIC_TREE_H
 #define _GENERIC_TREE_H
 #include <lib/include/types.h>
-
+#include <lib/include/list.h>
 struct binary_tree_node {
     /*
      * the parent points to the parent node. if parent is NULL, the node is
@@ -13,10 +13,25 @@ struct binary_tree_node {
     struct binary_tree_node * parent;
     struct binary_tree_node * left;
     struct binary_tree_node * right;
+
+    /*
+     * Introduce a new filed: list to ease traversal
+     */
+    struct list_elem list;
 };
 
 // Do *NOT* use typedef, I Love struct
 #define generic_tree binary_tree_node
+
+// Get the topological(GENERIC TREE) parental node
+#define parent_of_node(_node) ({\
+    struct binary_tree_node * __sibling = (_node); \
+    if (__sibling) \
+        for (; __sibling->parent && \
+            (__sibling->parent->right == __sibling); \
+            __sibling = __sibling->parent); \
+    __sibling ? __sibling->parent : NULL; \
+})
 
 /*
  * Enumerate all the siblings of the node, including itself.

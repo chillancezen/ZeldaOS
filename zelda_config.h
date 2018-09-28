@@ -3,6 +3,12 @@
  */
 
 /*
+ * the kernel logging level, for more definition, please refer to:
+ * kernel/include/printk.h
+ */
+
+#define KERNEL_LOGGING_LEVEL LOG_TRIVIA
+/*
  *KERNEL_VMA_ARRAY_LENGTH is the length of kernel VMA array, this is
  *to be larger than 64
  */

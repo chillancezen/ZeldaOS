@@ -35,6 +35,10 @@ search_zelda_file(char * name)
     LIST_FOREACH_END();
     return NULL;
 }
+/*
+ * create the directory hierarchies. note multiple vertical directory entries
+ * can be created at one time.
+ */
 static int32_t
 zeldafs_create_directory(uint8_t ** splitted_path, int iptr)
 {
@@ -45,6 +49,7 @@ zeldafs_create_directory(uint8_t ** splitted_path, int iptr)
     struct generic_tree * current_node = &zelda_root_node.fs_node;
     for (idx = 0; idx < iptr; idx++) {
         // Try to find the directory entry with the same name
+        found = 0;
         FOREACH_SIBLING_NODE_START(current_node, _node) {
             _file = CONTAINER_OF(_node, struct file, fs_node);
             if (!strcmp(_file->name, splitted_path[idx])) {
@@ -91,12 +96,105 @@ zeldafs_create_directory(uint8_t ** splitted_path, int iptr)
     }
     return OK;
 }
+
+/*
+ * Create the file descriptor in the ZELDA FS hierarchies
+ * XXX: the directory is not created automatically.
+ * if the directory is not present, failure will be notified to CALLER.
+ */
+static int32_t
+zeldafs_create_file(uint8_t ** splitted_path, int iptr)
+{
+    int idx = 0;
+    int found = 0;
+    struct file * _file = NULL;
+    struct generic_tree * _node = NULL;
+    struct generic_tree * current_node = &zelda_root_node.fs_node;
+    if (iptr < 1) {
+        return -ERR_INVALID_ARG;
+    }
+    for (idx = 0; idx < (iptr - 1); idx++) {
+        found = 0;
+        FOREACH_SIBLING_NODE_START(current_node, _node) {
+            _file = CONTAINER_OF(_node, struct file, fs_node);
+            if (!strcmp(_file->name, splitted_path[idx])) {
+                found = 1;
+                break;
+            }
+        }
+        FOREACH_SIBLING_NODE_END();
+        if (!found) {
+            return -ERR_NOT_PRESENT;
+        }
+        current_node = _file->fs_node.left;
+    }
+    // Till this, we arrive at the layer of the target file node, we search the
+    // target file first.
+    found = 0;
+    FOREACH_SIBLING_NODE_START(current_node, _node) {
+        _file = CONTAINER_OF(_node, struct file, fs_node);
+        if (!strcmp(_file->name, splitted_path[iptr - 1])) {
+            found = 1;
+            break;
+        }
+    }
+    FOREACH_SIBLING_NODE_END();
+    if (found) {
+        return -ERR_EXIST;
+    } else {
+        // File not exist, try to create one
+        _file = malloc(sizeof(struct file));
+        memset(_file, 0x0, sizeof(struct file));
+        strcpy(_file->name, splitted_path[iptr -1]);
+        _file->type = FILE_TYPE_REGULAR;
+        _file->mode = 0x0;
+        _file->priv = NULL;
+        ASSERT(!add_sibling(current_node, &_file->fs_node));
+    }
+    return OK;
+}
+/*
+ * seach a file in zelda fs hierarchy.
+ * return NULL if not found, otherwise, return `struct file *`
+ */
+struct file *
+zeldafs_search_file(uint8_t ** splitted_path, int iptr)
+{
+    int idx = 0;
+    int found = 0;
+    struct file * result = NULL;
+    struct file * _file = NULL;
+    struct generic_tree * _node = NULL;
+    struct generic_tree * current_node = &zelda_root_node.fs_node;
+    for (idx = 0; idx < iptr; idx++) {
+        found = 0;
+        FOREACH_SIBLING_NODE_START(current_node, _node) {
+            _file = CONTAINER_OF(_node, struct file, fs_node);
+            if (!strcmp(_file->name, splitted_path[idx])) {
+                found = 1;
+                break;
+            }
+        }
+        FOREACH_SIBLING_NODE_END();
+        if (!found) {
+            _file = NULL;
+            break;
+        }
+        current_node = _file->fs_node.left;
+    }
+    result = _file;
+    return result;
+}
+
+/*
+ * This is to construct the filesystem directory tree from zelda drive
+ */
 void
 construct_zelda_drive_hierarchy(void)
 {
     struct zelda_file * _file;
     struct list_elem * _list;
-    //struct file * file;
+    struct file * file;
     uint8_t c_name[MAX_PATH];
     uint8_t * splitted_path[MAX_PATH];
     int32_t splitted_length;
@@ -106,9 +204,79 @@ construct_zelda_drive_hierarchy(void)
         splitted_length = 0;
         canonicalize_path_name(c_name, _file->path);
         split_path(c_name, splitted_path, &splitted_length);
+        zeldafs_create_directory(splitted_path, splitted_length -1);
+        zeldafs_create_file(splitted_path, splitted_length);
+        file = zeldafs_search_file(splitted_path, splitted_length);
+        if (file) {
+            file->priv = _file;
+            LOG_TRIVIA("Succeeded to insert file:%s into zelda fs "
+                "hierarchies\n", _file->path);
+        } else {
+            LOG_ERROR("Failed to insert file:%s into zelda fs hierarchies\n",
+                _file->path);
+        }
     }
     LIST_FOREACH_END();
 }
+/*
+ * perform a breadth-fisrt traversal in zelda fs and dump the relationship.
+ */
+void
+dump_zelda_filesystem(void)
+{
+    struct list_elem queue = {
+        .prev = NULL,
+        .next = NULL   
+    };
+    struct list_elem * _list = NULL;
+    struct file * _file = NULL;
+    struct file * _parent_file = NULL;
+    struct generic_tree * _parent_node = NULL;
+    struct generic_tree * _node = NULL;
+    struct generic_tree * current_node = &zelda_root_node.fs_node;
+    
+    LOG_INFO("Dump Zelda FS hierarchies\n");
+    list_init(&current_node->list);
+    list_append(&queue, &current_node->list);
+
+    while (!list_empty(&queue)) {
+        _list = list_fetch(&queue);
+        ASSERT(_list);
+        _node = CONTAINER_OF(_list, struct generic_tree, list);
+        _file = CONTAINER_OF(_node, struct file, fs_node);
+        if (_node->left) {
+            list_init(&_node->left->list);
+            list_append(&queue, &_node->left->list);
+        }
+        if (_node->right) {
+            list_init(&_node->right->list);
+            list_append(&queue, &_node->right->list);
+        }
+        _parent_node = parent_of_node(_node);
+        _parent_file = CONTAINER_OF(_parent_node, struct file, fs_node);
+
+        switch (_file->type)
+        {
+            case FILE_TYPE_MARK:
+                LOG_INFO("  FILE_TYPE_MARK(0x%x): parent:%s\n", _file,
+                    _parent_node ? _parent_file->name: (uint8_t *)"");
+                break;
+            case FILE_TYPE_DIR:
+                LOG_INFO("  FILE_TYPE_DIR(0x%x): %s parent:%s\n", _file,
+                    _file->name,
+                    _parent_node ? _parent_file->name: (uint8_t *)"");
+                break;
+            case FILE_TYPE_REGULAR:
+                LOG_INFO("  FILE_TYPE_REGULAR(0x%x): %s parent:%s\n", _file,
+                    _file->name,
+                    _parent_node ? _parent_file->name: (uint8_t *)"");
+                break;
+            default:
+                break;
+        }
+    }
+}
+
 void
 dump_zedla_drives(void)
 {
@@ -121,7 +289,6 @@ dump_zedla_drives(void)
     }
     LIST_FOREACH_END();
 }
-
 
 void
 enumerate_files_in_zelda_drive(void)
@@ -165,6 +332,7 @@ zeldafs_init(void)
     enumerate_files_in_zelda_drive();
     construct_zelda_drive_hierarchy();
     dump_zedla_drives();
+    //dump_zelda_filesystem();
     ASSERT(!register_file_system((uint8_t *)"/", &zeldafs));
 #if 0
     {
