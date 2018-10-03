@@ -34,4 +34,7 @@ split_path(uint8_t * path,
     uint8_t **array,
     int32_t * iptr);
 
+int32_t
+do_vfs_close(struct file * file);
+
 #endif

@@ -105,7 +105,7 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init4();
     post_init();
     {
-        do_vfs_open((uint8_t *)"/dev/pts", 0, 0);
+        do_vfs_close(do_vfs_open((uint8_t *)"/etc/dummy.cfg", 0, 0));
         do_vfs_open((uint8_t *)"/dummy/cute", 0, 0);
     }
 #if defined(INLINE_TEST)

@@ -305,7 +305,35 @@ do_vfs_open(const uint8_t * path, uint32_t flags, uint32_t mode)
     ASSERT(mount_entry->fs->fs_ops->fs_open);
     file = mount_entry->fs->fs_ops->fs_open(mount_entry->fs, sub_path);
     if (!file) {
-        LOG_TRIVIA("Can not open file:%s\n", c_name);
+        LOG_TRIVIA("Failed to open file:%s\n", c_name);
+    } else {
+        file->refer_count++;
     }
     return file;
+}
+
+/*
+ * the VFS layer raw interface to close a file
+ */
+int32_t
+do_vfs_close(struct file * file)
+{
+    file->refer_count--;
+    LOG_INFO("vfs close file:0x%x(%s)\n",
+        file, file->name);
+    return OK;
+}
+
+/*
+ * the VFS layer raw interface to read file
+ */
+int32_t
+do_vfs_read(struct file_entry * entry,
+    void * buffer,
+    int size)
+{
+
+    ASSERT(entry->file->ops->read);
+
+    return 0;
 }

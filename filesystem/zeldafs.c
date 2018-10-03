@@ -307,12 +307,15 @@ enumerate_files_in_zelda_drive(void)
 static struct file *
 zelda_fs_open(struct file_system * fs, const uint8_t * path)
 {
+    struct file * file = NULL;
+    uint8_t c_name[MAX_PATH];
     uint8_t * splitted_path[MAX_PATH];
     int32_t iptr = 0;
-    split_path((uint8_t *)path, splitted_path, &iptr);
-
-    printk("sub path:%s\n", path);
-    return NULL;
+    memset(c_name, 0x0, sizeof(c_name));
+    strcpy(c_name, path);
+    split_path(c_name, splitted_path, &iptr);
+    file = zeldafs_search_file(splitted_path, iptr);
+    return file;
 }
 
 struct filesystem_operation zeldafs_ops = {
