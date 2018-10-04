@@ -38,7 +38,7 @@ handle_kernel_page_fault(struct x86_cpustate * cpu, uint32_t linear_addr)
                 vma->write_permission,
                 vma->page_writethrough,
                 vma->page_cachedisable);
-            LOG_DEBUG("Map kernel page in VMA:%s 0x%x --> 0x%x\n",
+            LOG_TRIVIA("Map kernel page in VMA:%s 0x%x --> 0x%x\n",
                 vma->name,
                 linear_addr,
                 phy_addr);

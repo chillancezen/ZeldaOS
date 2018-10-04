@@ -42,4 +42,7 @@ page_round_addr(uint32_t addr)
 #define CONTAINER_OF(ptr, structure, field) \
     (structure *)(((uint32_t)(ptr)) - OFFSET_OF(structure, field))
 
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 #endif

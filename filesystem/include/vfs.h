@@ -6,6 +6,7 @@
 #include <lib/include/types.h>
 #include <filesystem/include/file.h>
 #include <filesystem/include/filesystem.h>
+#include <kernel/include/zelda_posix.h>
 
 #define MOUNT_ENTRY_SIZE 256 // The maximum entries is 256
 
@@ -37,4 +38,19 @@ split_path(uint8_t * path,
 int32_t
 do_vfs_close(struct file * file);
 
+int32_t
+do_vfs_read(struct file_entry * entry,
+    void * buffer,
+    int size);
+
+int32_t
+do_vfs_write(struct file_entry * entry,
+    void * buffer,
+    int size);
+
+int32_t
+do_vfs_lseek(struct file_entry * entry, uint32_t offset, uint32_t whence);
+
+int32_t
+do_vfs_truncate(struct file_entry * entry, uint32_t offset);
 #endif

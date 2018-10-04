@@ -14,6 +14,7 @@ enum errorcode {
     ERR_PARTIAL,
     ERR_NOT_PRESENT,
     ERR_NOT_FOUND,
+    ERR_NOT_SUPPORTED,
     ERR_BUSY,
     ERR_EXIST
 };

@@ -19,6 +19,9 @@ struct list_elem {
     (head)->next = NULL; \
 }
 
+#define list_last_elem(head) ((head)->prev)
+#define list_first_elem(head) ((head)->next)
+
 #define list_empty(head) (!((head)->next))
 
 /*

@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2018 Jie Zheng
  */
+
 #include <filesystem/include/vfs.h>
 #include <lib/include/string.h>
 #include <lib/include/errorcode.h>
@@ -307,6 +308,8 @@ do_vfs_open(const uint8_t * path, uint32_t flags, uint32_t mode)
     if (!file) {
         LOG_TRIVIA("Failed to open file:%s\n", c_name);
     } else {
+        LOG_INFO("vfs open file:0x%x(%s)\n",
+            file, file->name);
         file->refer_count++;
     }
     return file;
@@ -326,14 +329,83 @@ do_vfs_close(struct file * file)
 
 /*
  * the VFS layer raw interface to read file
+ * the return value is categorized into three:
+ * 1). negative, error occurs.
+ * 2). positive, the number of byte read.
+ * 3). ZERO, End of File.
  */
 int32_t
 do_vfs_read(struct file_entry * entry,
     void * buffer,
     int size)
 {
-
+    int32_t result = 0;
+    ASSERT(entry->file->ops);
     ASSERT(entry->file->ops->read);
-
-    return 0;
+    result = entry->file->ops->read(
+        entry->file,
+        entry->offset,
+        buffer,
+        size);
+    if (result > 0) {
+        entry->offset += result;
+    }
+    return result;
 }
+
+int32_t
+do_vfs_write(struct file_entry * entry,
+    void * buffer,
+    int size)
+{
+    int32_t result = 0;
+    ASSERT(entry->file->ops);
+    ASSERT(entry->file->ops->write);
+    result = entry->file->ops->write(
+        entry->file,
+        entry->offset,
+        buffer,
+        size);
+    if (result > 0) {
+        entry->offset += result;
+    }
+    return result;
+}
+
+int32_t
+do_vfs_lseek(struct file_entry * entry, uint32_t offset, uint32_t whence)
+{
+    // Note that No sanity check is enforced here, 
+    // Only calculate the new position
+    switch (whence)
+    {
+        case SEEK_SET:
+            entry->offset = offset;
+            break;
+        case SEEK_CUR:
+            entry->offset += offset;
+            break;
+        case SEEK_END:
+            ASSERT(entry->file->ops);
+            ASSERT(entry->file->ops->size);
+            entry->offset = (uint32_t)entry->file->ops->size(entry->file) +
+                offset;
+            break;
+    }
+    return (int32_t)entry->offset;
+}
+/*
+ * To return OK once successful,
+ * any other negative value indicates some error.
+ *
+ */
+int32_t
+do_vfs_truncate(struct file_entry * entry, uint32_t offset)
+{
+    ASSERT(entry->file->ops);
+    if (!entry->file->ops->truncate) {
+        return -ERR_NOT_SUPPORTED;
+    }
+    return entry->file->ops->truncate(entry->file, offset);
+}
+

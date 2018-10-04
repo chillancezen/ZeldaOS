@@ -228,6 +228,46 @@ dump_recycle_bins(void)
         }
     }
 }
+/*
+ * Allocate a memory segment from caller's stack.
+ * note this function will do not do any stack overflow check.
+ * XXX: no alignment is enforced as the returned address is 4 bytes aligned.
+ * there is no need to free the allocated memory explicitly: the caller will do
+ * that automatically. 
+ */
+void *
+stack_alloc(uint32_t size)
+{
+    uint32_t new_stack = 0x0;
+    uint32_t allocated_addr = 0x0;
+    uint32_t current_ebp = 0x0;
+    asm volatile("movl %%ebp, %0;"
+        :"=m"(current_ebp)
+        :
+        :"memory");
+    ASSERT(!(current_ebp & 0x3));
+    allocated_addr = current_ebp + 8;
+    size = (size & 0x3) ? (size & (~0x3)) - 4 : size;
+
+    new_stack = allocated_addr - size - 8;
+    ASSERT(!(new_stack & 0x3));
+
+    // Copy EIP and ESP of Last Frame
+    *(uint32_t *)new_stack = *(uint32_t *)current_ebp;
+    *(uint32_t *)(new_stack + 4) = *(uint32_t *)(current_ebp + 4);
+
+    asm volatile("movl %%ebx, %%ebp;"
+        "movl %%ebp, %%esp;" // equivalent to `leave` instruction
+        "popl %%ebp;"
+        "ret;"
+        :
+        :"a"(allocated_addr), "b"(new_stack)
+        :"memory");
+
+    ASSERT(0);
+    return NULL;
+}
+
 #if defined(INLINE_TEST)
 static void
 malloc_test(void)

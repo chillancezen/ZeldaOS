@@ -22,6 +22,7 @@
 #include <filesystem/include/zeldafs.h>
 #include <filesystem/include/dummyfs.h>
 #include <kernel/include/system_call.h>
+#include <filesystem/include/memfs.h>
 
 static struct multiboot_info * boot_info;
 static void
@@ -71,6 +72,7 @@ init4(void)
     vfs_init();
     zeldafs_init();
     dummyfs_init();
+    memfs_init();
 }
 static void
 post_init(void)
@@ -105,8 +107,42 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init4();
     post_init();
     {
-        do_vfs_close(do_vfs_open((uint8_t *)"/etc/dummy.cfg", 0, 0));
+        int32_t result = 0x0;
+        uint8_t buffer[256];
+        struct file_entry entry;
+        struct file  * file = NULL;
+        file = do_vfs_open((uint8_t *)"/etc/dummy.cfg", 0, 0);
         do_vfs_open((uint8_t *)"/dummy/cute", 0, 0);
+        entry.file = file;
+        entry.offset = 0x0;
+        memset(buffer, 0x0, sizeof(buffer));
+        do_vfs_lseek(&entry, 10, SEEK_CUR);
+        result = do_vfs_read(&entry, buffer, 10);
+        printk("file: %d %d %s\n",result , entry.offset, buffer);
+        memset(buffer, 0x0, sizeof(buffer));
+        result = do_vfs_read(&entry, buffer, 10);
+        printk("file: %d %d %s\n",result , entry.offset, buffer);
+        memset(buffer, 0x0, sizeof(buffer));
+        result = do_vfs_read(&entry, buffer, 10);
+        printk("file: %d %d %s\n",result , entry.offset, buffer);
+
+    }
+    {
+        struct mem_block_hdr hdr;
+        int rc = 0;
+        uint8_t buffer[256];
+        memset(&hdr, 0x0, sizeof(struct mem_block_hdr));
+        rc = mem_block_raw_write_random(&hdr, 4082, (uint8_t *)"hello world", 4096);
+        rc = mem_block_raw_write_random(&hdr, 4083, (uint8_t *)"hello world22", 30);
+        //rc = mem_block_raw_write_sequential(&hdr, (uint8_t *)"hello world", 501);
+        printk("mem write rc:%d\n", rc);
+
+        memset(buffer, 0x0, sizeof(buffer));
+        rc =mem_block_raw_read(&hdr, 4082, buffer, 30);
+        printk("mem read rc:%d %s\n", rc, buffer);
+
+        
+
     }
 #if defined(INLINE_TEST)
     test_generic_tree();

@@ -72,4 +72,5 @@ void * malloc_align(int len, int align);
 void free(void * mem);
 void dump_recycle_bins(void);
 void malloc_init(void);
+void * stack_alloc(uint32_t size);
 #endif

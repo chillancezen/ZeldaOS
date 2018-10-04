@@ -22,6 +22,40 @@ static struct list_elem head = {
     .next = NULL   
 };
 
+static int32_t
+zeldafs_file_read(struct file * file, uint32_t offset, void * buffer, int size)
+{
+    uint32_t length_available = 0;
+    struct zelda_file * zelda_file = file->priv;
+    ASSERT(zelda_file);
+    length_available = zelda_file->length - offset;
+    if (((int32_t)length_available) <= 0)
+        return 0;
+    length_available = MIN(length_available, ((uint32_t)size));
+    if (length_available) {
+        memcpy(buffer, zelda_file->content + offset, length_available);
+    }
+    return length_available;
+}
+
+static int32_t
+zeldafs_file_write(struct file * file, uint32_t offset, void * buffer, int size)
+{
+    return -ERR_NOT_SUPPORTED;
+}
+
+static int32_t
+zeldafs_file_size(struct file * file)
+{
+    struct zelda_file * zelda_file = file->priv;
+    ASSERT(zelda_file);
+    return zelda_file->length;
+}
+struct file_operation zeldafs_file_ops = {
+    .read = zeldafs_file_read,
+    .write = zeldafs_file_write,
+    .size = zeldafs_file_size,
+};
 struct zelda_file *
 search_zelda_file(char * name)
 {
@@ -209,6 +243,7 @@ construct_zelda_drive_hierarchy(void)
         file = zeldafs_search_file(splitted_path, splitted_length);
         if (file) {
             file->priv = _file;
+            file->ops = &zeldafs_file_ops;
             LOG_TRIVIA("Succeeded to insert file:%s into zelda fs "
                 "hierarchies\n", _file->path);
         } else {
