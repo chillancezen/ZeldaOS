@@ -13,11 +13,21 @@ get_mem_block(void)
         MEM_BLOCK_SIZE, MEM_BLOCK_ALIGN);
     if (hdr) {
         memset(hdr, 0x0, sizeof(struct mem_block_hdr));
-        LOG_TRIVIA("Allocate Memory block:0x%x\n", hdr);
+        LOG_TRIVIA("Allocate memory block:0x%x\n", hdr);
     } else {
         LOG_TRIVIA("Failed to allocate memory block\n");
     }
     return hdr;
+}
+
+static void
+put_mem_block(struct mem_block_hdr * hdr)
+{
+    // Make sure the block is free (not in any list)
+    ASSERT(!hdr->list.next);
+    ASSERT(!hdr->list.prev);
+    LOG_TRIVIA("Deallocate memory block:0x%x\n", hdr);
+    free(hdr);
 }
 
 /*
@@ -207,4 +217,84 @@ mem_block_raw_read(struct mem_block_hdr * hdr,
     return result;
 }
 
-
+/*
+ * Extend or Shrink size of the memory blocks to `oiffset`
+ * return OK once successful, otherwise a negative integer is returned.
+ */
+int32_t
+mem_block_raw_truncate(struct mem_block_hdr * hdr,
+    uint32_t offset)
+{
+    int32_t offset_left = offset;
+    int32_t block_iptr = 0x0;
+    int32_t block_bytes_ignored = 0x0;
+    struct list_elem * _list;
+    struct mem_block_hdr * next_block;
+    struct mem_block_hdr * _block;
+    struct mem_block_hdr * current_block = NULL;
+    LIST_FOREACH_START(&hdr->list, _list) {
+        block_iptr = 0x0;
+        _block = CONTAINER_OF(_list, struct mem_block_hdr, list);
+        if (offset_left) {
+            // XXX: here we should not use _block->nr_used to determine the 
+            // bytes to skip, instead we use BLOCK_AVAIL_SIZE
+            block_bytes_ignored = MIN(offset_left, BLOCK_AVAIL_SIZE);
+            offset_left -= block_bytes_ignored;
+            block_iptr = block_bytes_ignored;
+        }
+        if (!offset_left) {
+            current_block = _block;
+            break;
+        }
+    }
+    LIST_FOREACH_END();
+    // Extend memory blocks if `offset_left` still is larger than 0
+    while (offset_left > 0) {
+        _block = get_mem_block();
+        if (!_block) {
+            return -ERR_OUT_OF_MEMORY;
+        }
+        block_bytes_ignored = MIN(BLOCK_AVAIL_SIZE, offset_left);
+        _block->nr_used = block_bytes_ignored;
+        offset_left -= block_bytes_ignored;
+        list_append(&hdr->list, &_block->list);
+        if (!offset_left) {
+            block_iptr = block_bytes_ignored;
+            current_block = _block;
+            break;
+        }
+    }
+    if (current_block) {
+        current_block->nr_used = block_iptr;
+        if (current_block->nr_used) {
+            current_block = current_block->list.next ?
+                CONTAINER_OF(current_block->list.next,
+                    struct mem_block_hdr,
+                    list) :
+                NULL;
+        }
+    }
+    // Shrink memeory blocks
+    while (current_block) {
+        next_block = current_block->list.next ?
+            CONTAINER_OF(current_block->list.next, struct mem_block_hdr, list) :
+            NULL;
+        list_delete(&hdr->list, &current_block->list);
+        put_mem_block(current_block);
+        current_block = next_block;
+    }
+    return OK; 
+}
+void
+dump_mem_blocks(struct mem_block_hdr * hdr)
+{
+    struct list_elem * _list;
+    struct mem_block_hdr * _block;
+    int iptr = 0;
+    LOG_DEBUG("Dump memory blocks for header:0x%x\n", hdr);
+    LIST_FOREACH_START(&hdr->list, _list) {
+        _block = CONTAINER_OF(_list, struct mem_block_hdr, list);
+        LOG_DEBUG("   %d.0x%x length:%d\n", iptr++,  _block, _block->nr_used);
+    }
+    LIST_FOREACH_END();
+}

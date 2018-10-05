@@ -140,9 +140,15 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
         memset(buffer, 0x0, sizeof(buffer));
         rc =mem_block_raw_read(&hdr, 4082, buffer, 30);
         printk("mem read rc:%d %s\n", rc, buffer);
-
-        
-
+        rc = mem_block_raw_truncate(&hdr, 3);
+        rc = mem_block_raw_truncate(&hdr, 0);
+        rc = mem_block_raw_truncate(&hdr, 4085);
+        rc = mem_block_raw_truncate(&hdr, 29);
+        dump_mem_blocks(&hdr);
+        printk("mem truncate rc:%d\n", rc); 
+        memset(buffer, 0x0, sizeof(buffer));
+        rc =mem_block_raw_read(&hdr, 0, buffer, 30);
+        printk("mem read rc:%d %s\n", rc, buffer);
     }
 #if defined(INLINE_TEST)
     test_generic_tree();
