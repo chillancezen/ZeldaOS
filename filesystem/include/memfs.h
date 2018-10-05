@@ -6,7 +6,7 @@
 #include <lib/include/types.h>
 #include <lib/include/list.h>
 #include <memory/include/paging.h>
-#if 0
+#if 1
     #define MEM_BLOCK_SIZE PAGE_SIZE
     #define MEM_BLOCK_ALIGN PAGE_SIZE
 #else

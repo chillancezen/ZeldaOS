@@ -8,6 +8,7 @@
 
 enum FILE_SYSTEM_TYPE {
     ZELDA_FS,
+    MEM_FS, /*equivalent to tmpfs in Linux*/
     DEV_FS,
     VSI_FS,
     DUMMY_FS,

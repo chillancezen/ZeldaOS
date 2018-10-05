@@ -106,6 +106,7 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init3();
     init4();
     post_init();
+#if defined(INLINE_TEST)
     {
         int32_t result = 0x0;
         uint8_t buffer[256];
@@ -150,7 +151,6 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
         rc =mem_block_raw_read(&hdr, 0, buffer, 30);
         printk("mem read rc:%d %s\n", rc, buffer);
     }
-#if defined(INLINE_TEST)
     test_generic_tree();
 #endif
     /*

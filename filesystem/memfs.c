@@ -9,12 +9,23 @@
 #include <lib/include/string.h>
 #include <kernel/include/printk.h>
 
+struct filesystem_operation tmpfs_ops = {
+    .fs_open = NULL
+};
 
+static struct file_system tmpfs_home = {
+    .filesystem_type = MEM_FS,
+    .fs_ops = &tmpfs_ops
+};
 
-
+static struct file_system tmpfs_tmp = {
+    .filesystem_type = MEM_FS,
+    .fs_ops = &tmpfs_ops
+};
 
 void
 memfs_init(void)
 {
-    printk("size of:%d %d\n", sizeof(struct mem_block_hdr), BLOCK_AVAIL_SIZE);
+   ASSERT(!register_file_system((uint8_t *)"/home/", &tmpfs_home));
+   ASSERT(!register_file_system((uint8_t *)"/tmp/", &tmpfs_tmp));
 }

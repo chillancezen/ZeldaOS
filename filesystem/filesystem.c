@@ -9,6 +9,7 @@
 #define _(_fs) #_fs
 char * filesystem_name[] = {
     _(ZELDA_FS),
+    _(MEM_FS),
     _(DEV_FS),
     _(VSI_FS),
     _(DUMMY_FS)

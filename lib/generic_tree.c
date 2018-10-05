@@ -7,6 +7,25 @@
 #include <lib/include/string.h>
 
 int
+generic_delete_node(struct  generic_tree * node)
+{
+    ASSERT(node->parent);
+    if (node->parent->left == node) {
+        if (node->right)
+            node->right->parent = node->parent;
+        node->parent->left = node->right;
+    } else {
+        ASSERT(node->parent->right == node);
+        if (node->right)
+            node->right->parent = node->right;
+        node->parent->right = node->right;
+    }
+    node->right = NULL;
+    node->parent = NULL;
+    return OK;
+}
+
+int
 add_sibling(struct generic_tree * current, struct generic_tree * node)
 {
     struct generic_tree * ptr = current;

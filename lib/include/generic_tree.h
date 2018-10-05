@@ -67,6 +67,9 @@ add_sibling(struct generic_tree * current, struct generic_tree * node);
 int
 add_child(struct generic_tree * current, struct generic_tree * node);
 
+int
+generic_delete_node(struct  generic_tree * node);
+
 #if defined(INLINE_TEST)
     void test_generic_tree(void);
 #endif
