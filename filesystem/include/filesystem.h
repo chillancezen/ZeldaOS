@@ -33,6 +33,8 @@ struct filesystem_operation;
 struct file_system {
     struct filesystem_operation * fs_ops;    
     uint32_t filesystem_type;
+
+    void * priv;
 };
 
 struct filesystem_operation {

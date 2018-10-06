@@ -155,19 +155,45 @@ hierarchy_search_file(struct generic_tree * root_node,
     result = _file;
     return result;
 }
-
+/*
+ * Delete the file/directory path, all the sub-path will be removed.
+ */
 int32_t
 hierarchy_delete_file(struct generic_tree * root_node,
     uint8_t ** splitted_path,
-    int iptr)
+    int iptr,
+    void (*per_file_free)(struct file *))
 {
+    struct list_elem queue = {
+        .prev = NULL,
+        .next = NULL
+    };
+    struct list_elem * list;
+    struct generic_tree * node;
     struct file * file = hierarchy_search_file(root_node,
         splitted_path,
         iptr);
     if (!file)
         return -ERR_NOT_FOUND;
     generic_delete_node(&file->fs_node);
-
-
+    list_init(&file->fs_node.list);
+    list_append(&queue, &file->fs_node.list);
+    
+    while(!list_empty(&queue)) {
+        list = list_fetch(&queue);
+        ASSERT(list);
+        node = CONTAINER_OF(list, struct generic_tree, list);
+        file = CONTAINER_OF(node, struct file, fs_node);
+        if (node->left) {
+            list_init(&node->left->list);
+            list_append(&queue, &node->left->list);
+        }
+        if (node->right) {
+            list_init(&node->right->list);
+            list_append(&queue, &node->right->list);
+        }
+        ASSERT(per_file_free);
+        per_file_free(file);
+    }
     return OK;
 }
