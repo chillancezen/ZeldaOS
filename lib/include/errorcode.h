@@ -16,7 +16,8 @@ enum errorcode {
     ERR_NOT_FOUND,
     ERR_NOT_SUPPORTED,
     ERR_BUSY,
-    ERR_EXIST
+    ERR_EXIST,
+    ERR_IN_USE,
 };
 
 #endif

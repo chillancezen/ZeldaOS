@@ -6,7 +6,7 @@
 #include <lib/include/string.h>
 #include <kernel/include/printk.h>
 
-static struct mem_block_hdr *
+struct mem_block_hdr *
 get_mem_block(void)
 {
     struct mem_block_hdr * hdr  = (struct mem_block_hdr *)malloc_align(
@@ -20,7 +20,7 @@ get_mem_block(void)
     return hdr;
 }
 
-static void
+void
 put_mem_block(struct mem_block_hdr * hdr)
 {
     // Make sure the block is free (not in any list)
@@ -296,7 +296,7 @@ mem_block_raw_reclaim(struct mem_block_hdr *hdr)
     while(!list_empty(&hdr->list)) {
         _list = list_fetch(&hdr->list);
         _block = CONTAINER_OF(_list, struct mem_block_hdr, list);
-        free(_block);
+        put_mem_block(_block);
     }
 }
 

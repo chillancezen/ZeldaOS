@@ -269,6 +269,7 @@ vfs_pre_init(void)
 
 /*
  * the VFS layer raw interface to open a file.
+ * XXX: the `flags` and `mode` is unused
  */
 struct file *
 do_vfs_open(const uint8_t * path, uint32_t flags, uint32_t mode)
@@ -306,9 +307,9 @@ do_vfs_open(const uint8_t * path, uint32_t flags, uint32_t mode)
     ASSERT(mount_entry->fs->fs_ops->fs_open);
     file = mount_entry->fs->fs_ops->fs_open(mount_entry->fs, sub_path);
     if (!file) {
-        LOG_TRIVIA("Failed to open file:%s\n", c_name);
+        LOG_DEBUG("Failed to open file:%s\n", c_name);
     } else {
-        LOG_INFO("vfs open file:0x%x(%s)\n",
+        LOG_DEBUG("vfs open file:0x%x(%s)\n",
             file, file->name);
         file->refer_count++;
     }
@@ -407,5 +408,136 @@ do_vfs_truncate(struct file_entry * entry, uint32_t offset)
         return -ERR_NOT_SUPPORTED;
     }
     return entry->file->ops->truncate(entry->file, offset);
+}
+
+/*
+ * Create a file in filesystem specific hierarchy.
+ * return the `struct file *` if successful
+ */
+struct file *
+do_vfs_create(const uint8_t * path, uint32_t flags, uint32_t mode)
+{
+    struct file * file = NULL;
+    uint8_t c_name[MAX_PATH];
+    uint8_t sub_path[MAX_PATH];
+    struct mount_entry * mount_entry = NULL;
+    mount_entry = search_mount_entry(path);
+    if (!mount_entry) {
+        LOG_TRIVIA("can not find mount entry for path:%s\n", path);
+        return NULL;
+    }
+    // select the per-mount entry and search the sub-path
+    {
+        int iptr = 0;
+        int iptr_dst = 0;
+        memset(c_name, 0x0, sizeof(c_name));
+        memset(sub_path, 0x0, sizeof(sub_path));
+        canonicalize_path_name(c_name, path);
+        for (iptr = 0; iptr < MAX_PATH; iptr++) {
+            if (c_name[iptr] != mount_entry->mount_point[iptr])
+                break;
+        }
+        ASSERT(!mount_entry->mount_point[iptr]);
+        for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
+            sub_path[iptr_dst++] = c_name[iptr];
+        }
+    }
+    // try to invoke filesystem specific CREATE interface
+    if (mount_entry->fs->fs_ops->fs_create) {
+        file = mount_entry->fs->fs_ops->fs_create(mount_entry->fs,
+            sub_path, mode);
+    }
+    if (file) {
+        file->mode = mode;   
+    }
+    return file;
+}
+
+/*
+ * the VFS layer interface to create a directory entry 
+ */
+struct file *
+do_vfs_directory_create(const uint8_t * path)
+{
+    uint8_t c_name[MAX_PATH];
+    uint8_t sub_path[MAX_PATH];
+    struct mount_entry  * mount_entry = NULL;
+    struct file * file = NULL;
+    mount_entry = search_mount_entry(path);
+    if (!mount_entry) {
+        LOG_TRIVIA("can not find mount entry for path:%s\n", path);
+        return NULL;
+    }
+    {
+        int iptr = 0;
+        int iptr_dst = 0;
+        memset(c_name, 0x0, sizeof(c_name));
+        memset(sub_path, 0x0, sizeof(sub_path));
+        canonicalize_path_name(c_name, path);
+        for (iptr = 0; iptr < MAX_PATH; iptr++) {
+            if (c_name[iptr] != mount_entry->mount_point[iptr])
+                break;
+        }
+        ASSERT(!mount_entry->mount_point[iptr]);
+        for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
+            sub_path[iptr_dst++] = c_name[iptr];
+        }
+    }
+    if (mount_entry->fs->fs_ops->fs_mkdir) {
+        file = mount_entry->fs->fs_ops->fs_mkdir(mount_entry->fs, sub_path);
+    }
+    LOG_TRIVIA("create directory:%s as 0x%x\n", c_name, file);
+    return file;
+}
+/*
+ * teh VFS layer interface to delete a file/directory and all the sub files and
+ * directories if it's not the leaf node
+ * FIXME: currently it only check wether the file first file is opened, if it's 
+ * directory entry, and sub-files are opened, things may get wrong, to fix it:
+ * recursivly inspect sub-files and directorys.
+ */
+int32_t
+do_vfs_path_delete(const uint8_t * path)
+{
+    int32_t result = OK;
+    uint8_t c_name[MAX_PATH];
+    uint8_t sub_path[MAX_PATH];
+    struct file * file = NULL;
+    struct mount_entry * mount_entry = search_mount_entry(path);
+    if (!mount_entry) {
+        LOG_TRIVIA("can not find mount entry for path:%s\n", path);
+        return -ERR_INVALID_ARG;
+    }
+    {
+        int iptr = 0;
+        int iptr_dst = 0;
+        memset(c_name, 0x0, sizeof(c_name));
+        memset(sub_path, 0x0, sizeof(sub_path));
+        canonicalize_path_name(c_name, path);
+        for (iptr = 0; iptr < MAX_PATH; iptr++) {
+            if (c_name[iptr] != mount_entry->mount_point[iptr])
+                break;
+        }
+        ASSERT(!mount_entry->mount_point[iptr]);
+        for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
+            sub_path[iptr_dst++] = c_name[iptr];
+        }
+    }
+    ASSERT(mount_entry->fs->fs_ops->fs_open);
+    file = mount_entry->fs->fs_ops->fs_open(mount_entry->fs, sub_path);
+    if (!file) {
+        LOG_TRIVIA("Failed to find file:%s\n", c_name);
+        return -ERR_NOT_FOUND;
+    }
+    if (file->refer_count) {
+        LOG_TRIVIA("File:%s is in use\n", c_name);
+        return -ERR_IN_USE;
+    }
+    if (!mount_entry->fs->fs_ops->fs_delete) {
+        LOG_TRIVIA("FILE DELETE OPERATION not supported\n");
+        return -ERR_NOT_SUPPORTED;
+    }
+    result = mount_entry->fs->fs_ops->fs_delete(mount_entry->fs, sub_path);
+    return result;
 }
 

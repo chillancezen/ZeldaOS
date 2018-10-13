@@ -57,9 +57,9 @@ struct filesystem_operation {
         const uint8_t * path,
         int mode);
     /*
-     * create the drectory. return OK is successful.
+     * create the drectory. return the file entry is successful.
      */
-    int32_t (*fs_mkdir)(struct file_system * fs,
+    struct file * (*fs_mkdir)(struct file_system * fs,
         const uint8_t * path);
     /*
      *Delete a file/directory in file_system specfic context

@@ -28,6 +28,9 @@ struct mem_file {
     struct mem_block_hdr block_head;
 };
 
+void
+put_mem_block(struct mem_block_hdr * hdr);
+
 int32_t
 mem_block_raw_write_sequential(struct mem_block_hdr * hdr,
     void * buffer,
