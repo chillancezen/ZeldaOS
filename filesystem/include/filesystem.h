@@ -59,9 +59,13 @@ struct filesystem_operation {
     /*
      * create the drectory. return OK is successful.
      */
-    int (*fs_mkdir)(struct file_system * fs,
-        const uint8_t * path,
-        uint32_t mode);
+    int32_t (*fs_mkdir)(struct file_system * fs,
+        const uint8_t * path);
+    /*
+     *Delete a file/directory in file_system specfic context
+     */
+    int32_t (*fs_delete)(struct file_system * fs,
+        const uint8_t * path);
 };
 
 char * filesystem_type_to_name(int type);

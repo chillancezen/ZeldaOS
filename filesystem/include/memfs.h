@@ -48,6 +48,10 @@ mem_block_raw_read(struct mem_block_hdr * hdr,
 int32_t
 mem_block_raw_truncate(struct mem_block_hdr * hdr,
     uint32_t offset);
+
+void
+mem_block_raw_reclaim(struct mem_block_hdr *hdr);
+
 void dump_mem_blocks(struct mem_block_hdr * hdr);
 void
 memfs_init(void);

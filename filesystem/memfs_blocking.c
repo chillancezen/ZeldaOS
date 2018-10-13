@@ -285,6 +285,21 @@ mem_block_raw_truncate(struct mem_block_hdr * hdr,
     }
     return OK; 
 }
+/*
+ * Delete the file's successive memory blocks
+ */
+void
+mem_block_raw_reclaim(struct mem_block_hdr *hdr)
+{
+    struct list_elem * _list;
+    struct mem_block_hdr * _block;
+    while(!list_empty(&hdr->list)) {
+        _list = list_fetch(&hdr->list);
+        _block = CONTAINER_OF(_list, struct mem_block_hdr, list);
+        free(_block);
+    }
+}
+
 void
 dump_mem_blocks(struct mem_block_hdr * hdr)
 {

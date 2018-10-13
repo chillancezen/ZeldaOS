@@ -161,7 +161,7 @@ hierarchy_search_file(struct generic_tree * root_node,
 int32_t
 hierarchy_delete_file(struct generic_tree * root_node,
     uint8_t ** splitted_path,
-    int iptr,
+    int32_t iptr,
     void (*per_file_free)(struct file *))
 {
     struct list_elem queue = {
