@@ -16,6 +16,7 @@
 
 struct mem_block_hdr {
     struct list_elem list;
+    // If the block is the head, nr_used store the size of the blocks
     uint32_t nr_used;
     uint8_t content[0];
 }__attribute__((packed));

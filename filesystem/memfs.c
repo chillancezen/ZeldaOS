@@ -11,7 +11,67 @@
 #include <lib/include/string.h>
 #include <filesystem/include/fs_hierarchy.h>
 
-static struct file_operation tmpfs_file_operation;
+static int32_t
+tmpfs_read_file(struct file * file, uint32_t offset, void * buffer, int size)
+{
+    int result = 0;
+    struct mem_block_hdr * block_hdr = (struct mem_block_hdr *)file->priv;
+    if (!block_hdr)
+        return -ERR_GENERIC;
+    result = mem_block_raw_read(block_hdr, offset, buffer, size);
+    return result;
+}
+
+static int32_t
+tmpfs_write_file(struct file * file, uint32_t offset, void * buffer, int size)
+{
+    int result = 0x0;
+    uint32_t end_index = 0;
+    struct mem_block_hdr * block_hdr = (struct mem_block_hdr *)file->priv;
+    if (!block_hdr)
+        return -ERR_GENERIC;
+    if (block_hdr->nr_used == offset) {
+        result = mem_block_raw_write_sequential(block_hdr, buffer, size);
+    } else {
+        result = mem_block_raw_write_random(block_hdr, offset, buffer, size);
+    }
+    if (result >= 0) {
+        end_index = offset + result;
+        block_hdr->nr_used = MAX(end_index, block_hdr->nr_used);
+    }
+    return result;
+}
+
+static int32_t
+tmpfs_file_size(struct file * file)
+{
+    int32_t size = 0;
+    struct mem_block_hdr * block_hdr = (struct mem_block_hdr *)file->priv;
+    if (block_hdr) {
+        size = block_hdr->nr_used;
+    }
+    return size;   
+}
+static int32_t
+tmpfs_file_truncate(struct file * file, int offset)
+{
+    int32_t result = 0x0;
+    struct mem_block_hdr * block_hdr = (struct mem_block_hdr *)file->priv;
+    if (!block_hdr)
+        return -ERR_GENERIC;
+    result = mem_block_raw_truncate(block_hdr, offset);
+    if (result != OK)
+        return -ERR_GENERIC;
+    block_hdr->nr_used = offset;
+    return OK; 
+}
+static struct file_operation tmpfs_file_operation = {
+    .read = tmpfs_read_file,
+    .write = tmpfs_write_file,
+    .size = tmpfs_file_size,
+    .truncate = tmpfs_file_truncate,
+};
+
 /*
  * XXX: Even file is created, the inner memory block is not guaranteed to be
  * allocated, the per-file operation must take care.
@@ -180,6 +240,8 @@ memfs_init(void)
         ASSERT(result == OK);
         ASSERT(!do_vfs_open(path, O_RDWR, 0x777));
         ASSERT(file = do_vfs_directory_create(path));
+        ASSERT(file == do_vfs_open(path, O_RDWR, 0x0));
+        ASSERT(OK == do_vfs_close(file));
         ASSERT(file->type == FILE_TYPE_DIR);
         ASSERT(file->refer_count == 0);
         ASSERT(!do_vfs_create(path, O_RDWR, 0x777));
@@ -191,7 +253,39 @@ memfs_init(void)
         ASSERT(do_vfs_close(file) == OK);
         ASSERT(do_vfs_path_delete((uint8_t *)"/home/cute/") == OK);
         ASSERT(!do_vfs_open((uint8_t *)"/home/cute/", O_RDWR, 0x777));
-        ASSERT(!do_vfs_open((uint8_t *)"/home/cute/bar", O_RDWR, 0x777))
+        ASSERT(!do_vfs_open((uint8_t *)"/home/cute/bar", O_RDWR, 0x777));
+
+        path = (uint8_t *)"/home/cute//bar/../avater";
+        file = do_vfs_create(path, O_RDWR, 0x777);
+        ASSERT(file && file->type == FILE_TYPE_REGULAR);
+        ASSERT(file == do_vfs_open((uint8_t *)"/home/cute/../cute/./avater",
+            O_RDWR, 0x0));
+        ASSERT(!do_vfs_open((uint8_t *)"/home/cute/bar", O_RDWR, 0));
+        {
+            int result = 0x0;
+            uint8_t buffer[256];
+            struct file_entry entry;
+            entry.file = file;
+            entry.offset = 0x0;
+            result = do_vfs_read(&entry, buffer, 16);
+            ASSERT(result == 0);
+            result = do_vfs_write(&entry, "Hello World", 11);
+            ASSERT(result == 11);
+            result = do_vfs_read(&entry, buffer, 16);
+            ASSERT(!result);
+            do_vfs_lseek(&entry, 11, SEEK_SET);
+            result = do_vfs_read(&entry, buffer, 10);
+            ASSERT(result == 0);
+            do_vfs_lseek(&entry, 0x0, SEEK_END);
+            result = do_vfs_write(&entry, "FOO", 3);
+            ASSERT(result == 3);
+            do_vfs_lseek(&entry, 0, SEEK_SET);
+            memset(buffer, 0x0, sizeof(buffer));
+            result = do_vfs_read(&entry, buffer, 256);
+            result = do_vfs_write(&entry, "", 4084);
+        }
+        ASSERT(!do_vfs_close(file));
+        ASSERT(do_vfs_path_delete(path) == OK);
     }
 #endif
 }

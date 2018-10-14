@@ -307,9 +307,9 @@ do_vfs_open(const uint8_t * path, uint32_t flags, uint32_t mode)
     ASSERT(mount_entry->fs->fs_ops->fs_open);
     file = mount_entry->fs->fs_ops->fs_open(mount_entry->fs, sub_path);
     if (!file) {
-        LOG_DEBUG("Failed to open file:%s\n", c_name);
+        LOG_TRIVIA("Failed to open file:%s\n", c_name);
     } else {
-        LOG_DEBUG("vfs open file:0x%x(%s)\n",
+        LOG_TRIVIA("vfs open file:0x%x(%s)\n",
             file, file->name);
         file->refer_count++;
     }
@@ -323,7 +323,7 @@ int32_t
 do_vfs_close(struct file * file)
 {
     file->refer_count--;
-    LOG_INFO("vfs close file:0x%x(%s)\n",
+    LOG_TRIVIA("vfs close file:0x%x(%s)\n",
         file, file->name);
     return OK;
 }
@@ -450,6 +450,7 @@ do_vfs_create(const uint8_t * path, uint32_t flags, uint32_t mode)
     if (file) {
         file->mode = mode;   
     }
+    LOG_TRIVIA("create file:%s as 0x%x\n", c_name, file);
     return file;
 }
 
