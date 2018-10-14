@@ -23,6 +23,18 @@
 #define O_CREAT 0x0200
 
 
+/*
+ * System call parameter delivery convention:
+ * EAX: syscall number.
+ * EBX: parameter 0
+ * ECX: parameter 1
+ * EDX: parameter 2
+ * ESI: parameter 3
+ * EDI: parameter 4
+ * the maximum parameter in syscall is 5, and the parameter is about to be
+ * pushed into stack (both in userspace and kernelspace) in the order of
+ * right to left.
+ */
 
 
 #endif

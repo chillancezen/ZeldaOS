@@ -9,6 +9,7 @@ ifeq ($(APP),)
 $(error 'please specify variable:APP')
 endif
 
+RUNTIME = $(wildcard $(ZELDA)/runtime/*.o)
 
 
 OBJS = $(patsubst %.c,%.o,$(SRCS))
@@ -19,7 +20,7 @@ OBJS = $(patsubst %.c,%.o,$(SRCS))
 
 $(APP):$(OBJS)
 	@echo "[LD] $(APP):$@"
-	@ld -melf_i386 $(LDFLAGS) -Map=$(APP).map -T $(ZELDA)/mk/linker.ld.application -o $(APP) $(OBJS)
+	@ld -melf_i386 $(LDFLAGS) -Map=$(APP).map -T $(ZELDA)/mk/linker.ld.application -o $(APP) $(OBJS) $(RUNTIME)
 
 clean:
 	@rm -f $(APP) *.o *.map; \

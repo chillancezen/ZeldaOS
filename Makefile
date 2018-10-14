@@ -20,3 +20,10 @@ app_clean:
 		ZELDA=$(ZELDA) make clean -C application/$$_dir; \
 	done
 
+runtime_install:
+	@echo "[ACTION] start to compile native C lib and runtime."
+	@ZELDA=$(ZELDA) make -C runtime/
+
+runtime_clean:
+	@echo "[ACTION] start to clean native C lib and runtime."
+	@ZELDA=$(ZELDA) make clean -C runtime/
