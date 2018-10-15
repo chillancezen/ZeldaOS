@@ -258,14 +258,14 @@ zeldafs_init(void)
     dump_zedla_drives();
     //dump_zelda_filesystem();
     ASSERT(!register_file_system((uint8_t *)"/", &zeldafs));
-#if 0
+#if 1
     {
         int rc = 0, rc1;
         struct zelda_file * _file = search_zelda_file("/usr/bin/dummy");
         printk("found zelda file:%x\n", _file);
         rc = validate_static_elf32_format(_file->content, _file->length);
         rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy 'foo' bar \"bar cute\" 34");
-        printk("%d %d\n", rc, rc1);
+        printk("load elf:%d %d\n", rc, rc1);
 
         rc = validate_static_elf32_format(_file->content, _file->length);
         rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy 212");

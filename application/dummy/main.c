@@ -2,7 +2,7 @@
  * Copyright (c) 2018 Jie Zheng
  */
 #include <stdint.h>
-
+#include <syscall_inventory.h>
 #define asm __asm__
 int cute = 1;
 int bar[1024*1024*10];
@@ -79,8 +79,9 @@ int main(int argc, char *argv[])
         print_serial(argv[idx]);
         print_serial("\n");
     }
-    *(uint32_t *)0x42802000 = 0;
+
 #if 0
+    *(uint32_t *)0x42802000 = 0;
     int _start = (int)&_zelda_constructor_init_start;
     int _end = (int)&_zelda_constructor_init_end;
     int addr = 0;
