@@ -167,7 +167,10 @@ resolve_commands(uint32_t pl3_stack_top, uint8_t * command)
 #undef PUSH
 }
 /*
- *Load ELF32 executable at PL3 as a task
+ * Load ELF32 executable at PL3 as a task
+ * XXX: This will not hide current task and make make newly created task as
+ * current.
+ * XXX: maskable interrupt must be disabled in caller. 
  */
 int
 load_static_elf32(uint8_t * mem, uint8_t * command)
@@ -181,16 +184,19 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     struct vm_area * _vma;
     struct list_elem * _list;
     struct task * _task = NULL;
+    struct task * prev_task = NULL;
     struct elf32_elf_header * elf_hdr = (struct elf32_elf_header *)mem;
     struct elf32_program_header * program_hdr;
     struct x86_cpustate * _cpu = NULL;
+    prev_task = current;
     if (!(_task = malloc_task()))
         goto task_error;
     _task->privilege_level = DPL_3;
     /*
      * Note that PL0 stack space is still in kernel privileged space.
-     *
-     * */
+     */
+    current = _task;
+
     _task->privilege_level0_stack = malloc(DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
     if (!_task->privilege_level0_stack) {
         LOG_DEBUG("Can not allocate memory for PL0 stack\n");
@@ -399,7 +405,11 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     /*
      * 6. Prepare to be scheduled.
      */
-    enable_kernel_paging();
+    current = prev_task;
+    if (current)
+        enable_task_paging(current);
+    else
+        enable_kernel_paging();
     task_put(_task);
     return ret;
     page_error:
@@ -425,5 +435,10 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
                 free(_task->privilege_level0_stack);
             free_task(_task);
         }
+    current = prev_task;
+    if (current)
+        enable_task_paging(current);
+    else
+        enable_kernel_paging();
     return ret;
 }

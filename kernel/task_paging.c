@@ -275,7 +275,8 @@ enable_task_paging(struct task * task)
     uint32_t directory_index_top = USERSPACE_BOTTOM >> 12 >> 10;
     uint32_t * kernel_page_directory = (uint32_t *)get_kernel_page_directory();
     for(idx = directory_index_top; idx < 1024; idx++)
-        kernel_page_directory[idx] = task->page_directory[idx];
+        kernel_page_directory[idx] = task->page_directory ?
+            task->page_directory[idx] : 0x0;
     __asm__ volatile("movl %%eax, %%cr3;"
         :
         :"a"(kernel_page_directory));
@@ -320,6 +321,7 @@ handle_userspace_page_fault(struct task * task,
     uint32_t result;
     uint32_t paddr = 0;
     struct vm_area * vma = NULL;
+    ASSERT(task->page_directory);
     ASSERT(task->privilege_level == DPL_3);
     ASSERT(linear_addr >= ((uint32_t)USERSPACE_BOTTOM));
     vma = search_userspace_vma_by_addr(&task->vma_list, linear_addr);

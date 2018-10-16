@@ -40,6 +40,7 @@ void __initialize_tss(struct task_state_segment * tss,
 void
 set_tss_privilege_level0_stack(uint32_t esp0)
 {
+    memset(&static_tss0, 0x0, sizeof(static_tss0));
     static_tss0.ss0 = KERNEL_DATA_SELECTOR;
     static_tss0.esp0 = esp0;
 } 

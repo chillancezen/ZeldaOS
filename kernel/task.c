@@ -102,6 +102,7 @@ schedule(struct x86_cpustate * cpu)
      * pick next task to execute
      */
     _next_task = task_get();
+    printk("next task:%x\n", _next_task);
     if(_next_task) {
         esp = (uint32_t)_next_task->cpu;
         current = _next_task;
@@ -245,7 +246,7 @@ mockup_entry1(void)
 void
 task_init(void)
 {
-#if !defined(INLINE_TEST)
+#if defined(INLINE_TEST)
     struct task * _task = malloc_task();
     ASSERT(_task);
     ASSERT(!mockup_load_task(_task, DPL_0, mockup_entry));

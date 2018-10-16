@@ -66,18 +66,25 @@ paging_fault_handler(struct x86_cpustate * cpu)
         :"=m"(linear_addr)
         :
         :"%edx");
+    printk("FLAG0:%x %x\n",current, linear_addr);
     if (linear_addr < ((uint32_t)USERSPACE_BOTTOM)) {
         result = handle_kernel_page_fault(cpu, linear_addr);
         if (result == OK) {
-            enable_kernel_paging();
+            if (current)
+                enable_task_paging(current);
+            else
+                enable_kernel_paging();
         }
     } else {
+        ASSERT(current);
         result = handle_userspace_page_fault(current, cpu, linear_addr);
         if (result == OK) {
-            enable_task_paging(current);
+            if (current)
+                enable_task_paging(current);
+            else
+                enable_kernel_paging();
         }
     }
-
     /*
      * Page Fault is not occuring as expected.
      */

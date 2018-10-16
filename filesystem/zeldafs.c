@@ -265,10 +265,12 @@ zeldafs_init(void)
         printk("found zelda file:%x\n", _file);
         rc = validate_static_elf32_format(_file->content, _file->length);
         rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy 'foo' bar \"bar cute\" 34");
-        printk("load elf:%d %d\n", rc, rc1);
 
         rc = validate_static_elf32_format(_file->content, _file->length);
-        rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy 212");
+        //rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy 212");
+
+        printk("load elf:%d %d\n", rc, rc1);
+
         if(0){
             struct list_elem * task_head = get_task_list_head();
             struct list_elem * _list;
