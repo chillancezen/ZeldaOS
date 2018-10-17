@@ -21,6 +21,7 @@ system_call_handler(struct x86_cpustate * cpu)
     int32_t syscall_ret = -ERR_GENERIC;
     uint32_t esp = (uint32_t)cpu;
     int32_t syscall_num = SYSCALL_NUM(cpu);
+    printk("syscall %x\n", SYSCALL_NUM(cpu));
     if (syscall_num < 0 || syscall_num >= MAX_SYSCALL_NUM)
         goto out;
     if (!syscall_entries[syscall_num].valid)
@@ -75,6 +76,10 @@ void register_system_call(int call_num,
     syscall_entries[call_num].valid = 1;
     syscall_entries[call_num].nr_args = nr_args;
     syscall_entries[call_num].call = call;
+    LOG_INFO("Register system call entry(index:%d nr_args:%d entry:0x%x)\n",
+        call_num,
+        nr_args,
+        call);
 }
 
 void

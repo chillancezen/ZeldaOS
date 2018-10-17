@@ -6,7 +6,7 @@ CFLAGS = -g3
 
 %.o:%.c
 	@echo "[CC] $<"
-	@gcc -m32 $(CFLAGS) -I./include -c -o $@ $<
+	@gcc -m32 $(CFLAGS) -nostdlib -fno-builtin -I./include -I$(ZELDA)/kernel/include -c -o $@ $<
 
 all:$(OBJS)
 

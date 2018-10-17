@@ -16,7 +16,7 @@ OBJS = $(patsubst %.c,%.o,$(SRCS))
 
 %.o:%.c
 	@echo "[CC] $(APP):$<"
-	@gcc -m32 $(CFLAGS) -I$(ZELDA)/runtime/include -c -o $@ $<
+	@gcc -m32 $(CFLAGS) -nostdlib -fno-builtin -I$(ZELDA)/runtime/include -include builtin.h -c -o $@ $<
 
 $(APP):$(OBJS)
 	@echo "[LD] $(APP):$@"

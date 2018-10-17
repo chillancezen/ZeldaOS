@@ -9,7 +9,7 @@ extern void * _zelda_constructor_init_end;
 
 extern int main(int argc, char ** argv);
 
-int _start(int argc, char ** argv)
+void _start(int argc, char ** argv)
 {
     int32_t _start = (int)&_zelda_constructor_init_start;
     int32_t _end = (int)&_zelda_constructor_init_end;
@@ -18,5 +18,5 @@ int _start(int argc, char ** argv)
     for(addr = _start; addr < _end; addr += 4)
         ((void (*)(void))*(int32_t *)addr)();
     // XXX: Introduce Constructor
-    return main(argc, argv);
+    exit(main(argc, argv));
 }

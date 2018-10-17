@@ -2,7 +2,7 @@
  * Copyright (c) 2018 Jie Zheng
  */
 #include <stdint.h>
-#include <syscall_inventory.h>
+
 #define asm __asm__
 int cute = 1;
 int bar[1024*1024*10];
@@ -41,7 +41,7 @@ write_serial(uint8_t a)
 }
 
 
-__attribute__((constructor)) void
+void
 foo(void)
 {
     __asm__ volatile("movl $0x1, %%eax;"
@@ -79,10 +79,11 @@ int main(int argc, char *argv[])
         print_serial(argv[idx]);
         print_serial("\n");
     }
-    while(1) {
+    while(0) {
         print_serial(argv[0]);
         print_serial("\n");
     }
+    exit(10);
 #if 0
     *(uint32_t *)0x42802000 = 0;
     int _start = (int)&_zelda_constructor_init_start;

@@ -9,6 +9,8 @@
 #include <x86/include/gdt.h>
 #include <x86/include/tss.h>
 #include <memory/include/paging.h>
+#include <kernel/include/system_call.h>
+#include <kernel/include/zelda_posix.h>
 
 static struct list_elem task_list_head;
 struct task * current;
@@ -256,9 +258,16 @@ mockup_entry1(void)
 }
 #endif
 
+static int32_t
+call_sys_exit(struct x86_cpustate * cpu, uint32_t exit_code)
+{
+    return OK;
+}
+
 void
 task_init(void)
 {
+    register_system_call(SYS_EXIT_IDX, 1, (call_ptr)call_sys_exit);
 #if !defined(INLINE_TEST)
     struct task * _task = malloc_task();
     ASSERT(_task);

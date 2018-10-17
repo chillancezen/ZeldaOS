@@ -3,7 +3,7 @@
  */
 #ifndef _ZELDA_POSIX_H
 #define _ZELDA_POSIX_H
-#include <lib/include/types.h>
+
 
 // The File SEEK macro from: Linux/fs.h
 
@@ -40,5 +40,6 @@
 enum SYSCALL_INDEX {
     SYS_OPEN_IDX = 0,
     SYS_CLOSE_IDX,
+    SYS_EXIT_IDX,
 };
 #endif
