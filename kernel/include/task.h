@@ -18,6 +18,7 @@ struct task {
      * The x86 cpu state, please refer to x86/include/interrupt.h
      */
     struct x86_cpustate * cpu;
+    struct x86_cpustate cpu_shadow;
     /*
      * per-task VMAs and  page Directory
      */
@@ -31,8 +32,10 @@ struct task {
     /*
      * stack at PL 0 and 3, when privilege_level is DPL_0,
      * privilege_level3_stack is NULL.
+     * deprecate privilege_level0_stack becasue we share one common PL0 stack
+     * and store current cpu_state in cpu_shadow;
      */
-    void * privilege_level0_stack;
+    // void * privilege_level0_stack;
     /*
      * each time the PL3 code traps into PL0, the priviege level 0 stack
      * top is switched to. 
@@ -40,7 +43,7 @@ struct task {
      * privilege_level0_stack_top is put into TSS(loaded into task register)'s
      * esp0
      */
-    uint32_t privilege_level0_stack_top;
+    // uint32_t privilege_level0_stack_top;
 
     uint32_t entry;
     /*

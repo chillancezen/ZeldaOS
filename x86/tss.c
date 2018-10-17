@@ -8,7 +8,7 @@
 
 struct task_state_segment static_tss0 __attribute__((aligned(4096)));
 uint8_t tss0_stack[8192] __attribute__((aligned(4)));
-uint8_t tss0_kernel_stack[8192] __attribute__((aligned(4)));
+uint8_t tss0_kernel_stack[1024*1024*4] __attribute__((aligned(4)));
 
 
 void __initialize_tss(struct task_state_segment * tss,
@@ -27,7 +27,7 @@ void __initialize_tss(struct task_state_segment * tss,
     tss->esp = (uint32_t)tss0_stack + sizeof(tss0_stack);
     tss->ss0 = KERNEL_DATA_SELECTOR;
     tss->esp0 = (uint32_t)tss0_kernel_stack + sizeof(tss0_kernel_stack);
-
+    LOG_DEBUG("static tss privilege level 0 stack top:0x%x\n", tss->esp0);
     tss->eip = (uint32_t)entry;
     tss->eflags = 0;
 }

@@ -267,7 +267,7 @@ zeldafs_init(void)
         rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy 'foo' bar \"bar cute\" 34");
 
         rc = validate_static_elf32_format(_file->content, _file->length);
-        //rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy 212");
+        rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy000 212");
 
         printk("load elf:%d %d\n", rc, rc1);
 
