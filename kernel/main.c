@@ -89,7 +89,7 @@ post_init(void)
    uint32_t stack_ptr = KERNEL_STACK_BOTTOM;
    LOG_INFO("Map kernel stack space:\n");
    for (; stack_ptr < KERNEL_STACK_TOP; stack_ptr += PAGE_SIZE) {
-        kernel_map_page(stack_ptr, get_base_page(),
+        kernel_map_page(stack_ptr, get_page(),
             PAGE_PERMISSION_READ_WRITE,
             PAGE_WRITEBACK,
             PAGE_CACHE_ENABLED);

@@ -382,6 +382,32 @@ virt2phy(uint32_t * page_directory, uint32_t virt_addr)
 #undef _
 }
 
+/*
+ * Test whether the page mapping is present.
+ * return OK if the virtual address is mapped.
+ * any non-OK value returned indicate the page is non-present
+ */
+uint32_t
+page_present(uint32_t * page_directory, uint32_t virt_addr)
+{
+#define _(con) if(!(con)) goto out;
+    uint32_t present = -ERR_NOT_PRESENT;
+    uint32_t pd_index = (virt_addr >> 22) & 0x3ff;
+    uint32_t pt_index = (virt_addr >> 12) & 0x3ff;
+    uint32_t * page_table_ptr = NULL;
+    struct pde32 * pde = NULL;
+    struct pte32 * pte = NULL;
+    pde = PDE32_PTR(&page_directory[pd_index]);
+    _(pde->present);
+    page_table_ptr = (uint32_t *)(pde->pt_frame << 12);
+    pte = PTE32_PTR(&page_table_ptr[pt_index]);
+    _(pte->present);
+    present = OK;
+    out:
+        return present;
+#undef _
+}
+
 void
 enable_kernel_paging(void)
 {

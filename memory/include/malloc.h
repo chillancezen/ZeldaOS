@@ -73,4 +73,13 @@ void free(void * mem);
 void dump_recycle_bins(void);
 void malloc_init(void);
 void * stack_alloc(uint32_t size);
+
+// The two functions below ensure the allocated memory blocks are already
+// in the kernel paging directory.
+void *
+malloc_align_mapped(int len, int align);
+
+void *
+malloc_mapped(int len);
+
 #endif

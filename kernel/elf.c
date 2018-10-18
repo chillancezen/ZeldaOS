@@ -194,10 +194,12 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     _task->privilege_level = DPL_3;
     /*
      * Note that PL0 stack space is still in kernel privileged space.
+     * We need to map all them in advance, non-present page in stack lead to
+     * CPU reset.
      */
     current = _task;
-#if 0
-    _task->privilege_level0_stack = malloc(DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
+    _task->privilege_level0_stack =
+        malloc_mapped(DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
     if (!_task->privilege_level0_stack) {
         LOG_DEBUG("Can not allocate memory for PL0 stack\n");
         ret = -ERR_OUT_OF_MEMORY;
@@ -212,7 +214,6 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         _task->privilege_level0_stack,
         ((uint32_t)_task->privilege_level0_stack) +
             DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
-#endif
     /*
      * 1. Prepare basic vm_areas in Task's vma_list
      * this also includes kernel's 1G space.
@@ -376,13 +377,11 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     _task->entry = elf_hdr->e_entry;
     _vma = search_userspace_vma(&_task->vma_list, (uint8_t *)USER_VMA_STACK);
     ASSERT(_vma);
-#if 0
     _cpu = (struct x86_cpustate *)((((uint32_t)_task->privilege_level0_stack) +
         DEFAULT_TASK_PRIVILEGED_STACK_SIZE -
         sizeof(struct x86_cpustate) -
         0x40) & (~0xf));
-#endif
-    _cpu = &_task->cpu_shadow;
+    //_cpu = &_task->cpu_shadow;
     memset(_cpu, 0x0, sizeof(struct x86_cpustate));
     _cpu->ss = USER_DATA_SELECTOR;
     _cpu->esp = resolve_commands(
@@ -435,10 +434,8 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         }
     task_error:
         if (_task) {
-#if 0
             if (_task->privilege_level0_stack)
                 free(_task->privilege_level0_stack);
-#endif
             free_task(_task);
         }
     current = prev_task;

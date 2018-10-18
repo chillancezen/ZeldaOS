@@ -5,6 +5,8 @@
 #include <memory/include/malloc.h>
 #include <lib/include/string.h>
 #include <kernel/include/printk.h>
+#include <memory/include/paging.h>
+
 static struct malloc_header _recycle_bins[RECYCLE_BIN_SIZE];
 
 void __free(struct malloc_header * hdr);
@@ -203,6 +205,35 @@ malloc(int len)
     return malloc_align(len, 1);
 }
 
+void *
+malloc_align_mapped(int len, int align)
+{
+    uint32_t * kernel_page_drectory = (uint32_t *)get_kernel_page_directory();
+    uint32_t addr = (uint32_t)malloc_align(len, align);
+    uint32_t virt_addr = 0;
+    if (addr) {
+        for (virt_addr = addr;
+            virt_addr < (addr + (uint32_t)len);
+            virt_addr += PAGE_SIZE) {
+            if (page_present(kernel_page_drectory, virt_addr) != OK) {
+                kernel_map_page(virt_addr,
+                    ({uint32_t __addr = get_page();
+                        ASSERT(__addr);
+                        __addr;}),
+                    PAGE_PERMISSION_READ_WRITE,
+                    PAGE_WRITEBACK,
+                    PAGE_CACHE_ENABLED);
+                ASSERT(!page_present(kernel_page_drectory, virt_addr));
+            }
+        }
+    }
+    return (void *)addr;
+}
+void *
+malloc_mapped(int len)
+{
+    return malloc_align_mapped(len, 1);
+}
 void
 dump_recycle_bins(void)
 {

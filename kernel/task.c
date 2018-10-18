@@ -71,12 +71,8 @@ void
 free_task(struct task * _task)
 {
     if (_task) {
-#if 0
         if(_task->privilege_level0_stack)
             free(_task->privilege_level0_stack);
-        if(_task->privilege_level3_stack)
-            free(_task->privilege_level3_stack);
-#endif
         free(_task);
     }
 }
@@ -97,7 +93,7 @@ schedule(struct x86_cpustate * cpu)
      */
     if(current) {
         current->cpu = cpu;
-        memcpy(&current->cpu_shadow, cpu, sizeof(struct x86_cpustate));
+        //memcpy(&current->cpu_shadow, cpu, sizeof(struct x86_cpustate));
         task_put(current);
         current = NULL;
     }
@@ -106,16 +102,17 @@ schedule(struct x86_cpustate * cpu)
      */
     _next_task = task_get();
     if(_next_task) {
+        esp = (uint32_t)_next_task->cpu;
         current = _next_task;
         // Actually every time when the contexted switched from PL3 to PL0
         // The SS0:ESP0 is retrieved from current TSS. we can re-use current
         // cpu(esp) to resume selected task, there is no need to calculate
         // a proper cpu(esp) position.
-        memcpy(cpu, &current->cpu_shadow, sizeof(struct x86_cpustate));
+        // memcpy(cpu, &current->cpu_shadow, sizeof(struct x86_cpustate));
         if (_next_task->privilege_level == DPL_3) {
             enable_task_paging(_next_task);
-            //set_tss_privilege_level0_stack(
-            //    _next_task->privilege_level0_stack_top);
+            set_tss_privilege_level0_stack(
+                _next_task->privilege_level0_stack_top);
         } else {
             enable_kernel_paging();
         }
@@ -160,10 +157,8 @@ reclaim_task(struct task * task)
         }
     }
     // Free task's PL0 stack and task itself
-#if 0
     if(task->privilege_level0_stack)
         free(task->privilege_level0_stack);
-#endif
     free_task(task);
     LOG_DEBUG("Finished reclaiming task::0x%x\n", task);
     return OK;
@@ -185,13 +180,11 @@ int32_t
 mockup_spawn_task(struct task * _task)
 {
     struct x86_cpustate * cpu = NULL;
-#if 0
     cpu = (struct x86_cpustate *)
         (_task->privilege_level0_stack +
         DEFAULT_TASK_PRIVILEGED_STACK_SIZE -
         sizeof(struct x86_cpustate));
     cpu = (struct x86_cpustate *)(((uint32_t)cpu) & ~0x3f);
-#endif
     cpu = &_task->cpu_shadow;
     ASSERT(!(((uint32_t)cpu) & 0x3));
     memset(cpu, 0x0, sizeof(struct task));
@@ -199,10 +192,8 @@ mockup_spawn_task(struct task * _task)
         ASSERT(0);
     } else {
         cpu->ss = KERNEL_DATA_SELECTOR;
-#if 0
         cpu->esp = (uint32_t)_task->privilege_level0_stack +
             DEFAULT_TASK_PRIVILEGED_STACK_SIZE;
-#endif
         cpu->eflags = EFLAGS_ONE | EFLAGS_INTERRUPT;
         cpu->cs = KERNEL_CODE_SELECTOR;
         cpu->eip = _task->entry;
@@ -224,7 +215,6 @@ mockup_load_task(struct task * _task,
     _task->privilege_level = dpl;
     _task->entry = (uint32_t)entry;
 
-#if 0
     _task->privilege_level0_stack =
         malloc(DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
 
@@ -232,7 +222,6 @@ mockup_load_task(struct task * _task,
         _task,
         _task->privilege_level0_stack,
         _task->privilege_level0_stack + DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
-#endif
     return OK;
 }
 void
