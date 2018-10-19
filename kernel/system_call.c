@@ -21,7 +21,6 @@ system_call_handler(struct x86_cpustate * cpu)
     int32_t syscall_ret = -ERR_GENERIC;
     uint32_t esp = (uint32_t)cpu;
     int32_t syscall_num = SYSCALL_NUM(cpu);
-    printk("syscall %x\n", SYSCALL_NUM(cpu));
     if (syscall_num < 0 || syscall_num >= MAX_SYSCALL_NUM)
         goto out;
     if (!syscall_entries[syscall_num].valid)

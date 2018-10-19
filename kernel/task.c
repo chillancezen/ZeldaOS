@@ -12,6 +12,7 @@
 #include <kernel/include/system_call.h>
 #include <kernel/include/zelda_posix.h>
 
+#define CPU_YIELD_TRAP_VECTOR 0x88
 static struct list_elem task_list_head;
 struct task * current;
 static uint32_t __ready_to_schedule;
@@ -84,6 +85,7 @@ free_task(struct task * _task)
 uint32_t
 schedule(struct x86_cpustate * cpu)
 {
+    int terminate = 0;
     uint32_t esp = (uint32_t)cpu;
     struct task * _next_task = NULL;
 
@@ -100,7 +102,27 @@ schedule(struct x86_cpustate * cpu)
     /*
      * pick next task to execute
      */
-    _next_task = task_get();
+    select:
+    while ((_next_task = task_get())) {
+        switch(_next_task->state)
+        {
+            case TASK_STATE_EXITING:
+                LOG_DEBUG("task:0x%x is ready to exit\n", _next_task);
+                break;
+            case TASK_STATE_RUNNING:
+                terminate = 1;
+                break;
+            case TASK_STATE_ZOMBIE:
+                LOG_DEBUG("A zombie task:0x%x\n", _next_task);
+                break;
+            default:
+                __not_reach();
+                break;
+        }
+
+        if (terminate)
+            break;
+    }
     if(_next_task) {
         esp = (uint32_t)_next_task->cpu;
         current = _next_task;
@@ -116,6 +138,12 @@ schedule(struct x86_cpustate * cpu)
         } else {
             enable_kernel_paging();
         }
+    } else {
+        // FIXME: Run a long run kernel ide task later which halts the cpu. and
+        // run on its dedicated PL0 stack.
+        asm volatile("sti;"
+            "hlt");
+        goto select;
     }
     return esp;
 }
@@ -175,6 +203,43 @@ dump_tasks(void)
     }
     LIST_FOREACH_END();
 }
+uint32_t
+create_kernel_task(void (*entry)(void))
+{
+    struct x86_cpustate * cpu;
+    uint32_t ret = -ERR_GENERIC;
+    struct task * task = malloc_task();
+    if (!task)
+        goto task_error;
+    task->privilege_level0_stack =
+        malloc_mapped(DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
+    if (!task->privilege_level0_stack)
+        goto task_error;
+    task->privilege_level0_stack_top = (uint32_t)task->privilege_level0_stack +
+        DEFAULT_TASK_PRIVILEGED_STACK_SIZE;
+    task->privilege_level0_stack_top &= ~0x3;
+     
+    task->privilege_level = DPL_0;
+    task->entry = (uint32_t)entry;
+    LOG_DEBUG("kernel task:0x%x's PL0 0x%x\n", task,
+        task->privilege_level0_stack);
+    cpu = (struct x86_cpustate *)(((uint32_t)task->privilege_level0_stack)
+        + DEFAULT_TASK_PRIVILEGED_STACK_SIZE 
+        - sizeof(struct x86_cpustate));
+    cpu = (struct x86_cpustate *)(((uint32_t)cpu) & ~0x3);
+    ASSERT(!(((uint32_t)cpu) & 0x3));
+    memset(cpu, 0x0, sizeof(struct x86_cpustate));
+    cpu->ss = KERNEL_DATA_SELECTOR;
+    cpu->esp = (uint32_t)task->privilege_level0_stack +
+        DEFAULT_TASK_PRIVILEGED_STACK_SIZE;
+    task_error:
+        if (task) {
+            if (task->privilege_level0_stack)
+                free(task->privilege_level0_stack);
+            free(task);
+        }
+    return ret;
+}
 #if defined(INLINE_TEST)
 int32_t
 mockup_spawn_task(struct task * _task)
@@ -185,7 +250,6 @@ mockup_spawn_task(struct task * _task)
         DEFAULT_TASK_PRIVILEGED_STACK_SIZE -
         sizeof(struct x86_cpustate));
     cpu = (struct x86_cpustate *)(((uint32_t)cpu) & ~0x3f);
-    cpu = &_task->cpu_shadow;
     ASSERT(!(((uint32_t)cpu) & 0x3));
     memset(cpu, 0x0, sizeof(struct task));
     if (_task->privilege_level == DPL_3) {
@@ -250,12 +314,34 @@ mockup_entry1(void)
 static int32_t
 call_sys_exit(struct x86_cpustate * cpu, uint32_t exit_code)
 {
+    ASSERT(current);
+    current->state = TASK_STATE_EXITING;
+    yield_cpu();
     return OK;
+}
+void
+yield_cpu(void)
+{
+    asm volatile("int %0;"
+        :
+        :"i"(CPU_YIELD_TRAP_VECTOR));
+}
+static uint32_t
+cpu_yield_handler(struct x86_cpustate * cpu)
+{
+    uint32_t esp = (uint32_t)cpu;
+    if (ready_to_schedule()) {
+        esp = schedule(cpu);
+    }
+    return esp;
 }
 
 void
 task_init(void)
 {
+    register_interrupt_handler(CPU_YIELD_TRAP_VECTOR,
+        cpu_yield_handler,
+        "CPU Yield Trap");
     register_system_call(SYS_EXIT_IDX, 1, (call_ptr)call_sys_exit);
 #if !defined(INLINE_TEST)
     struct task * _task = malloc_task();

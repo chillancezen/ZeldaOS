@@ -11,14 +11,19 @@
 #include <lib/include/list.h>
 #include <kernel/include/userspace_vma.h>
 
+enum task_state {
+    TASK_STATE_ZOMBIE = 0,
+    TASK_STATE_RUNNING,
+    TASK_STATE_EXITING
+};
 
 struct task {
     struct list_elem list;
+    enum task_state state;
     /*
      * The x86 cpu state, please refer to x86/include/interrupt.h
      */
     struct x86_cpustate * cpu;
-    struct x86_cpustate cpu_shadow;
     /*
      * per-task VMAs and  page Directory
      */
@@ -49,6 +54,7 @@ struct task {
      * it often in [DPL_0, DPL_3]
      */
     uint32_t privilege_level:2;
+    uint32_t exit_code;
 };
 extern struct task * current;
 #define IS_TASK_KERNEL_TYPE (_task) ((_task)->privilege_level == DPL_0)
@@ -96,4 +102,9 @@ uint32_t
 handle_userspace_page_fault(struct task * task,
     struct x86_cpustate * cpu,
     uint32_t linear_addr);
+
+
+void
+yield_cpu(void);
+
 #endif

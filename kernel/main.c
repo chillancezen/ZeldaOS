@@ -85,7 +85,10 @@ post_init(void)
     * do it for us
     * UPDATE Aug 6, 2018: do not use page fault handler, it's slow and need
     * a lot of initial stack space, 2 MB is not far enough.
+    * UPDATE Oct 24, 2018: No need to switch to another stack area, since
+    * in multitask context, every task has its own PL0 stack.
     */
+#if 0
    uint32_t stack_ptr = KERNEL_STACK_BOTTOM;
    LOG_INFO("Map kernel stack space:\n");
    for (; stack_ptr < KERNEL_STACK_TOP; stack_ptr += PAGE_SIZE) {
@@ -94,6 +97,7 @@ post_init(void)
             PAGE_WRITEBACK,
             PAGE_CACHE_ENABLED);
    }
+#endif
    task_init();
    schedule_enable();
 }
@@ -153,13 +157,15 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     }
     test_generic_tree();
 #endif
+    LOG_INFO("Finish initializing kernel...\n");
+    sti();
     /*
      * perform stack switching with newly mapped stack area
      * prepare the return address of last frame in new stack
      * actually, this is not necessry, because we are going to run procedure
      * in task unit context.
      */
-    //dump_page_tables(get_kernel_page_directory());
+#if 0
     LOG_INFO("Switch stack to newly mapped space.\n");
     asm volatile("movl 4(%%ebp), %%eax;"
         "movl %0, %%ebx;"
@@ -176,7 +182,6 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
      * because the stack layout is incomplete
      *
      */
-#if 0
     asm volatile("jmpl %0, $0x0;"
         :
         :"i"(TSS0_SELECTOR));

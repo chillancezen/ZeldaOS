@@ -137,6 +137,7 @@ kernel_vma_init(void)
     _vma.length = KERNEL_HEAP_TOP - KERNEL_HEAP_BOTTOM;
     ASSERT(register_kernel_vma(&_vma) == OK);
 
+#if 0
     strcpy(_vma.name, (const uint8_t*)"KernelStack");
     _vma.exact = 0;
     _vma.write_permission = PAGE_PERMISSION_READ_WRITE;
@@ -146,6 +147,7 @@ kernel_vma_init(void)
     _vma.phy_addr = 0;
     _vma.length = KERNEL_STACK_TOP - KERNEL_STACK_BOTTOM;
     ASSERT(register_kernel_vma(&_vma) == OK);
+#endif
     dump_kernel_vma();
 }
 
