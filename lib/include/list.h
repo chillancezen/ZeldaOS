@@ -58,5 +58,7 @@ void list_delete(struct list_elem * head, struct list_elem * elem);
 
 #define LIST_FOREACH_END() }}
 
+int32_t
+element_in_list(struct list_elem * head, struct list_elem * elem);
 
 #endif
