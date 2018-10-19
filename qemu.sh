@@ -1,1 +1,1 @@
-qemu-system-x86_64 -m 1024 -kernel Zelda.bin -drive format=raw,media=disk,index=0,cache=none,file=Zelda.qcow2   -serial stdio -monitor null   -nographic -vnc :100 -netdev tap,id=demonet0,ifname=demotap0,script=no,downscript=no -device e1000,netdev=demonet0
+qemu-system-x86_64 -m 1024 -kernel Zelda.bin -drive format=raw,media=disk,index=0,cache=none,file=Zelda.qcow2   -serial stdio -monitor null   -nographic -vnc :100 -netdev tap,id=demonet0,ifname=demotap0,script=no,downscript=no -device virtio-net-pci,netdev=demonet0

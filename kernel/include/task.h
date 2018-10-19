@@ -14,6 +14,8 @@
 enum task_state {
     TASK_STATE_ZOMBIE = 0,
     TASK_STATE_RUNNING,
+    TASK_INTERRUPTIBLE,
+    TASK_UNINTERRUPTIBLE,
     TASK_STATE_EXITING
 };
 
@@ -106,5 +108,8 @@ handle_userspace_page_fault(struct task * task,
 
 void
 yield_cpu(void);
+
+uint32_t
+create_kernel_task(void (*entry)(void), struct task ** task_ptr);
 
 #endif

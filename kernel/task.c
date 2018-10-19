@@ -16,6 +16,7 @@
 static struct list_elem task_list_head;
 struct task * current;
 static uint32_t __ready_to_schedule;
+static struct task * kernel_idle_task = NULL;
 
 struct list_elem *
 get_task_list_head(void)
@@ -95,14 +96,13 @@ schedule(struct x86_cpustate * cpu)
      */
     if(current) {
         current->cpu = cpu;
-        //memcpy(&current->cpu_shadow, cpu, sizeof(struct x86_cpustate));
-        task_put(current);
+        if (current != kernel_idle_task)
+            task_put(current);
         current = NULL;
     }
     /*
      * pick next task to execute
      */
-    select:
     while ((_next_task = task_get())) {
         switch(_next_task->state)
         {
@@ -131,20 +131,15 @@ schedule(struct x86_cpustate * cpu)
         // cpu(esp) to resume selected task, there is no need to calculate
         // a proper cpu(esp) position.
         // memcpy(cpu, &current->cpu_shadow, sizeof(struct x86_cpustate));
-        if (_next_task->privilege_level == DPL_3) {
-            enable_task_paging(_next_task);
-            set_tss_privilege_level0_stack(
-                _next_task->privilege_level0_stack_top);
-        } else {
-            enable_kernel_paging();
-        }
     } else {
-        // FIXME: Run a long run kernel ide task later which halts the cpu. and
+        // FIXED: Run a long run kernel ide task later which halts the cpu. and
         // run on its dedicated PL0 stack.
-        asm volatile("sti;"
-            "hlt");
-        goto select;
+        esp = (uint32_t)kernel_idle_task->cpu;
+        current = kernel_idle_task;
     }
+    ASSERT(current);
+    enable_task_paging(current);
+    set_tss_privilege_level0_stack(current->privilege_level0_stack_top);
     return esp;
 }
 /*
@@ -203,8 +198,12 @@ dump_tasks(void)
     }
     LIST_FOREACH_END();
 }
+/*
+ * This is self-explanatory, it will create a task which runs at PL0.
+ * OK is returned if successful and *task_ptr point to the newly created task.
+ */
 uint32_t
-create_kernel_task(void (*entry)(void))
+create_kernel_task(void (*entry)(void), struct task ** task_ptr)
 {
     struct x86_cpustate * cpu;
     uint32_t ret = -ERR_GENERIC;
@@ -218,7 +217,8 @@ create_kernel_task(void (*entry)(void))
     task->privilege_level0_stack_top = (uint32_t)task->privilege_level0_stack +
         DEFAULT_TASK_PRIVILEGED_STACK_SIZE;
     task->privilege_level0_stack_top &= ~0x3;
-     
+    ASSERT(!(task->privilege_level0_stack_top & 0x3));
+
     task->privilege_level = DPL_0;
     task->entry = (uint32_t)entry;
     LOG_DEBUG("kernel task:0x%x's PL0 0x%x\n", task,
@@ -229,9 +229,23 @@ create_kernel_task(void (*entry)(void))
     cpu = (struct x86_cpustate *)(((uint32_t)cpu) & ~0x3);
     ASSERT(!(((uint32_t)cpu) & 0x3));
     memset(cpu, 0x0, sizeof(struct x86_cpustate));
+    // As a matter of fact, the SS:ESP will be ignored in kernel task
+    // Intra PL0 task switching involves no stack switching.
     cpu->ss = KERNEL_DATA_SELECTOR;
-    cpu->esp = (uint32_t)task->privilege_level0_stack +
-        DEFAULT_TASK_PRIVILEGED_STACK_SIZE;
+    cpu->esp = task->privilege_level0_stack_top;
+    cpu->eflags = EFLAGS_ONE | EFLAGS_INTERRUPT;
+    cpu->cs = KERNEL_CODE_SELECTOR;
+    cpu->eip = task->entry;
+    cpu->gs = KERNEL_DATA_SELECTOR;
+    cpu->fs = KERNEL_DATA_SELECTOR;
+    cpu->es = KERNEL_DATA_SELECTOR;
+    cpu->ds = KERNEL_DATA_SELECTOR;
+    task->cpu = cpu;
+    task->state = TASK_STATE_RUNNING;
+    LOG_DEBUG("kernel task 0x%x created\n", task);
+
+    *task_ptr = task;
+    ret = OK;
     task_error:
         if (task) {
             if (task->privilege_level0_stack)
@@ -316,6 +330,7 @@ call_sys_exit(struct x86_cpustate * cpu, uint32_t exit_code)
 {
     ASSERT(current);
     current->state = TASK_STATE_EXITING;
+    current->exit_code = exit_code;
     yield_cpu();
     return OK;
 }
@@ -335,10 +350,24 @@ cpu_yield_handler(struct x86_cpustate * cpu)
     }
     return esp;
 }
+/*
+ * This is the kernel idle task which will always be selected and select 
+ */
+static void
+kernel_idle_task_body(void)
+{
+    do {
+        sti();
+        hlt();
+    } while (1);
+}
+
 
 void
 task_init(void)
 {
+    ASSERT(OK == create_kernel_task(kernel_idle_task_body, &kernel_idle_task));
+    ASSERT(kernel_idle_task);
     register_interrupt_handler(CPU_YIELD_TRAP_VECTOR,
         cpu_yield_handler,
         "CPU Yield Trap");
