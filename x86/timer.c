@@ -9,11 +9,14 @@
 #include <x86/include/interrupt.h>
 #include <kernel/include/printk.h>
 #include <kernel/include/task.h>
+#include <kernel/include/jiffies.h>
 
-#define TIMER_RESOLUTION_HZ 100 //10 ms tick
+
+#define TIMER_RESOLUTION_HZ HZ
 #define PIT_CHANNEL0_INTERRUPT_VECTOR (0x20 + 0)
 
 static uint32_t pit_ticks = 0;
+uint64_t jiffies = 0;
 
 static void
 refresh_pit_channel0(void)
@@ -29,13 +32,11 @@ pit_handler(struct x86_cpustate * _cpu __used)
 {
     uint32_t esp = (uint32_t)_cpu;
     pit_ticks++;
+    jiffies++;
     if(pit_ticks % TIMER_RESOLUTION_HZ == 0) {
-        //printk("pit interrupted\n");
     }
     if (ready_to_schedule()) {
-        //dump_x86_cpustate(_cpu);
         esp = schedule(_cpu);
-        //dump_x86_cpustate((struct x86_cpustate*)esp);
     }
     return esp;
 }
