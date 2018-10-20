@@ -33,6 +33,7 @@ pit_handler(struct x86_cpustate * _cpu __used)
     uint32_t esp = (uint32_t)_cpu;
     pit_ticks++;
     jiffies++;
+    if (jiffies < ((uint64_t)3))
     if(pit_ticks % TIMER_RESOLUTION_HZ == 0) {
     }
     if (ready_to_schedule()) {
