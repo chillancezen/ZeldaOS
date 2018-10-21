@@ -96,7 +96,7 @@ swap_nodes(struct binary_tree_node ** proot,
 
 
 void
-put_heap_node(struct binary_tree_node ** proot,
+attach_heap_node(struct binary_tree_node ** proot,
     struct binary_tree_node * node,
     int32_t (*compare)(struct binary_tree_node *, struct binary_tree_node *))
 {
@@ -152,3 +152,38 @@ put_heap_node(struct binary_tree_node ** proot,
     }
 }
 
+struct binary_tree_node *
+detach_heap_node(struct binary_tree_node ** proot,
+    int32_t (*compare)(struct binary_tree_node *, struct binary_tree_node *))
+{
+    int left_is_smaller = 0;
+    struct binary_tree_node * current_node = *proot;
+    if (!*proot)
+        return NULL;
+    while (current_node->left || current_node->right) {
+        left_is_smaller = 1;
+        ASSERT(current_node->left);
+        if (current_node->right)
+            left_is_smaller = compare(current_node->left,
+                current_node->right) < 0;
+        if (left_is_smaller) {
+            swap_nodes(proot, current_node, current_node->left);
+        } else {
+            swap_nodes(proot, current_node, current_node->right);
+        }
+    }
+    ASSERT(current_node);
+    ASSERT(!current_node->left && !current_node->right);
+    if (current_node->parent) {
+        if (current_node->parent->left == current_node)
+            current_node->parent->left = NULL;
+        else {
+            ASSERT(current_node->parent->right == current_node);
+            current_node->parent->right = NULL;
+        }
+        current_node->parent = NULL;
+    } else {
+        ASSERT(*proot == current_node);
+    }
+    return current_node;
+}
