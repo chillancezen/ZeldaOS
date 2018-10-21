@@ -24,6 +24,7 @@
 #include <kernel/include/system_call.h>
 #include <filesystem/include/memfs.h>
 #include <kernel/include/rtc.h>
+#include <lib/include/heap_sort.h>
 
 static struct multiboot_info * boot_info;
 static void
@@ -111,6 +112,9 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init3();
     init4();
     post_init();
+#if defined(INLINE_TEST)
+    heap_sort_test();
+#endif
     sti();
     /*
      * perform stack switching with newly mapped stack area

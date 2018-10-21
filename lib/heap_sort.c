@@ -184,6 +184,70 @@ detach_heap_node(struct binary_tree_node ** proot,
         current_node->parent = NULL;
     } else {
         ASSERT(*proot == current_node);
+        *proot = NULL;
     }
     return current_node;
 }
+
+void
+delete_heap_node(struct binary_tree_node ** proot,
+    struct binary_tree_node * node)
+{
+    // Make sure `node` is in the heap tree
+    struct binary_tree_node * current_node = node;
+    for (; current_node && current_node->parent; current_node = current_node->parent);
+    if (*proot != node)
+        return;
+            
+}
+
+#if defined(INLINE_TEST)
+#include <lib/include/string.h>
+
+struct dummy_node {
+    int val;
+    struct binary_tree_node node;
+};
+
+int32_t
+compare(struct binary_tree_node * node0, struct binary_tree_node * node1)
+{
+    struct dummy_node * dummy0 = CONTAINER_OF(node0, struct dummy_node, node);
+    struct dummy_node * dummy1 = CONTAINER_OF(node1, struct dummy_node, node);
+    return dummy0->val - dummy1->val;
+}
+
+void
+heap_sort_test(void)
+{
+    int32_t last_val = -1;
+    struct binary_tree_node * current_node;
+    struct dummy_node * dummy = NULL;
+    struct binary_tree_node * root = NULL;
+    struct dummy_node node0;
+    struct dummy_node node1;
+    struct dummy_node node2;
+    struct dummy_node node3;
+    struct dummy_node node4;
+    memset(&node0, 0x0, sizeof(struct dummy_node));
+    memset(&node1, 0x0, sizeof(struct dummy_node));
+    memset(&node2, 0x0, sizeof(struct dummy_node));
+    memset(&node3, 0x0, sizeof(struct dummy_node));
+    memset(&node4, 0x0, sizeof(struct dummy_node));
+    node0.val = 0x10;
+    node1.val = 0x11;
+    node2.val = 0x5;
+    node3.val = 0x2;
+    node4.val = 0x11;
+    attach_heap_node(&root, &node1.node, compare);
+    attach_heap_node(&root, &node0.node, compare);
+    attach_heap_node(&root, &node2.node, compare);
+    attach_heap_node(&root, &node3.node, compare);
+    attach_heap_node(&root, &node4.node, compare);
+    while ((current_node = detach_heap_node(&root, compare))) {
+        dummy = CONTAINER_OF(current_node, struct dummy_node, node);
+        ASSERT(last_val <= dummy->val);
+        last_val = dummy->val;
+    }
+}
+#endif
