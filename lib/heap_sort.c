@@ -5,6 +5,40 @@
 #include <lib/include/heap_sort.h>
 #include <kernel/include/printk.h>
 /*
+ * FIXME: Find a fast way to search last node and last parent
+ * , for example, always to store last node and parent. O(n) really degrade the
+ * performance to search them both.
+ */
+struct binary_tree_node *
+search_last_node(struct binary_tree_node * root)
+{
+    struct list_elem * _list;
+    struct binary_tree_node * _node;
+    struct binary_tree_node * target_node = NULL;
+    struct list_elem queue;
+    list_init(&queue);
+    if (!root)
+        return NULL;
+    list_init(&root->list);
+    list_append(&queue, &root->list);
+    while ((_list = list_fetch(&queue))) {
+        _node = CONTAINER_OF(_list, struct binary_tree_node, list);
+        target_node = _node;
+        if (_node->left) {
+            list_init(&_node->left->list);
+            list_append(&queue, &_node->left->list);
+        }
+        if (_node->right) {
+            list_init(&_node->right->list);
+            list_append(&queue, &_node->right->list);
+        }
+    }
+    ASSERT(target_node);
+    ASSERT(!target_node->left);
+    ASSERT(!target_node->right);
+    return target_node;
+}
+/*
  * Search the last parent in the Bi-Tree
  * node the root is allowed to be NULL in case it's a empty tree.
  * the found node is allowed to have no children
@@ -152,41 +186,84 @@ attach_heap_node(struct binary_tree_node ** proot,
     }
 }
 
+void
+adjust_heap_node(struct binary_tree_node ** proot,
+    struct binary_tree_node * node,
+    int32_t (*compare)(struct binary_tree_node *, struct binary_tree_node *))
+{
+    int32_t left_is_smaller;
+    int32_t right_is_smaller;
+    struct binary_tree_node * current_node = node;
+    while (current_node) {
+        left_is_smaller = 0;
+        right_is_smaller = 0;
+        if (current_node->left &&
+            compare(current_node->left, current_node) < 0)
+            left_is_smaller = 1;
+        if (current_node->right) {
+            ASSERT(current_node->left);
+            if (left_is_smaller) {
+                right_is_smaller = compare(current_node->right,
+                    current_node->left) < 0;
+            } else {
+                right_is_smaller =
+                    compare(current_node->right, current_node) < 0;
+            }
+        }
+        if (right_is_smaller) {
+            swap_nodes(proot, current_node, current_node->right);
+            ASSERT(current_node->parent);
+        } else if (left_is_smaller) {
+            swap_nodes(proot, current_node, current_node->left);
+            ASSERT(current_node->parent);
+        } else {
+            break;
+        }
+    }
+}
 struct binary_tree_node *
 detach_heap_node(struct binary_tree_node ** proot,
     int32_t (*compare)(struct binary_tree_node *, struct binary_tree_node *))
 {
-    int left_is_smaller = 0;
-    struct binary_tree_node * current_node = *proot;
+    struct binary_tree_node * detached_node = NULL;
+    struct binary_tree_node * last_node = NULL;
     if (!*proot)
         return NULL;
-    while (current_node->left || current_node->right) {
-        left_is_smaller = 1;
-        ASSERT(current_node->left);
-        if (current_node->right)
-            left_is_smaller = compare(current_node->left,
-                current_node->right) < 0;
-        if (left_is_smaller) {
-            swap_nodes(proot, current_node, current_node->left);
+    last_node = search_last_node(*proot);
+    ASSERT(!last_node->left && !last_node->right);
+    
+    {
+        // Detach the last node
+        if (!last_node->parent) {
+            ASSERT(*proot == last_node);
+            *proot = NULL;
+        } else if (last_node->parent->left == last_node) {
+            ASSERT(!last_node->parent->right);
+            last_node->parent->left = NULL;
+            last_node->parent = NULL;
         } else {
-            swap_nodes(proot, current_node, current_node->right);
+            ASSERT(last_node->parent->right == last_node);
+            last_node->parent->right = NULL;
+            last_node->parent = NULL;
         }
     }
-    ASSERT(current_node);
-    ASSERT(!current_node->left && !current_node->right);
-    if (current_node->parent) {
-        if (current_node->parent->left == current_node)
-            current_node->parent->left = NULL;
-        else {
-            ASSERT(current_node->parent->right == current_node);
-            current_node->parent->right = NULL;
+    {
+        // Swap the last node with the heap top element
+        // Note the heap top may be NULL
+        if (!*proot) {
+            detached_node = last_node;
+        } else {
+            detached_node = *proot;
+            last_node->left = detached_node->left;
+            last_node->right = detached_node->right;
+            *proot = last_node;
+            detached_node->left = NULL;
+            detached_node->right = NULL;
+            ASSERT(!detached_node->parent);
         }
-        current_node->parent = NULL;
-    } else {
-        ASSERT(*proot == current_node);
-        *proot = NULL;
     }
-    return current_node;
+    adjust_heap_node(proot, *proot, compare);
+    return detached_node;
 }
 
 void
@@ -198,7 +275,7 @@ delete_heap_node(struct binary_tree_node ** proot,
     for (; current_node && current_node->parent; current_node = current_node->parent);
     if (*proot != node)
         return;
-            
+                
 }
 
 #if defined(INLINE_TEST)
@@ -229,6 +306,11 @@ heap_sort_test(void)
     struct dummy_node node2;
     struct dummy_node node3;
     struct dummy_node node4;
+    printk("0:%x\n", &node0.node);
+    printk("1:%x\n", &node1.node);
+    printk("2:%x\n", &node2.node);
+    printk("3:%x\n", &node3.node);
+    printk("4:%x\n", &node4.node);
     memset(&node0, 0x0, sizeof(struct dummy_node));
     memset(&node1, 0x0, sizeof(struct dummy_node));
     memset(&node2, 0x0, sizeof(struct dummy_node));
@@ -247,6 +329,7 @@ heap_sort_test(void)
     while ((current_node = detach_heap_node(&root, compare))) {
         dummy = CONTAINER_OF(current_node, struct dummy_node, node);
         ASSERT(last_val <= dummy->val);
+        printk("current val:%d\n", dummy->val);
         last_val = dummy->val;
     }
 }
