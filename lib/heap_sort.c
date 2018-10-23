@@ -80,14 +80,14 @@ search_last_parent(struct binary_tree_node * root)
 }
 
 void
-swap_nodes(struct binary_tree_node ** proot,
+swap_nodes(struct heap_stub * heap,
     struct binary_tree_node * parent,
     struct binary_tree_node * child)
 {
     int is_left_child = 0;
     struct binary_tree_node * left_of_child = NULL;
     struct binary_tree_node * right_of_child = NULL;
-    ASSERT(*proot);
+    ASSERT(heap->root);
     ASSERT(child && parent);
     ASSERT(child->parent = parent);
 
@@ -124,13 +124,13 @@ swap_nodes(struct binary_tree_node ** proot,
     if (parent->right)
         parent->right->parent = parent;
 
-    if (*proot == parent)
-        *proot = child;
+    if (heap->root == parent)
+        heap->root = child;
 }
 
 
 void
-attach_heap_node(struct binary_tree_node ** proot,
+attach_heap_node(struct heap_stub * heap,
     struct binary_tree_node * node,
     int32_t (*compare)(struct binary_tree_node *, struct binary_tree_node *))
 {
@@ -141,10 +141,10 @@ attach_heap_node(struct binary_tree_node ** proot,
     ASSERT(!node->parent);
     ASSERT(!node->left);
     ASSERT(!node->right);
-    last_parent = search_last_parent(*proot);
+    last_parent = search_last_parent(heap->root);
     if (!last_parent) {
-        ASSERT(!*proot);
-        *proot = node;
+        ASSERT(!heap->root);
+        heap->root = node;
         return;
     }
     ASSERT(!last_parent->right);
@@ -173,11 +173,11 @@ attach_heap_node(struct binary_tree_node ** proot,
             }
         }
         if (right_is_smaller) {
-            swap_nodes(proot, current_node, current_node->right);
+            swap_nodes(heap, current_node, current_node->right);
             ASSERT(current_node->parent);
             current_node = current_node->parent->parent;
         } else if (left_is_smaller) {
-            swap_nodes(proot, current_node, current_node->left);
+            swap_nodes(heap, current_node, current_node->left);
             ASSERT(current_node->parent);
             current_node = current_node->parent->parent;
         } else {
@@ -187,7 +187,7 @@ attach_heap_node(struct binary_tree_node ** proot,
 }
 
 void
-adjust_heap_node(struct binary_tree_node ** proot,
+adjust_heap_node(struct heap_stub * heap,
     struct binary_tree_node * node,
     int32_t (*compare)(struct binary_tree_node *, struct binary_tree_node *))
 {
@@ -211,10 +211,10 @@ adjust_heap_node(struct binary_tree_node ** proot,
             }
         }
         if (right_is_smaller) {
-            swap_nodes(proot, current_node, current_node->right);
+            swap_nodes(heap, current_node, current_node->right);
             ASSERT(current_node->parent);
         } else if (left_is_smaller) {
-            swap_nodes(proot, current_node, current_node->left);
+            swap_nodes(heap, current_node, current_node->left);
             ASSERT(current_node->parent);
         } else {
             break;
@@ -222,21 +222,21 @@ adjust_heap_node(struct binary_tree_node ** proot,
     }
 }
 struct binary_tree_node *
-detach_heap_node(struct binary_tree_node ** proot,
+detach_heap_node(struct heap_stub * heap,
     int32_t (*compare)(struct binary_tree_node *, struct binary_tree_node *))
 {
     struct binary_tree_node * detached_node = NULL;
     struct binary_tree_node * last_node = NULL;
-    if (!*proot)
+    if (!heap->root)
         return NULL;
-    last_node = search_last_node(*proot);
+    last_node = search_last_node(heap->root);
     ASSERT(!last_node->left && !last_node->right);
     
     {
         // Detach the last node
         if (!last_node->parent) {
-            ASSERT(*proot == last_node);
-            *proot = NULL;
+            ASSERT(heap->root == last_node);
+            heap->root = NULL;
         } else if (last_node->parent->left == last_node) {
             ASSERT(!last_node->parent->right);
             last_node->parent->left = NULL;
@@ -250,30 +250,34 @@ detach_heap_node(struct binary_tree_node ** proot,
     {
         // Swap the last node with the heap top element
         // Note the heap top may be NULL
-        if (!*proot) {
+        if (!heap->root) {
             detached_node = last_node;
         } else {
-            detached_node = *proot;
+            detached_node = heap->root;
+            if (detached_node->left)
+                detached_node->left->parent = last_node;
+            if (detached_node->right)
+                detached_node->right->parent = last_node;
             last_node->left = detached_node->left;
             last_node->right = detached_node->right;
-            *proot = last_node;
+            heap->root = last_node;
             detached_node->left = NULL;
             detached_node->right = NULL;
             ASSERT(!detached_node->parent);
         }
     }
-    adjust_heap_node(proot, *proot, compare);
+    adjust_heap_node(heap, heap->root, compare);
     return detached_node;
 }
 
 void
-delete_heap_node(struct binary_tree_node ** proot,
+delete_heap_node(struct heap_stub * heap,
     struct binary_tree_node * node)
 {
     // Make sure `node` is in the heap tree
     struct binary_tree_node * current_node = node;
     for (; current_node && current_node->parent; current_node = current_node->parent);
-    if (*proot != node)
+    if (heap->root != node)
         return;
                 
 }
@@ -300,17 +304,16 @@ heap_sort_test(void)
     int32_t last_val = -1;
     struct binary_tree_node * current_node;
     struct dummy_node * dummy = NULL;
-    struct binary_tree_node * root = NULL;
+    struct heap_stub heap = {
+        .root = NULL,
+        .last_parent = NULL,
+        .last_node = NULL   
+    };
     struct dummy_node node0;
     struct dummy_node node1;
     struct dummy_node node2;
     struct dummy_node node3;
     struct dummy_node node4;
-    printk("0:%x\n", &node0.node);
-    printk("1:%x\n", &node1.node);
-    printk("2:%x\n", &node2.node);
-    printk("3:%x\n", &node3.node);
-    printk("4:%x\n", &node4.node);
     memset(&node0, 0x0, sizeof(struct dummy_node));
     memset(&node1, 0x0, sizeof(struct dummy_node));
     memset(&node2, 0x0, sizeof(struct dummy_node));
@@ -321,15 +324,15 @@ heap_sort_test(void)
     node2.val = 0x5;
     node3.val = 0x2;
     node4.val = 0x11;
-    attach_heap_node(&root, &node1.node, compare);
-    attach_heap_node(&root, &node0.node, compare);
-    attach_heap_node(&root, &node2.node, compare);
-    attach_heap_node(&root, &node3.node, compare);
-    attach_heap_node(&root, &node4.node, compare);
-    while ((current_node = detach_heap_node(&root, compare))) {
+    attach_heap_node(&heap, &node1.node, compare);
+    attach_heap_node(&heap, &node0.node, compare);
+    attach_heap_node(&heap, &node2.node, compare);
+    attach_heap_node(&heap, &node3.node, compare);
+    attach_heap_node(&heap, &node4.node, compare);
+    while ((current_node = detach_heap_node(&heap, compare))) {
         dummy = CONTAINER_OF(current_node, struct dummy_node, node);
+        printk("heap val:%d\n", dummy->val);
         ASSERT(last_val <= dummy->val);
-        printk("current val:%d\n", dummy->val);
         last_val = dummy->val;
     }
 }
