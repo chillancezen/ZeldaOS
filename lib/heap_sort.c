@@ -391,7 +391,6 @@ heap_sort_test(void)
     delete_heap_node(&heap, &node3.node, compare);
     while ((current_node = detach_heap_node(&heap, compare))) {
         dummy = CONTAINER_OF(current_node, struct dummy_node, node);
-        printk("heap val:%d\n", dummy->val);
         ASSERT(last_val <= dummy->val);
         last_val = dummy->val;
     }

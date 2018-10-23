@@ -112,4 +112,11 @@ yield_cpu(void);
 uint32_t
 create_kernel_task(void (*entry)(void), struct task ** task_ptr);
 
+void
+yield_cpu(void);
+
+
+void
+task_misc_init(void);
+
 #endif
