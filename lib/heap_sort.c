@@ -230,6 +230,7 @@ detach_heap_node(struct heap_stub * heap,
     if (!heap->root)
         return NULL;
     last_node = search_last_node(heap->root);
+    ASSERT(last_node);
     ASSERT(!last_node->left && !last_node->right);
     
     {
@@ -272,14 +273,67 @@ detach_heap_node(struct heap_stub * heap,
 
 void
 delete_heap_node(struct heap_stub * heap,
-    struct binary_tree_node * node)
+    struct binary_tree_node * node,
+    int32_t (*compare)(struct binary_tree_node *, struct binary_tree_node *))
 {
-    // Make sure `node` is in the heap tree
+    // Make sure `node`(to be deleted) is in the heap tree
     struct binary_tree_node * current_node = node;
-    for (; current_node && current_node->parent; current_node = current_node->parent);
-    if (heap->root != node)
+    struct binary_tree_node * last_node = NULL;
+    for (; current_node && current_node->parent;
+        current_node = current_node->parent);
+    if (!heap->root || heap->root != current_node)
         return;
-                
+    {
+        // Remove the last node from the complete binary tree.
+        last_node = search_last_node(heap->root);
+        ASSERT(last_node);
+        ASSERT(!last_node->left && !last_node->right);
+        if (!last_node->parent) {
+            ASSERT(heap->root == last_node);
+            heap->root = NULL;
+        } else if (last_node->parent->left == last_node) {
+            ASSERT(!last_node->parent->right);
+            last_node->parent->left = NULL;
+            last_node->parent = NULL;
+        } else {
+            ASSERT(last_node->parent->right == last_node);
+            last_node->parent->right = NULL;
+            last_node->parent = NULL;
+        }        
+    }
+
+    {
+        // Swap the last node with the node which is about to be deleted
+        if (heap->root && node != last_node) {
+            last_node->left = node->left;
+            last_node->right = node->right;
+            if (node->left)
+                node->left->parent = last_node;
+            if (node->right) {
+                ASSERT(node->left);
+                node->right->parent = last_node;
+            }
+            if (!node->parent) {
+                ASSERT(heap->root == node);
+                last_node->parent = NULL;
+                heap->root = last_node;
+            } else {
+                last_node->parent = node->parent;
+                if (node->parent->left == node)
+                    node->parent->left = last_node;
+                else {
+                    ASSERT(node->parent->right == node);
+                    node->parent->right = last_node;
+                }
+            }
+            adjust_heap_node(heap, last_node, compare);
+        } else {
+            ASSERT(node == last_node);
+        }
+        node->parent = NULL;
+        node->left = NULL;
+        node->right = NULL;
+    }
 }
 
 #if defined(INLINE_TEST)
@@ -329,6 +383,12 @@ heap_sort_test(void)
     attach_heap_node(&heap, &node2.node, compare);
     attach_heap_node(&heap, &node3.node, compare);
     attach_heap_node(&heap, &node4.node, compare);
+    delete_heap_node(&heap, &node4.node, compare); 
+    delete_heap_node(&heap, &node4.node, compare);
+    delete_heap_node(&heap, &node0.node, compare);
+    delete_heap_node(&heap, &node1.node, compare);
+    delete_heap_node(&heap, &node2.node, compare);
+    delete_heap_node(&heap, &node3.node, compare);
     while ((current_node = detach_heap_node(&heap, compare))) {
         dummy = CONTAINER_OF(current_node, struct dummy_node, node);
         printk("heap val:%d\n", dummy->val);
