@@ -32,6 +32,11 @@ struct binary_tree_node *
 detach_heap_node(struct heap_stub * heap,
     int32_t (*compare)(struct binary_tree_node *, struct binary_tree_node *));
 
+void
+delete_heap_node(struct heap_stub * heap,
+    struct binary_tree_node * node,
+    int32_t (*compare)(struct binary_tree_node *, struct binary_tree_node *));
+
 #if defined(INLINE_TEST)
 void
 heap_sort_test(void);

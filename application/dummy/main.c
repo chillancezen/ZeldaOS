@@ -79,10 +79,12 @@ int main(int argc, char *argv[])
         print_serial(argv[idx]);
         print_serial("\n");
     }
-    while(0) {
+    while(1) {
         print_serial(argv[0]);
         print_serial("\n");
+        sleep(1000);
     }
+
     exit(10);
 #if 0
     *(uint32_t *)0x42802000 = 0;

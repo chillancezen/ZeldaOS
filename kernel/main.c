@@ -6,7 +6,7 @@
 #include <x86/include/gdt.h>
 #include <x86/include/interrupt.h>
 #include <x86/include/ioport.h>
-#include <x86/include/timer.h>
+#include <x86/include/pit.h>
 #include <device/include/keyboard.h>
 #include <memory/include/physical_memory.h>
 #include <memory/include/paging.h>
@@ -25,6 +25,7 @@
 #include <filesystem/include/memfs.h>
 #include <kernel/include/rtc.h>
 #include <lib/include/heap_sort.h>
+#include <kernel/include/timer.h>
 
 static struct multiboot_info * boot_info;
 static void
@@ -100,6 +101,7 @@ post_init(void)
             PAGE_CACHE_ENABLED);
    }
 #endif
+   timer_init();
    task_init();
    schedule_enable();
 }

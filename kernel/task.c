@@ -13,10 +13,22 @@
 #include <kernel/include/zelda_posix.h>
 
 static struct list_elem task_list_head;
+static struct list_elem task_exit_list_head;
+static struct list_elem task_zombie_list_head;
+static struct list_elem task_blocking_list_head;
 struct task * current;
 static uint32_t __ready_to_schedule;
 static struct task * kernel_idle_task = NULL;
 
+void
+transit_state(struct task * task, enum task_state target_state)
+{
+    enum task_state prev_state;
+    prev_state = task->state;
+    task->state = target_state;
+    LOG_TRIVIA("Task:0x%x state transition from:0x%x to 0x%x\n",
+        task, prev_state, target_state);
+}
 struct list_elem *
 get_task_list_head(void)
 {
@@ -77,6 +89,21 @@ free_task(struct task * _task)
         free(_task);
     }
 }
+
+static void
+process_blocking_task_list(void)
+{
+    struct list_elem * _list = NULL;
+    struct task * _task = NULL;
+    LIST_FOREACH_START(&task_blocking_list_head, _list) {
+        _task = CONTAINER_OF(_list, struct task, list);
+        if (_task->state == TASK_STATE_RUNNING) {
+            list_delete(&task_blocking_list_head, _list);
+            task_put(_task);
+        }
+    }
+    LIST_FOREACH_END();
+}
 /*
  * The function is to pick up a task in the list,
  * and the task is about to execute on the CPU
@@ -89,30 +116,33 @@ schedule(struct x86_cpustate * cpu)
     uint32_t esp = (uint32_t)cpu;
     struct task * _next_task = NULL;
 
-    /*
-     * save current for cpu state
-     * and cleanup current task
-     */
+    // save current for cpu state
+    // and cleanup current task
     if(current) {
         current->cpu = cpu;
         if (current != kernel_idle_task)
             task_put(current);
         current = NULL;
     }
-    /*
-     * pick next task to execute
-     */
+    // process other auxiliary tasks queue
+    process_blocking_task_list();
+    // pick next task to execute.
     while ((_next_task = task_get())) {
         switch(_next_task->state)
         {
             case TASK_STATE_EXITING:
+                list_append(&task_exit_list_head, &_next_task->list);
                 LOG_DEBUG("task:0x%x is ready to exit\n", _next_task);
                 break;
             case TASK_STATE_RUNNING:
                 terminate = 1;
                 break;
             case TASK_STATE_ZOMBIE:
+                list_append(&task_zombie_list_head, &_next_task->list);
                 LOG_DEBUG("A zombie task:0x%x\n", _next_task);
+                break;
+            case TASK_STATE_INTERRUPTIBLE:
+                list_append(&task_blocking_list_head, &_next_task->list);
                 break;
             default:
                 __not_reach();
@@ -363,4 +393,7 @@ task_pre_init(void)
     current = NULL;
     __ready_to_schedule = 0;
     list_init(&task_list_head);
+    list_init(&task_exit_list_head);
+    list_init(&task_zombie_list_head);
+    list_init(&task_blocking_list_head);
 }

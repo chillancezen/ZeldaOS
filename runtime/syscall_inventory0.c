@@ -14,5 +14,8 @@ exit(int32_t exit_code)
 }
 
 
-
-
+void
+sleep(int32_t milisecond)
+{
+    do_system_call1(SYS_SLEEP_IDX, milisecond);
+}

@@ -61,6 +61,10 @@ struct task {
 extern struct task * current;
 #define IS_TASK_KERNEL_TYPE (_task) ((_task)->privilege_level == DPL_0)
 
+void
+transit_state(struct task * task, enum task_state target_state);
+
+
 struct list_elem * get_task_list_head(void);
 struct task * malloc_task(void);
 void free_task(struct task * _task);
@@ -115,6 +119,8 @@ create_kernel_task(void (*entry)(void), struct task ** task_ptr);
 void
 yield_cpu(void);
 
+void
+sleep(uint32_t milisecond);
 
 void
 task_misc_init(void);

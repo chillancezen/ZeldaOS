@@ -9,4 +9,7 @@
 int32_t
 exit(int32_t exit_code);
 
+void
+sleep(int32_t milisecond);
+
 #endif

@@ -41,5 +41,6 @@ enum SYSCALL_INDEX {
     SYS_OPEN_IDX = 0,
     SYS_CLOSE_IDX,
     SYS_EXIT_IDX,
+    SYS_SLEEP_IDX,
 };
 #endif

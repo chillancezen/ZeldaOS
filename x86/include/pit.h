@@ -1,8 +1,8 @@
 /*
  * Copyright (c) 2018 Jie Zheng
  */
-#ifndef _TIMER_H
-#define _TIMER_H
+#ifndef _PIT_H
+#define _PIT_H
 #include <lib/include/types.h>
 
 #define PIT_CHANNEL0_PORT 0x40
