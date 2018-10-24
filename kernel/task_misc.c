@@ -29,7 +29,10 @@ sleep(uint32_t milisecond)
     timer.callback = sleep_callback;
     register_timer(&timer);
     transit_state(current, TASK_STATE_INTERRUPTIBLE);
+    ASSERT(!current->current_timer);
+    current->current_timer = &timer;
     yield_cpu();
+    current->current_timer = NULL;
 }
 
 void

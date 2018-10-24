@@ -10,12 +10,12 @@
 #include <kernel/include/printk.h>
 #include <lib/include/list.h>
 #include <kernel/include/userspace_vma.h>
+#include <kernel/include/timer.h>
 
 enum task_state {
     TASK_STATE_ZOMBIE = 0,
     TASK_STATE_RUNNING,
     TASK_STATE_INTERRUPTIBLE,
-    TASK_STATE_UNINTERRUPTIBLE,
     TASK_STATE_EXITING
 };
 
@@ -57,6 +57,10 @@ struct task {
      */
     uint32_t privilege_level:2;
     uint32_t exit_code;
+    
+    // Point to the timer which often on the stack. in case we release a running
+    // task, we need to delete the timer entry first
+    struct timer_entry * current_timer;
 };
 extern struct task * current;
 #define IS_TASK_KERNEL_TYPE (_task) ((_task)->privilege_level == DPL_0)

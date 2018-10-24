@@ -246,6 +246,8 @@ userspace_evict_page(struct task * task,
 int
 userspace_evict_vma(struct task * task, struct vm_area * vma)
 {
+    uint32_t next_page_directory = 0x0;
+    uint32_t current_page_directory = 0x0;
     uint64_t addr = 0;
     if (!vma_in_task(task, vma))
         return -ERR_NOT_FOUND;
@@ -253,7 +255,11 @@ userspace_evict_vma(struct task * task, struct vm_area * vma)
         return -ERR_INVALID_ARG;
     for (addr = vma->virt_addr;
         addr < (vma->virt_addr + vma->length); addr += PAGE_SIZE) {
-        userspace_evict_page(task, (uint32_t)addr, 1);
+        current_page_directory = (((uint32_t)addr) >> 22) & 0x3ff;
+        next_page_directory = ((PAGE_SIZE + (uint32_t)addr) >> 22) & 0x3ff;
+        userspace_evict_page(task, (uint32_t)addr,
+            ((addr + PAGE_SIZE) >= (vma->virt_addr + vma->length)) ? 1 :
+                current_page_directory != next_page_directory);
     }
     return OK;
 }

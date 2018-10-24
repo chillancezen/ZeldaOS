@@ -104,6 +104,17 @@ process_blocking_task_list(void)
     }
     LIST_FOREACH_END();
 }
+static void
+process_exit_task_list(void)
+{
+    struct list_elem * _list = NULL;
+    struct task * _task = NULL;
+    while ((_list = list_fetch(&task_exit_list_head))) {
+        _task = CONTAINER_OF(_list, struct task, list);
+        ASSERT(_task->state == TASK_STATE_EXITING);
+        reclaim_task(_task);
+    }
+}
 /*
  * The function is to pick up a task in the list,
  * and the task is about to execute on the CPU
@@ -126,6 +137,7 @@ schedule(struct x86_cpustate * cpu)
     }
     // process other auxiliary tasks queue
     process_blocking_task_list();
+    process_exit_task_list();
     // pick next task to execute.
     while ((_next_task = task_get())) {
         switch(_next_task->state)
@@ -180,9 +192,14 @@ reclaim_task(struct task * task)
 {
     LOG_DEBUG("Reclaiming task:0x%x starts\n", task);
     // Detach the task from the global task list
-    list_delete(&task_list_head, &task->list);
+    // XXX:The task is not in any queue now. it must be standalone
+    ASSERT(!task->list.prev);
+    ASSERT(!task->list.next);
     // Do not access per-task memory any more
-    enable_kernel_paging();
+    // XXX:Do NOT modify current PAGING layout, because task recycling only
+    // happens when it's in non-running task queues.
+    // enable_kernel_paging();
+
     // Evict all the userspace pages
     {
         struct vm_area * _vma;
@@ -207,6 +224,13 @@ reclaim_task(struct task * task)
             _vma = CONTAINER_OF(_list, struct vm_area, list);
             free(_vma);
         }
+    }
+    // Cancel the timer in case it's been scheduled.
+    // Often this only happen when the task is TASK_STATE_INTERRUPTIBLE and
+    // killed by other tasks.
+    if (task->current_timer) {
+        ASSERT(task->current_timer->state == timer_state_scheduled);
+        cancel_timer(task->current_timer);
     }
     // Free task's PL0 stack and task itself
     if(task->privilege_level0_stack)
