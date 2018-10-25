@@ -154,6 +154,7 @@ schedule(struct x86_cpustate * cpu)
                 LOG_DEBUG("A zombie task:0x%x\n", _next_task);
                 break;
             case TASK_STATE_INTERRUPTIBLE:
+            case TASK_STATE_UNINTERRUPTIBLE:
                 list_append(&task_blocking_list_head, &_next_task->list);
                 break;
             default:
@@ -286,8 +287,8 @@ create_kernel_task(void (*entry)(void), struct task ** task_ptr)
     memset(cpu, 0x0, sizeof(struct x86_cpustate));
     // As a matter of fact, the SS:ESP will be ignored in kernel task
     // Intra PL0 task switching involves no stack switching.
-    cpu->ss = KERNEL_DATA_SELECTOR;
-    cpu->esp = task->privilege_level0_stack_top;
+    //cpu->ss = KERNEL_DATA_SELECTOR;
+    //cpu->esp = task->privilege_level0_stack_top;
     cpu->eflags = EFLAGS_ONE | EFLAGS_INTERRUPT;
     cpu->cs = KERNEL_CODE_SELECTOR;
     cpu->eip = task->entry;

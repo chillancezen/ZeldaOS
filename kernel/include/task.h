@@ -11,17 +11,40 @@
 #include <lib/include/list.h>
 #include <kernel/include/userspace_vma.h>
 #include <kernel/include/timer.h>
+// this default disposition and description of Signals can be found here:
+// // https://www.linuxjournal.com/files/linuxjournal.com/linuxjournal/articles/039/3985/3985t1.html
+// // In my kernel, only part of them are taken care of.
+#include <kernel/include/zelda_posix.h>
 
 enum task_state {
-    TASK_STATE_ZOMBIE = 0,
+    TASK_STATE_ZOMBIE = 0, // The task state to detect unexpected failure.
     TASK_STATE_RUNNING,
     TASK_STATE_INTERRUPTIBLE,
+    TASK_STATE_UNINTERRUPTIBLE,
     TASK_STATE_EXITING
+};
+
+struct signal_entry {
+    int32_t valid:1;
+    int32_t signaled:1;
+    int32_t overridable:1;
+    int32_t action:5;
+#define SIG_ACTION_EXIT 0x0
+#define SIG_ACTION_IGNORE 0x1
+#define SIG_ACTION_STOP 0x2
+#define SIG_ACTION_CONTINUE 0x3
+#define SIG_ACTION_USER 0x4
+    uint32_t user_entry;
 };
 
 struct task {
     struct list_elem list;
+    // `state` is the current state of the task
+    // `non_stop_state` is the state of the task before the task goes into 
+    // TASK_STATE_UNINTERRUPTIBLE as STOPPED state, we first save the state in
+    // it.
     enum task_state state;
+    enum task_state non_stop_state;
     /*
      * The x86 cpu state, please refer to x86/include/interrupt.h
      * including cpu state in signaled context.
@@ -58,6 +81,7 @@ struct task {
     // when the signal handler is invoked, it must be set atomically, and
     // cleared after signal handler returns to kernel land.
     uint8_t signal_scheduled;
+    uint8_t signal_pending;
     // The Userland/kernel land  entry point.
     uint32_t entry;
     /*
@@ -70,6 +94,9 @@ struct task {
     // Point to the timer which often on the stack. in case we release a running
     // task, we need to delete the timer entry first
     struct timer_entry * current_timer;
+
+    // Signal entries
+    struct signal_entry sig_entries[SIG_MAX];
 };
 extern struct task * current;
 #define IS_TASK_KERNEL_TYPE (_task) ((_task)->privilege_level == DPL_0)
@@ -86,6 +113,14 @@ extern struct task * current;
     ASSERT(current); \
     current->cpu = (__cpu); \
 }
+
+#define signal_pending(_task) (!!(_task)->signal_pending)
+
+void
+task_signal_init(struct task * task);
+
+int32_t
+signal_task(struct task * task, enum SIGNAL sig);
 
 void
 transit_state(struct task * task, enum task_state target_state);

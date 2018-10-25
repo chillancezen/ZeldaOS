@@ -90,3 +90,6 @@
  */
 #define TASK_PREEMPTION 1
 
+#define PRE_PROCESS_SIGNAL
+
+
