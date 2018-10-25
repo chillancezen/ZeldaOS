@@ -214,6 +214,22 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         _task->privilege_level0_stack,
         ((uint32_t)_task->privilege_level0_stack) +
             DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
+    _task->signaled_privilege_level0_stack =
+        malloc_mapped(DEFAULT_TASK_PRIVILEGED_SIGNAL_STACK_SIZE);
+    if (!_task->signaled_privilege_level0_stack) {
+        LOG_DEBUG("Can not allocate memory for signal PL0 stack\n");
+        ret = -ERR_OUT_OF_MEMORY;
+        goto task_error;
+    }
+    _task->signaled_privilege_level0_stack_top = 
+        (uint32_t)_task->signaled_privilege_level0_stack +
+        DEFAULT_TASK_PRIVILEGED_SIGNAL_STACK_SIZE -
+        100;
+    LOG_DEBUG("task:0x%x's signal PL0 stack:0x%x<---->0x%x\n",
+        _task,
+        _task->signaled_privilege_level0_stack,
+        (uint32_t)_task->signaled_privilege_level0_stack +
+            DEFAULT_TASK_PRIVILEGED_SIGNAL_STACK_SIZE);
     /*
      * 1. Prepare basic vm_areas in Task's vma_list
      * this also includes kernel's 1G space.
@@ -320,6 +336,27 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         DEFAULT_TASK_NON_PRIVILEGED_STACK_SIZE;
     _vma->phy_addr = 0;
     _vma->length = DEFAULT_TASK_NON_PRIVILEGED_STACK_SIZE;
+    list_append(&_task->vma_list, &_vma->list);
+    //USER_VMA_SIGNAL_STACK vma setup
+    _vma = malloc(sizeof(struct vm_area));
+    if (!_vma) {
+        LOG_DEBUG("Can not allocate memory for VM area");
+        ret = -ERR_OUT_OF_MEMORY;
+        goto vma_error;
+    }
+    memset(_vma, 0x0, sizeof(struct vm_area));
+    strcpy(_vma->name, (uint8_t *)USER_VMA_SIGNAL_STACK);
+    _vma->kernel_vma = 0;
+    _vma->pre_map = 1;
+    _vma->exact = 0;
+    _vma->page_writethrough = PAGE_WRITEBACK;
+    _vma->page_cachedisable = PAGE_CACHE_ENABLED;
+    _vma->write_permission = PAGE_PERMISSION_READ_WRITE;
+    _vma->executable = 0;
+    _vma->virt_addr = USERSPACE_SIGNAL_STACK_TOP -
+        DEFAULT_TASK_NON_PRIVILEGED_SIGNAL_STACK_SIZE;
+    _vma->phy_addr = 0;
+    _vma->length = DEFAULT_TASK_NON_PRIVILEGED_SIGNAL_STACK_SIZE;
     list_append(&_task->vma_list, &_vma->list);
     /*
      * 2. Page directory setup and pre-map the text&data and stack vm area
@@ -437,6 +474,8 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         if (_task) {
             if (_task->privilege_level0_stack)
                 free(_task->privilege_level0_stack);
+            if (_task->signaled_privilege_level0_stack)
+                free(_task->signaled_privilege_level0_stack);
             free_task(_task);
         }
     current = prev_task;

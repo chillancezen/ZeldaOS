@@ -24,8 +24,10 @@ struct task {
     enum task_state state;
     /*
      * The x86 cpu state, please refer to x86/include/interrupt.h
+     * including cpu state in signaled context.
      */
     struct x86_cpustate * cpu;
+    struct x86_cpustate * signaled_cpu;
     /*
      * per-task VMAs and  page Directory
      */
@@ -41,6 +43,7 @@ struct task {
      * privilege_level3_stack is NULL.
      */
     void * privilege_level0_stack;
+    void * signaled_privilege_level0_stack;
     /*
      * each time the PL3 code traps into PL0, the priviege level 0 stack
      * top is switched to. 
@@ -49,7 +52,13 @@ struct task {
      * esp0
      */
     uint32_t privilege_level0_stack_top;
+    uint32_t signaled_privilege_level0_stack_top;
 
+    // Indicator of signal context.
+    // when the signal handler is invoked, it must be set atomically, and
+    // cleared after signal handler returns to kernel land.
+    uint8_t signal_scheduled;
+    // The Userland/kernel land  entry point.
     uint32_t entry;
     /*
      * this field specifies in which PL the task runs
@@ -64,6 +73,19 @@ struct task {
 };
 extern struct task * current;
 #define IS_TASK_KERNEL_TYPE (_task) ((_task)->privilege_level == DPL_0)
+
+#define disable_preempt() cli()
+#define enable_preempt() sti()
+
+#define push_cpu_state(__cpu) {\
+    ASSERT(current); \
+    (__cpu) = current->cpu; \
+}
+
+#define pop_cpu_state(__cpu) {\
+    ASSERT(current); \
+    current->cpu = (__cpu); \
+}
 
 void
 transit_state(struct task * task, enum task_state target_state);

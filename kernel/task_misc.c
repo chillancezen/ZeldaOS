@@ -38,9 +38,12 @@ sleep(uint32_t milisecond)
 void
 yield_cpu(void)
 {
+    struct x86_cpustate * cpu;
+    push_cpu_state(cpu);
     asm volatile("int %0;"
         :
         :"i"(CPU_YIELD_TRAP_VECTOR));
+    pop_cpu_state(cpu);
 }
 static uint32_t
 cpu_yield_handler(struct x86_cpustate * cpu)

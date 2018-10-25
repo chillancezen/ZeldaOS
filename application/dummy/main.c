@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
     for (idx = 0; idx < argc; idx++) {
         print_serial(argv[idx]);
         print_serial("\n");
+        //sleep(100);
     }
     while(0) {
         print_serial(argv[0]);

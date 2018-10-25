@@ -28,6 +28,7 @@ struct vm_area {
 #define USER_VMA_TEXT_AND_DATA "userspace.vma.text&data"
 #define USER_VMA_HEAP "userspace.vma.heap"
 #define USER_VMA_STACK "userspace.vma.stack"
+#define USER_VMA_SIGNAL_STACK "userspace.vma.signal_stack"
 
 #define VMA_EXTEND_UPWARD 0x1
 #define VMA_EXTEND_DOWNWARD 0x2

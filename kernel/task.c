@@ -233,8 +233,10 @@ reclaim_task(struct task * task)
         cancel_timer(task->current_timer);
     }
     // Free task's PL0 stack and task itself
-    if(task->privilege_level0_stack)
+    if (task->privilege_level0_stack)
         free(task->privilege_level0_stack);
+    if (task->signaled_privilege_level0_stack)
+        free(task->signaled_privilege_level0_stack);
     free_task(task);
     LOG_DEBUG("Finished reclaiming task::0x%x\n", task);
     return OK;

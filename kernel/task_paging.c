@@ -253,6 +253,7 @@ userspace_evict_vma(struct task * task, struct vm_area * vma)
         return -ERR_NOT_FOUND;
     if (vma->kernel_vma)
         return -ERR_INVALID_ARG;
+    LOG_DEBUG("Evict task:0x%x's %s\n", task, vma->name);
     for (addr = vma->virt_addr;
         addr < (vma->virt_addr + vma->length); addr += PAGE_SIZE) {
         current_page_directory = (((uint32_t)addr) >> 22) & 0x3ff;

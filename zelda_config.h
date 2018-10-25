@@ -47,7 +47,7 @@
  *     v    |       |   *(mmap)
  *    1G    |       |   *(shared library)
  *     ^    |       |
- *     |    |       |
+ *     |    |-------| <--- USERSPACE_SIGNAL_STACK_TOP
  *     |    |       |
  *0xA0000000+---+---+ <--- USERSPACE_STACK_TOP
  *     |    |   |   |      (fixed,Do Not Overlap)
@@ -76,9 +76,13 @@
 #define MAX_FRAME_ON_DUMPSTACK 64
 
 
-#define DEFAULT_TASK_PRIVILEGED_STACK_SIZE (2*1024*1024)
+#define DEFAULT_TASK_PRIVILEGED_STACK_SIZE (2 * 1024 * 1024)
+#define DEFAULT_TASK_NON_PRIVILEGED_STACK_SIZE (8 * 1024 * 1024)
+#define DEFAULT_TASK_PRIVILEGED_SIGNAL_STACK_SIZE (512 * 1024)
+#define DEFAULT_TASK_NON_PRIVILEGED_SIGNAL_STACK_SIZE (1024 * 1024)
 
-#define DEFAULT_TASK_NON_PRIVILEGED_STACK_SIZE (8*1024*1024)
+#define USERSPACE_SIGNAL_STACK_TOP \
+    (USERSPACE_STACK_TOP + DEFAULT_TASK_NON_PRIVILEGED_SIGNAL_STACK_SIZE)
 
 
 /*
