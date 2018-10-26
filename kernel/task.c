@@ -127,10 +127,7 @@ schedule(struct x86_cpustate * cpu)
     uint32_t esp = (uint32_t)cpu;
     struct task * _next_task = NULL;
 
-    // save current for cpu state
-    // and cleanup current task
     if(current) {
-        current->cpu = cpu;
         if (current != kernel_idle_task)
             task_put(current);
         current = NULL;
@@ -298,6 +295,7 @@ create_kernel_task(void (*entry)(void), struct task ** task_ptr)
     cpu->ds = KERNEL_DATA_SELECTOR;
     task->cpu = cpu;
     task->state = TASK_STATE_RUNNING;
+    task->interrupt_depth = 1;
     LOG_DEBUG("kernel task 0x%x created\n", task);
 
     *task_ptr = task;
@@ -380,7 +378,32 @@ mockup_entry1(void)
     }
 }
 #endif
+void
+task_pre_interrupt_handler(struct x86_cpustate * cpu)
+{
+    if (current) {
+        current->interrupt_depth++;
+        if (current->signal_scheduled)
+            current->signaled_cpu = cpu;
+        else
+            current->cpu = cpu;
+        
+    }
+}
 
+void
+task_post_interrupt_handler(struct x86_cpustate * cpu)
+{
+    if (current) {
+        current->interrupt_depth--;
+        ASSERT(((int32_t)current->interrupt_depth) >= 0);
+        if (current->signal_scheduled) {
+            ASSERT(current->signaled_cpu == cpu);
+        } else {
+            ASSERT(current->cpu == cpu);
+        }
+    }
+}
 /*
  * This is the kernel idle task which will always be selected and select 
  */

@@ -45,6 +45,10 @@ struct task {
     // it.
     enum task_state state;
     enum task_state non_stop_state;
+
+    // The interrupt depth increases by 1 each time a interrupt(trap) occurs.
+    // and decrease by 1 when retruned from trapping(interrupting) context.
+    uint32_t interrupt_depth;
     /*
      * The x86 cpu state, please refer to x86/include/interrupt.h
      * including cpu state in signaled context.
@@ -112,6 +116,16 @@ extern struct task * current;
 #define pop_cpu_state(__cpu) {\
     ASSERT(current); \
     current->cpu = (__cpu); \
+}
+
+#define push_signal_cpu_state(__cpu) {\
+    ASSERT(current); \
+    (__cpu) = current->signaled_cpu; \
+}
+
+#define pop_signal_cpu_state(__cpu) {\
+    ASSERT(current); \
+    current->signaled_cpu = (__cpu); \
 }
 
 #define signal_pending(_task) (!!(_task)->signal_pending)

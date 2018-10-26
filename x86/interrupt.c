@@ -62,18 +62,24 @@ set_dpl3_interrupt_gate(int vector_number, void (*entry)(void))
     IDT[vector_number].present = 1;
     IDT[vector_number].offset_high = (((uint32_t)entry) >> 16) & 0xffff;
 }
-uint32_t interrupt_handler(struct x86_cpustate * arg)
+uint32_t interrupt_handler(struct x86_cpustate * cpu)
 {
-    uint32_t ESP = (uint32_t)arg;
+    uint32_t ESP = (uint32_t)cpu;
     int_handler * device_interrup_handler = NULL;
-    int vector = arg->vector;
+    int vector = cpu->vector;
     ASSERT(((vector >= 0) && (vector < IDT_SIZE)));
+    // pre-interrupt handler
+    extern void task_pre_interrupt_handler(struct x86_cpustate * cpu);
+    task_pre_interrupt_handler(cpu);
     device_interrup_handler = handlers[vector];
     if (!device_interrup_handler) {
         LOG_WARN("Can not find the interrup handler for vector:%d\n", vector);
     } else {
-        ESP = device_interrup_handler(arg);
+        ESP = device_interrup_handler(cpu);
     }
+    // post-interrupt handler
+    extern void task_post_interrupt_handler(struct x86_cpustate * cpu);
+    task_post_interrupt_handler((struct x86_cpustate *)ESP);
     if (vector >= 40) {
         outb(PIC_SLAVE_COMMAND_PORT, 0x20);
     }

@@ -1,7 +1,51 @@
 /*
  * Copyright (c) 2018 Jie Zheng
+ * 
+ * The following diagram shows how signal-context is switched to and from
+ * normal execution context
+ * 
+ *  stack@PL3             stack@PL0
+ *    |                     |
+ *    |                     |
+ *    |  transit(PL3-->PL0) |
+ *    | ------------------> |
+ *    |                     |
+ *    |                     | <----------save(task->cpu)
+ *    |                     |
+ *    |                     |
+ *    |                     | push(task->cpu)
+ *    |                         |
+ *    |                         | <----save(task->cpu)
+ *    |                                               |push(task->cpu)
+ *    |                   (Nested Intra-PL0 trap)     |     save(task->cpu)
+ *    |                                               |pop(task->cpu)
+ *    |                         |
+ *    |                     | pop(task->cpu)
+ *    |  transit(PL0-->PL3) |  --------+           (Back to normal context)
+ *    v <------------------ v          |   <------------------------------+
+ *                                     |                                  |
+ *sig_stack@PL3         sig_stack@PL0  |                                  |
+ *    +                     +          |                                  |
+ *    |                     |          v                                  |
+ *    |                     |         task->signal_pending                |
+ *    |                     |            |         (SIG_ACTION_EXIT)------+
+ *    |                     |            |         (SIG_ACTION_STOP)------|
+ *    |                     |            |         (SIG_ACTION_IGNORE)----+
+ *    |(Frame: return       |  <---------+                                |
+ *    | address to PL0 space)       (SIG_ACTION_USER)                     |
+ *    |                     |                                             |
+ *    |  transit(PL0-->PL3) |                                             |
+ *    | <------------------ |                                             |
+ *    |                     |                                             |
+ *    |  transit(PL3-->PL0) |                                             |
+ *    | ------------------> |                                             |
+ *    v                     v --------------------------------------------+
+ *
+ * XXX: signals are only scanned and processed when normal context resumes to
+ * be executed into PL3. 
+ * XXX: Note that nested user signal handler is not allowed.
+ * XXX: and user signal handler is allowed to trap into PL0 context again.
  */
-
 #include <kernel/include/task.h>
 #include <lib/include/string.h>
 #include <kernel/include/printk.h>

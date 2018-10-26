@@ -442,6 +442,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     _cpu->esi = 0;
     _cpu->edi = 0;
     _task->cpu = _cpu;
+    _task->interrupt_depth = 1;
     /*
      * 6. Prepare to be scheduled.
      */

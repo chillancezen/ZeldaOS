@@ -39,10 +39,13 @@ void
 yield_cpu(void)
 {
     struct x86_cpustate * cpu;
+    struct x86_cpustate * signal_cpu;
     push_cpu_state(cpu);
+    push_signal_cpu_state(signal_cpu);
     asm volatile("int %0;"
         :
         :"i"(CPU_YIELD_TRAP_VECTOR));
+    pop_signal_cpu_state(signal_cpu);
     pop_cpu_state(cpu);
 }
 static uint32_t
