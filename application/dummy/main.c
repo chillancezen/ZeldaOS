@@ -2,7 +2,6 @@
  * Copyright (c) 2018 Jie Zheng
  */
 #include <stdint.h>
-
 #define asm __asm__
 int cute = 1;
 int bar[1024*1024*10];
@@ -72,18 +71,21 @@ print_hexdecimal(uint32_t val)
 extern void * _zelda_constructor_init_start;
 extern void * _zelda_constructor_init_end;
 
+static void
+interrupt_handler(int signal)
+{
+    print_serial("Application Signal interrupted\n");
+    sleep(100);
+    print_serial("Application Signal interrupted ends\n");
+}
 int main(int argc, char *argv[])
 {
-    int idx = 0;
-    for (idx = 0; idx < argc; idx++) {
-        print_serial(argv[idx]);
-        print_serial("\n");
-        sleep(100);
-    }
-    while(0) {
+    int32_t ret = 0;
+    ret = signal(SIGINT, interrupt_handler);
+    while(1) {
         print_serial(argv[0]);
         print_serial("\n");
-        sleep(1000);
+        sleep(10);
     }
 
 #if 0

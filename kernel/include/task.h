@@ -89,8 +89,8 @@ struct task {
     // The Userland/kernel land  entry point.
     uint32_t entry;
     /*
-     * this field specifies in which PL the task runs
-     * it often in [DPL_0, DPL_3]
+     * this field specifies in which privilege level the task can run
+     * it's often in [DPL_0, DPL_3]
      */
     uint32_t privilege_level:2;
     uint32_t exit_code;
@@ -199,5 +199,8 @@ sleep(uint32_t milisecond);
 
 void
 task_misc_init(void);
+
+void
+task_signal_sub_init(void);
 
 #endif

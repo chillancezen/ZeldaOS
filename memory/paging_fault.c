@@ -9,9 +9,12 @@
 
 #define PAGING_FAULT_INTERRUPT_VECTOR 14
 
+extern uint32_t return_from_pl3_signal_context(uint32_t * p_esp);
 
 static uint32_t
-handle_kernel_page_fault(struct x86_cpustate * cpu, uint32_t linear_addr)
+handle_kernel_page_fault(struct x86_cpustate * cpu,
+    uint32_t linear_addr,
+    uint32_t * p_esp)
 {
     uint32_t error_code = cpu->errorcode;
     struct kernel_vma * vma;
@@ -47,6 +50,15 @@ handle_kernel_page_fault(struct x86_cpustate * cpu, uint32_t linear_addr)
         }
 
     } else {
+        /*
+         * At the preparation phaze of PL3 signal context, we fill the PL3
+         * stack with the return addess as `return_from_pl3_signal_context`
+         * , but this function resides in kernel land, the process will
+         * generate paging permission fault, we catch it here.
+         */
+        if (linear_addr == (uint32_t)return_from_pl3_signal_context) {
+            return return_from_pl3_signal_context(p_esp);
+        }
         LOG_ERROR("Paging permission issue, task:0x%x linear_addr:0x%x\n",
             current, linear_addr);
         dump_x86_cpustate(cpu);
@@ -67,7 +79,7 @@ paging_fault_handler(struct x86_cpustate * cpu)
         :
         :"%edx");
     if (linear_addr < ((uint32_t)USERSPACE_BOTTOM)) {
-        result = handle_kernel_page_fault(cpu, linear_addr);
+        result = handle_kernel_page_fault(cpu, linear_addr, &esp);
         if (result == OK) {
             if (current)
                 enable_task_paging(current);

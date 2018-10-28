@@ -19,3 +19,9 @@ sleep(int32_t milisecond)
 {
     do_system_call1(SYS_SLEEP_IDX, milisecond);
 }
+
+int32_t
+signal(int signal, void (*handler)(int32_t signal))
+{
+    return do_system_call2(SYS_SIGNAL_IDX, signal, (uint32_t)handler);
+}

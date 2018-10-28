@@ -263,6 +263,7 @@ create_kernel_task(void (*entry)(void), struct task ** task_ptr)
     struct task * task = malloc_task();
     if (!task)
         goto task_error;
+    task->state = TASK_STATE_RUNNING;
     task->privilege_level0_stack =
         malloc_mapped(DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
     if (!task->privilege_level0_stack)
@@ -294,7 +295,6 @@ create_kernel_task(void (*entry)(void), struct task ** task_ptr)
     cpu->es = KERNEL_DATA_SELECTOR;
     cpu->ds = KERNEL_DATA_SELECTOR;
     task->cpu = cpu;
-    task->state = TASK_STATE_RUNNING;
     task->interrupt_depth = 1;
     LOG_DEBUG("kernel task 0x%x created\n", task);
 
@@ -421,6 +421,7 @@ void
 task_init(void)
 {
     task_misc_init();
+    task_signal_sub_init();
     ASSERT(OK == create_kernel_task(kernel_idle_task_body, &kernel_idle_task));
     ASSERT(kernel_idle_task);
 #if !defined(INLINE_TEST)

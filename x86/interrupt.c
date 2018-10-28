@@ -62,6 +62,10 @@ set_dpl3_interrupt_gate(int vector_number, void (*entry)(void))
     IDT[vector_number].present = 1;
     IDT[vector_number].offset_high = (((uint32_t)entry) >> 16) & 0xffff;
 }
+extern void task_pre_interrupt_handler(struct x86_cpustate * cpu);
+extern void task_post_interrupt_handler(struct x86_cpustate * cpu);
+extern uint32_t task_process_signal(struct x86_cpustate * cpu);
+
 uint32_t interrupt_handler(struct x86_cpustate * cpu)
 {
     uint32_t ESP = (uint32_t)cpu;
@@ -69,7 +73,6 @@ uint32_t interrupt_handler(struct x86_cpustate * cpu)
     int vector = cpu->vector;
     ASSERT(((vector >= 0) && (vector < IDT_SIZE)));
     // pre-interrupt handler
-    extern void task_pre_interrupt_handler(struct x86_cpustate * cpu);
     task_pre_interrupt_handler(cpu);
     device_interrup_handler = handlers[vector];
     if (!device_interrup_handler) {
@@ -77,8 +80,9 @@ uint32_t interrupt_handler(struct x86_cpustate * cpu)
     } else {
         ESP = device_interrup_handler(cpu);
     }
+    // Process signals at the exit of PL0 context with Interrup_depth == 1
+    ESP = task_process_signal((struct x86_cpustate *)ESP);
     // post-interrupt handler
-    extern void task_post_interrupt_handler(struct x86_cpustate * cpu);
     task_post_interrupt_handler((struct x86_cpustate *)ESP);
     if (vector >= 40) {
         outb(PIC_SLAVE_COMMAND_PORT, 0x20);

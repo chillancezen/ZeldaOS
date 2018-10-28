@@ -192,6 +192,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     if (!(_task = malloc_task()))
         goto task_error;
     _task->privilege_level = DPL_3;
+    _task->state = TASK_STATE_RUNNING;
     /*
      * Note that PL0 stack space is still in kernel privileged space.
      * We need to map all them in advance, non-present page in stack lead to
@@ -199,7 +200,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
      */
     current = _task;
     _task->privilege_level0_stack =
-        malloc_mapped(DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
+        malloc_align_mapped(DEFAULT_TASK_PRIVILEGED_STACK_SIZE, 4);
     if (!_task->privilege_level0_stack) {
         LOG_DEBUG("Can not allocate memory for PL0 stack\n");
         ret = -ERR_OUT_OF_MEMORY;
@@ -212,10 +213,10 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     LOG_DEBUG("task:0x%x's PL0 stack:0x%x<---->0x%x\n",
         _task,
         _task->privilege_level0_stack,
-        ((uint32_t)_task->privilege_level0_stack) +
-            DEFAULT_TASK_PRIVILEGED_STACK_SIZE);
+        (uint32_t)_task->privilege_level0_stack_top);
+
     _task->signaled_privilege_level0_stack =
-        malloc_mapped(DEFAULT_TASK_PRIVILEGED_SIGNAL_STACK_SIZE);
+        malloc_align_mapped(DEFAULT_TASK_PRIVILEGED_SIGNAL_STACK_SIZE, 4);
     if (!_task->signaled_privilege_level0_stack) {
         LOG_DEBUG("Can not allocate memory for signal PL0 stack\n");
         ret = -ERR_OUT_OF_MEMORY;
@@ -224,12 +225,11 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     _task->signaled_privilege_level0_stack_top = 
         (uint32_t)_task->signaled_privilege_level0_stack +
         DEFAULT_TASK_PRIVILEGED_SIGNAL_STACK_SIZE -
-        100;
+        0x100;
     LOG_DEBUG("task:0x%x's signal PL0 stack:0x%x<---->0x%x\n",
         _task,
         _task->signaled_privilege_level0_stack,
-        (uint32_t)_task->signaled_privilege_level0_stack +
-            DEFAULT_TASK_PRIVILEGED_SIGNAL_STACK_SIZE);
+        (uint32_t)_task->signaled_privilege_level0_stack_top);
     /*
      * 1. Prepare basic vm_areas in Task's vma_list
      * this also includes kernel's 1G space.
@@ -446,12 +446,12 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     /*
      * 6. Prepare to be scheduled.
      */
+    task_signal_init(_task);
     current = prev_task;
     if (current)
         enable_task_paging(current);
     else
         enable_kernel_paging();
-    _task->state = TASK_STATE_RUNNING;
     task_put(_task);
     return ret;
     page_error:

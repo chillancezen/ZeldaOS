@@ -197,7 +197,7 @@ keyboard_init(void)
     }
     memset(shortcut_entries, 0x0, sizeof(shortcut_entries));
     
-    register_shortcut_entry(SCANCODE_DELETE,
+    register_shortcut_entry(SCANCODE_BACKSPACE,
         KEY_STATE_CONTROLL_PRESSED|KEY_STATE_ALT_PRESSED,
         CTRL_ALT_DELETE,
         NULL);

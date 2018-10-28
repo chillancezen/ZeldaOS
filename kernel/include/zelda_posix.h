@@ -42,6 +42,7 @@ enum SYSCALL_INDEX {
     SYS_CLOSE_IDX,
     SYS_EXIT_IDX,
     SYS_SLEEP_IDX,
+    SYS_SIGNAL_IDX,
 };
 
 enum SIGNAL {

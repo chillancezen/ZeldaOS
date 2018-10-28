@@ -12,4 +12,7 @@ exit(int32_t exit_code);
 void
 sleep(int32_t milisecond);
 
+int32_t
+signal(int signal, void (*handler)(int32_t signal));
+
 #endif
