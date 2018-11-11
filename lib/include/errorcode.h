@@ -18,6 +18,7 @@ enum errorcode {
     ERR_BUSY,
     ERR_EXIST,
     ERR_IN_USE,
+    ERR_INTERRUPTED,
 };
 
 #endif

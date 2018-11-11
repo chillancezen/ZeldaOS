@@ -8,6 +8,11 @@
 
 struct heap_stub timer_heap;
 
+int32_t
+timer_detached(struct timer_entry * timer)
+{
+    return heap_node_detached(&timer_heap, &timer->node);
+}
 static int32_t
 timer_compare(struct binary_tree_node * node0, struct binary_tree_node * node1)
 {
@@ -57,7 +62,7 @@ schedule_timer(void)
         ASSERT(timer->state == timer_state_scheduled);
         ASSERT(timer->callback);
         timer->callback(timer, timer->priv);
-        LOG_TRIVIA("Scheduled timer:0x%x\n", timer);
+        LOG_DEBUG("Scheduled timer:0x%x\n", timer);
     }
 }
 void

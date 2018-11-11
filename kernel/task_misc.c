@@ -14,13 +14,29 @@ static void
 sleep_callback(struct timer_entry * timer, void * priv)
 {
     struct task * _task = (struct task *)priv;
-    if (_task->state != TASK_STATE_EXITING)
-        transit_state(_task, TASK_STATE_RUNNING);
+    switch(_task->state)
+    {
+        case TASK_STATE_INTERRUPTIBLE:
+            transit_state(_task, TASK_STATE_RUNNING);
+            break;
+        case TASK_STATE_UNINTERRUPTIBLE:
+            // In an `TASK_STATE_UNINTERRUPTIBLE` state, the previous
+            // `non_stop_state` must be in `TASK_STATE_INTERRUPTIBLE`, we
+            // restore it to RUNNING state, but do not run the task
+            // immediately. it muust be continued with explicit SIGCONT signal.
+            ASSERT(_task->non_stop_state == TASK_STATE_INTERRUPTIBLE);
+            _task->non_stop_state = TASK_STATE_RUNNING;
+            break;
+        default:
+            __not_reach();
+            break;
+    }
 }
 
-void
+int32_t
 sleep(uint32_t milisecond)
 {
+    int ret = OK;
     struct timer_entry timer;
     memset(&timer, 0x0, sizeof(timer));
     ASSERT(current);
@@ -30,10 +46,14 @@ sleep(uint32_t milisecond)
     timer.callback = sleep_callback;
     register_timer(&timer);
     transit_state(current, TASK_STATE_INTERRUPTIBLE);
-    ASSERT(!current->current_timer);
-    current->current_timer = &timer;
     yield_cpu();
-    current->current_timer = NULL;
+    if (signal_pending(current)) {
+        cancel_timer(&timer);
+        ret = -ERR_INTERRUPTED;
+    }
+    ASSERT(timer_detached(&timer));
+
+    return ret;
 }
 
 void
@@ -72,8 +92,7 @@ call_sys_exit(struct x86_cpustate * cpu, uint32_t exit_code)
 static int32_t
 call_sys_sleep(struct x86_cpustate * cpu, uint32_t milisecond)
 {
-    sleep(milisecond);
-    return OK;
+    return sleep(milisecond);
 }
 void
 task_misc_init(void)

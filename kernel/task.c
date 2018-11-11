@@ -237,16 +237,6 @@ reclaim_task(struct task * task)
             free(_vma);
         }
     }
-    // Cancel the timer in case it's been scheduled.
-    // Often this only happen when the task is TASK_STATE_INTERRUPTIBLE and
-    // killed by other tasks.
-    if (task->current_timer) {
-        LOG_DEBUG("Timer:0x%x in task:0x%x is cancelled\n",
-            task->current_timer,
-            task);
-        ASSERT(task->current_timer->state == timer_state_scheduled);
-        cancel_timer(task->current_timer);
-    }
     // Free task's PL0 stack and task itself
     if (task->privilege_level0_stack)
         free(task->privilege_level0_stack);

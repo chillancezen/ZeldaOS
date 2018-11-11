@@ -15,6 +15,12 @@ struct heap_stub {
     struct binary_tree_node * last_node;
 };
 
+#define heap_node_detached(stub, node) (!(node)->left &&\
+    !(node)->right && \
+    !(node)->parent && \
+    (stub)->root != (node))
+
+
 struct binary_tree_node *
 search_last_parent(struct binary_tree_node * root);
 

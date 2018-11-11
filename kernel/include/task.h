@@ -95,10 +95,6 @@ struct task {
     uint32_t privilege_level:2;
     uint32_t exit_code;
     
-    // Point to the timer which often on the stack. in case we release a running
-    // task, we need to delete the timer entry first
-    struct timer_entry * current_timer;
-
     // Signal entries
     struct signal_entry sig_entries[SIG_MAX];
 };
@@ -194,7 +190,7 @@ create_kernel_task(void (*entry)(void), struct task ** task_ptr);
 void
 yield_cpu(void);
 
-void
+int32_t
 sleep(uint32_t milisecond);
 
 void

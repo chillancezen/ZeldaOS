@@ -20,6 +20,8 @@ struct timer_entry {
     void * priv;
 };
 
+int32_t
+timer_detached(struct timer_entry * timer);
 
 void
 timer_init(void);

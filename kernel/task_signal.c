@@ -133,13 +133,6 @@ signal_task(struct task * task, enum SIGNAL sig)
         int processed = 0;
         switch (task->sig_entries[sig].action)
         {
-            case SIG_ACTION_EXIT:
-                transit_state(task, TASK_STATE_EXITING);
-                processed = 1;
-                break;
-            case SIG_ACTION_IGNORE:
-                processed = 1;
-                break;
             case SIG_ACTION_STOP:
                 if (task->state == TASK_STATE_INTERRUPTIBLE ||
                     task->state == TASK_STATE_RUNNING) {
@@ -156,7 +149,7 @@ signal_task(struct task * task, enum SIGNAL sig)
                 processed = 1;
                 break;
         }
-        if (task == current && task->state == TASK_STATE_EXITING)
+        if (task == current)
             yield_cpu();
         if (processed)
             return OK; 
@@ -189,7 +182,6 @@ prepare_signal_context(struct task * task, int signal)
     ASSERT(task->privilege_level == DPL_3);
     ASSERT(signal > SIG_INVALID && signal < SIG_MAX);
     ASSERT(task->sig_entries[signal].valid);
-    ASSERT(task->sig_entries[signal].signaled);
     ASSERT(task->sig_entries[signal].action == SIG_ACTION_USER);
     ASSERT(task->sig_entries[signal].user_entry);
     // Prepare PL3 stack layout
@@ -230,8 +222,6 @@ prepare_signal_context(struct task * task, int signal)
         cpu->edi = 0;
         task->signaled_cpu = cpu;
     }
-    // per-signal entry's signaled will be reset internally.
-    task->sig_entries[signal].signaled = 0;
     return OK;
 }
 uint32_t
@@ -244,7 +234,8 @@ task_process_signal(struct x86_cpustate * cpu)
     _(current);
     _(current->privilege_level == DPL_3);
     _(current->interrupt_depth == 1);
-    ASSERT(current->state == TASK_STATE_RUNNING);
+    ASSERT(current->state == TASK_STATE_RUNNING ||
+           current->state == TASK_STATE_UNINTERRUPTIBLE);
     if (!current->signal_scheduled && current->signal_pending) {
         // Check with the potential pending signals
         // current->signal_pending will be reset if no signals are found to
@@ -260,8 +251,31 @@ task_process_signal(struct x86_cpustate * cpu)
         if (signal == SIG_INVALID) {
             current->signal_pending = 0;
         } else {
-            prepare_signal_context(current, signal);
-            current->signal_scheduled = 1;
+            ASSERT(current->sig_entries[signal].signaled);
+            current->sig_entries[signal].signaled = 0;
+            for (idx = signal + 1; idx < SIG_MAX; idx++) {
+                if (current->sig_entries[idx].valid &&
+                    current->sig_entries[idx].signaled)
+                    break;
+            }
+            if (idx == SIG_MAX)
+                current->signal_pending = 0;
+            switch(current->sig_entries[signal].action)
+            {
+                case SIG_ACTION_IGNORE:
+                    break;
+                case SIG_ACTION_EXIT:
+                    transit_state(current, TASK_STATE_EXITING);
+                    yield_cpu();
+                    break;
+                case SIG_ACTION_USER:
+                    prepare_signal_context(current, signal);
+                    current->signal_scheduled = 1;
+                    break;
+                default:
+                    __not_reach();
+                    break;
+            }
         }
     }
     out:
@@ -302,17 +316,16 @@ call_sys_signal(struct x86_cpustate * cpu,
 #include <device/include/keyboard.h>
 #include <device/include/keyboard_scancode.h>
 static struct task * current_pl3_task = NULL;
-static int should_stop = 0;
+static int stop = 1;
 static void
 task_debug_handler(void * arg)
 {
     ASSERT(current);
-    if (should_stop)
-        return;
     current_pl3_task = (struct task *)0x800101c;
     printk("signal task:0x%x with SIGINT, result:%d\n",
-        current_pl3_task, signal_task(current_pl3_task, SIGKILL));
-    should_stop = 1;
+        current_pl3_task,
+        signal_task(current_pl3_task, stop ? SIGSTOP : SIGCONT));
+    stop = !stop;
 }
 
 
