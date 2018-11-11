@@ -97,9 +97,23 @@ process_blocking_task_list(void)
     struct task * _task = NULL;
     LIST_FOREACH_START(&task_blocking_list_head, _list) {
         _task = CONTAINER_OF(_list, struct task, list);
-        if (_task->state == TASK_STATE_RUNNING) {
-            list_delete(&task_blocking_list_head, _list);
-            task_put(_task);
+        switch (_task->state)
+        {
+            case TASK_STATE_RUNNING:
+            case TASK_STATE_EXITING:
+                list_delete(&task_blocking_list_head, _list);
+                task_put(_task);
+                break;
+            case TASK_STATE_INTERRUPTIBLE:
+            case TASK_STATE_UNINTERRUPTIBLE:
+                break;
+            case TASK_STATE_ZOMBIE:
+                list_delete(&task_blocking_list_head, _list);
+                list_append(&task_zombie_list_head, _list);
+                break;
+            default:
+                __not_reach();
+                break;
         }
     }
     LIST_FOREACH_END();
@@ -227,6 +241,9 @@ reclaim_task(struct task * task)
     // Often this only happen when the task is TASK_STATE_INTERRUPTIBLE and
     // killed by other tasks.
     if (task->current_timer) {
+        LOG_DEBUG("Timer:0x%x in task:0x%x is cancelled\n",
+            task->current_timer,
+            task);
         ASSERT(task->current_timer->state == timer_state_scheduled);
         cancel_timer(task->current_timer);
     }

@@ -127,7 +127,7 @@ signal_task(struct task * task, enum SIGNAL sig)
     ASSERT(sig > SIG_INVALID && sig < SIG_MAX);
     if (!task->sig_entries[sig].valid)
         return -ERR_NOT_SUPPORTED;
-    LOG_TRIVIA("task:0x%x is signalled as %d\n", task, sig);
+    LOG_DEBUG("task:0x%x is signalled as %d\n", task, sig);
     {
         // Pre-process signals.
         int processed = 0;
@@ -301,16 +301,18 @@ call_sys_signal(struct x86_cpustate * cpu,
 #if defined(INLINE_TEST)
 #include <device/include/keyboard.h>
 #include <device/include/keyboard_scancode.h>
+static struct task * current_pl3_task = NULL;
+static int should_stop = 0;
 static void
 task_debug_handler(void * arg)
 {
     ASSERT(current);
-    if (current->privilege_level == DPL_0) {
-        printk("task:0x%x is at PL0\n", current);
-    } else {
-        printk("signal task:0x%x with SIGINT, result:%d\n",
-            current, signal_task(current, SIGINT));
-    }
+    if (should_stop)
+        return;
+    current_pl3_task = (struct task *)0x800101c;
+    printk("signal task:0x%x with SIGINT, result:%d\n",
+        current_pl3_task, signal_task(current_pl3_task, SIGKILL));
+    should_stop = 1;
 }
 
 

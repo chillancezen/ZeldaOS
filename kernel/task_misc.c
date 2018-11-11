@@ -14,7 +14,8 @@ static void
 sleep_callback(struct timer_entry * timer, void * priv)
 {
     struct task * _task = (struct task *)priv;
-    transit_state(_task, TASK_STATE_RUNNING);
+    if (_task->state != TASK_STATE_EXITING)
+        transit_state(_task, TASK_STATE_RUNNING);
 }
 
 void
