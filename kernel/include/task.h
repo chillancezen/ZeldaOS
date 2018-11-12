@@ -21,7 +21,8 @@ enum task_state {
     TASK_STATE_RUNNING,
     TASK_STATE_INTERRUPTIBLE,
     TASK_STATE_UNINTERRUPTIBLE,
-    TASK_STATE_EXITING
+    TASK_STATE_EXITING,
+    TASK_STATE_MAX,
 };
 
 struct signal_entry {
@@ -198,5 +199,8 @@ task_misc_init(void);
 
 void
 task_signal_sub_init(void);
+
+void
+raw_task_wake_up(struct task * task);
 
 #endif

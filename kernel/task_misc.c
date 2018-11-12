@@ -14,23 +14,7 @@ static void
 sleep_callback(struct timer_entry * timer, void * priv)
 {
     struct task * _task = (struct task *)priv;
-    switch(_task->state)
-    {
-        case TASK_STATE_INTERRUPTIBLE:
-            transit_state(_task, TASK_STATE_RUNNING);
-            break;
-        case TASK_STATE_UNINTERRUPTIBLE:
-            // In an `TASK_STATE_UNINTERRUPTIBLE` state, the previous
-            // `non_stop_state` must be in `TASK_STATE_INTERRUPTIBLE`, we
-            // restore it to RUNNING state, but do not run the task
-            // immediately. it muust be continued with explicit SIGCONT signal.
-            ASSERT(_task->non_stop_state == TASK_STATE_INTERRUPTIBLE);
-            _task->non_stop_state = TASK_STATE_RUNNING;
-            break;
-        default:
-            __not_reach();
-            break;
-    }
+    raw_task_wake_up(_task);
 }
 
 int32_t
@@ -83,6 +67,7 @@ static int32_t
 call_sys_exit(struct x86_cpustate * cpu, uint32_t exit_code)
 {
     ASSERT(current);
+    // FIXME: Signal the task instead of transit the state directly
     transit_state(current, TASK_STATE_EXITING);
     current->exit_code = exit_code;
     yield_cpu();

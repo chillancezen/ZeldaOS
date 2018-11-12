@@ -48,8 +48,7 @@ wake_up(struct wait_queue_head * head)
     LIST_FOREACH_START(&head->pivot, _list) {
         entry = CONTAINER_OF(_list, struct wait_queue, list);
         ASSERT(entry->task);
-        if (entry->task->state == TASK_STATE_INTERRUPTIBLE)
-            transit_state(entry->task, TASK_STATE_RUNNING);
+        raw_task_wake_up(entry->task);
     }
     LIST_FOREACH_END();
 }

@@ -149,16 +149,14 @@ signal_task(struct task * task, enum SIGNAL sig)
                 processed = 1;
                 break;
         }
-        if (task == current)
-            yield_cpu();
+        //if (task == current && task->state != TASK_STATE_RUNNING)
+        //    yield_cpu();
         if (processed)
             return OK; 
     }
     task->sig_entries[sig].signaled = 1;
     task->signal_pending = 1;
-    // wake up task if the task is in TASK_STATE_INTERRUPTIBLE
-    if (task->state == TASK_STATE_INTERRUPTIBLE)
-        transit_state(task, TASK_STATE_RUNNING);
+    raw_task_wake_up(task);
     return OK;
 }
 
@@ -168,10 +166,12 @@ return_from_pl3_signal_context(uint32_t * p_esp)
     // Paging layout remains unchanged.
     // `current` remains unchanged..
     // ESP will be modified to normal execution cpu state
+    LOG_TRIVIA("return from signal context for task:0x%x\n", current);
     ASSERT(current && current->signal_scheduled);
     ASSERT(((uint32_t)current->signaled_cpu) == *p_esp);
     current->signal_scheduled = 0;
     *p_esp = (uint32_t)current->cpu;
+    set_tss_privilege_level0_stack(current->privilege_level0_stack_top);
     return OK;
 }
 
@@ -222,6 +222,8 @@ prepare_signal_context(struct task * task, int signal)
         cpu->edi = 0;
         task->signaled_cpu = cpu;
     }
+    LOG_TRIVIA("Created signaled context:0x%x for task:0x%x\n",
+        task->signaled_cpu, task);
     return OK;
 }
 uint32_t
@@ -322,9 +324,12 @@ task_debug_handler(void * arg)
 {
     ASSERT(current);
     current_pl3_task = (struct task *)0x800101c;
-    printk("signal task:0x%x with SIGINT, result:%d\n",
-        current_pl3_task,
-        signal_task(current_pl3_task, stop ? SIGSTOP : SIGCONT));
+    signal_task(current_pl3_task, SIGKILL);
+    //signal_task(current_pl3_task, stop ? SIGSTOP : SIGCONT);
+    //signal_task(current_pl3_task, SIGKILL);
+    //printk("signal task:0x%x with SIGINT, result:%d\n",
+    //    current_pl3_task, signal_task(current_pl3_task, SIGKILL));
+    //signal_task(current_pl3_task, stop ? SIGSTOP : SIGCONT));
     stop = !stop;
 }
 

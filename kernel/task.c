@@ -11,7 +11,49 @@
 #include <memory/include/paging.h>
 #include <kernel/include/system_call.h>
 #include <kernel/include/zelda_posix.h>
-
+/*
+ * The task state transition diagram, any exceptional transition is not allowed
+ *
+ *Running Queue            Blocking Queue                Exiting Queue
+ *  |                           |                             +
+ *  | <--[TASK:STATE_RUNNING]   |                             |
+ *  |                           |                             |
+ *  |                           |                             |
+ *  |                           |                             |
+ *  |                           |                             |
+ *  |     (EVENT:SLEEP,WAIT)    |                             |
+ *  | ----------------------->  |                             |
+ *  | [TASK:STATE_INTERRUPTIBLE]|                             |
+ *  |                           |                             |
+ *  |    (EVENT:waken up...)    |                             |
+ *  |  <----------------------  |                             |
+ *  |  [TASK:STATE_RUNNING]     |                             |
+ *  |                           |                             |
+ *  |     (EVENT:STOP signal)   |                             |
+ *  |  -----------------------> |                             |
+ *  |  [TASK:STATE_UNINTERRUTIBLE]                            |
+ *  |                           |                             |
+ *  |                     (EVENT:EXIT signal)                 |
+ *+-> ------------------------------------------------------> |
+ *| |                     [TASK:STATE_EXITTING]               |
+ *| |                           |                             |
+ *| |      [EVENT:EXIT signal]  |                             |
+ *+---------------------------- |{INTERRUPTIBLE}              |
+ *  |     [TASK:STATE_RUNNING]  |                             |
+ *  |                           |                             |
+ *  |                           |                             |
+ *  |      [EVENT:CONT signal]  |                             |
+ *  |  <----------------------- |{UNINTERRUPTIBLE}            |
+ *  |   [TASK:STATE_RUNNING]    |                             v
+ *  |     |                     |
+ *  |     +-------------------> |
+ *  |     [TASK:STATE_INTERRUPTIBLE]
+ *  |                           |
+ *  |                           |
+ *  |                           |
+ *  |                           |
+ *  v                           v
+ */
 static struct list_elem task_list_head;
 static struct list_elem task_exit_list_head;
 static struct list_elem task_zombie_list_head;
@@ -19,15 +61,92 @@ static struct list_elem task_blocking_list_head;
 struct task * current;
 static uint32_t __ready_to_schedule;
 static struct task * kernel_idle_task = NULL;
+static enum task_state transition_table[TASK_STATE_MAX][TASK_STATE_MAX];
 
+__attribute__((constructor)) static void
+task_state_transition_init(void)
+{
+#define _(state1, state2) transition_table[(state1)][(state2)] = 1
+    memset(transition_table, 0x0, sizeof(transition_table));
+    _(TASK_STATE_ZOMBIE, TASK_STATE_ZOMBIE);
+    _(TASK_STATE_RUNNING, TASK_STATE_RUNNING);
+    _(TASK_STATE_EXITING, TASK_STATE_EXITING);
+    _(TASK_STATE_INTERRUPTIBLE, TASK_STATE_INTERRUPTIBLE);
+    _(TASK_STATE_UNINTERRUPTIBLE, TASK_STATE_UNINTERRUPTIBLE);
+    _(TASK_STATE_RUNNING, TASK_STATE_INTERRUPTIBLE);
+    _(TASK_STATE_RUNNING, TASK_STATE_UNINTERRUPTIBLE);
+    _(TASK_STATE_RUNNING, TASK_STATE_EXITING);
+    _(TASK_STATE_INTERRUPTIBLE, TASK_STATE_RUNNING);
+    _(TASK_STATE_INTERRUPTIBLE, TASK_STATE_UNINTERRUPTIBLE);
+    _(TASK_STATE_UNINTERRUPTIBLE, TASK_STATE_RUNNING);
+    _(TASK_STATE_UNINTERRUPTIBLE, TASK_STATE_INTERRUPTIBLE);
+#undef _
+}
+
+void
+raw_task_wake_up(struct task * task)
+{
+    switch(task->state)
+    {
+        case TASK_STATE_RUNNING:
+            break;
+        case TASK_STATE_INTERRUPTIBLE:
+            transit_state(task, TASK_STATE_RUNNING);
+            break;
+        case TASK_STATE_UNINTERRUPTIBLE:
+            // In an `TASK_STATE_UNINTERRUPTIBLE` state, the previous
+            // `non_stop_state` must be in `TASK_STATE_INTERRUPTIBLE`, we
+            // restore it to RUNNING state, but do not run the task
+            // immediately. it muust be continued with explicit SIGCONT signal.
+            ASSERT(task->non_stop_state == TASK_STATE_RUNNING ||
+                task->non_stop_state == TASK_STATE_INTERRUPTIBLE);
+            task->non_stop_state = TASK_STATE_RUNNING;
+            break;
+        default:
+            __not_reach();
+            break;
+    }
+}
+
+static uint8_t *
+task_state_to_string(enum task_state stat)
+{
+    uint8_t * str = (uint8_t *)"UNKNOWN";
+    switch(stat)
+    {
+        case TASK_STATE_ZOMBIE:
+            str = (uint8_t *)"TASK_STATE_ZOMBIE";
+            break;
+        case TASK_STATE_EXITING:
+            str = (uint8_t *)"TASK_STATE_EXITING";
+            break;
+        case TASK_STATE_INTERRUPTIBLE:
+            str = (uint8_t *)"TASK_STATE_INTERRUPTIBLE";
+            break;
+        case TASK_STATE_UNINTERRUPTIBLE:
+            str = (uint8_t *)"TASK_STATE_UNINTERRUPTIBLE";
+            break;
+        case TASK_STATE_RUNNING:
+            str = (uint8_t *)"TASK_STATE_RUNNING";
+            break;
+        default:
+            __not_reach();
+            break;
+    }
+    return str;
+}
 void
 transit_state(struct task * task, enum task_state target_state)
 {
     enum task_state prev_state;
     prev_state = task->state;
     task->state = target_state;
-    LOG_TRIVIA("Task:0x%x state transition from:0x%x to 0x%x\n",
-        task, prev_state, target_state);
+    ASSERT(target_state < TASK_STATE_MAX);
+    ASSERT(transition_table[prev_state][target_state]);
+    LOG_TRIVIA("Task:0x%x state transition from:%s to %s\n",
+        task,
+        task_state_to_string(prev_state),
+        task_state_to_string(target_state));
 }
 struct list_elem *
 get_task_list_head(void)
@@ -390,11 +509,13 @@ task_pre_interrupt_handler(struct x86_cpustate * cpu)
 {
     if (current) {
         current->interrupt_depth++;
-        if (current->signal_scheduled)
+        if (current->signal_scheduled) {
             current->signaled_cpu = cpu;
-        else
+            LOG_TRIVIA("Save task:0x%x's signaled-cpu:0x%x\n", current, cpu);
+        } else {
             current->cpu = cpu;
-        
+            LOG_TRIVIA("Save task:0x%x's normal-cpu:0x%x\n", current, cpu);
+        }
     }
 }
 
@@ -405,8 +526,10 @@ task_post_interrupt_handler(struct x86_cpustate * cpu)
         current->interrupt_depth--;
         ASSERT(((int32_t)current->interrupt_depth) >= 0);
         if (current->signal_scheduled) {
+            LOG_TRIVIA("Restore task:0x%x's signaled-cpu:0x%x\n", current, cpu);
             ASSERT(current->signaled_cpu == cpu);
         } else {
+            LOG_TRIVIA("Restore task:0x%x's normal-cpu:%x\n", current, cpu);
             ASSERT(current->cpu == cpu);
         }
     }

@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
     while(1) {
         print_serial(argv[0]);
         print_serial("\n");
-        sleep(3000);
+        sleep(10000);
     }
 
 #if 0
