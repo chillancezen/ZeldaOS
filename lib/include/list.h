@@ -24,6 +24,10 @@ struct list_elem {
 
 #define list_empty(head) (!((head)->next))
 
+#define list_node_detached(head, node) (!(node)->prev &&\
+    !(node)->next && \
+    list_first_elem(head) != (node))
+
 /*
  * Put an element at the tail of the list
  */

@@ -34,6 +34,8 @@ pre_init(void)
     uint32_t _start_addr = (uint32_t)&_kernel_constructor_start;
     uint32_t _end_addr = (uint32_t)&_kernel_constructor_end;
     uint32_t func_container = 0;
+    serial_init();
+    printk_init();
     for(func_container = _start_addr;
         func_container < _end_addr;
         func_container += 4) {
@@ -44,8 +46,6 @@ pre_init(void)
 static void
 init1(void)
 {
-    serial_init();
-    printk_init();
     gdt_init();
     idt_init();
     gp_init();

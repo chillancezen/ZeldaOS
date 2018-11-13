@@ -67,10 +67,10 @@ static int32_t
 call_sys_exit(struct x86_cpustate * cpu, uint32_t exit_code)
 {
     ASSERT(current);
-    // FIXME: Signal the task instead of transit the state directly
-    transit_state(current, TASK_STATE_EXITING);
+    // FIXED: Signal the task instead of transit the state directly
     current->exit_code = exit_code;
-    yield_cpu();
+    signal_task(current, SIGCONT);
+    signal_task(current, SIGQUIT);
     return OK;
 }
 

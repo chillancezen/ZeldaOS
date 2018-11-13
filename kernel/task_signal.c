@@ -149,8 +149,6 @@ signal_task(struct task * task, enum SIGNAL sig)
                 processed = 1;
                 break;
         }
-        //if (task == current && task->state != TASK_STATE_RUNNING)
-        //    yield_cpu();
         if (processed)
             return OK; 
     }
@@ -324,7 +322,7 @@ task_debug_handler(void * arg)
 {
     ASSERT(current);
     current_pl3_task = (struct task *)0x800101c;
-    signal_task(current_pl3_task, SIGKILL);
+    signal_task(current_pl3_task, SIGINT);
     //signal_task(current_pl3_task, stop ? SIGSTOP : SIGCONT);
     //signal_task(current_pl3_task, SIGKILL);
     //printk("signal task:0x%x with SIGINT, result:%d\n",
