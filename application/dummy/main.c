@@ -77,7 +77,7 @@ interrupt_handler(int signal)
     print_serial("Application Signal interrupted\n");
     sleep(100);
     print_serial("Application Signal interrupted ends\n");
-    kill(-1, SIGKILL);
+    //kill(-1, SIGKILL);
 }
 int main(int argc, char *argv[])
 {
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
         print_serial(argv[0]);
         print_serial("\n");
         sleep(10000);
-        kill(-1, SIGINT);
+        //kill(-1, SIGINT);
     }
 
 #if 0

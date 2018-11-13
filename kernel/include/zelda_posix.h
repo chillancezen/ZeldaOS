@@ -21,6 +21,7 @@
 
 #define O_APPEND 0x0008
 #define O_CREAT 0x0200
+#define O_TRUNC 0x0400
 
 
 /*

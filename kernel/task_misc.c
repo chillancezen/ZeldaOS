@@ -8,6 +8,7 @@
 #include <kernel/include/zelda_posix.h>
 #include <kernel/include/timer.h>
 #include <lib/include/string.h>
+#include <filesystem/include/vfs.h>
 
 #define CPU_YIELD_TRAP_VECTOR 0x88
 static void
@@ -80,6 +81,7 @@ call_sys_sleep(struct x86_cpustate * cpu, uint32_t milisecond)
     return sleep(milisecond);
 }
 // If task_id lower than 0. we send signal to `current`
+
 static int32_t
 call_sys_kill(struct x86_cpustate * cpu, uint32_t task_id, uint32_t signal)
 {
@@ -98,6 +100,58 @@ call_sys_kill(struct x86_cpustate * cpu, uint32_t task_id, uint32_t signal)
     signal_task(task, signal);
     return OK;
 }
+static int32_t
+search_unoccupied_file_descriptor(struct task * task)
+{
+    int idx = 0;
+    int32_t result = -1;
+    for (idx = 0; idx < MAX_FILE_DESCRIPTR_PER_TASK; idx++) {
+        if (!task->file_entries[idx].valid) {
+            result = idx;
+            break;
+        }
+    }
+    return result;   
+}
+
+static int32_t
+call_sys_open(struct x86_cpustate * cpu,
+    const uint8_t * path,
+    uint32_t flags,
+    uint32_t mode)
+{
+    // FIXME: concatenate current as full path if a relative path is given.
+    int32_t fd = -1;
+    struct file * file  = NULL;
+    ASSERT(current);
+    fd = search_unoccupied_file_descriptor(current);
+    if (fd < 0) {
+        return -ERR_OUT_OF_RESOURCE;
+    }
+    ASSERT(fd >= 0 && fd < MAX_FILE_DESCRIPTR_PER_TASK);
+    ASSERT(!current->file_entries[fd].valid);
+    if (flags & O_CREAT) {
+        file = do_vfs_create(path, flags, mode);
+        if (!file) {
+            return -ERR_GENERIC;
+        }
+    }
+    file = do_vfs_open(path, flags, mode);
+    if (!file) {
+        return -ERR_GENERIC;
+    }
+    current->file_entries[fd].writable = 0;
+    current->file_entries[fd].valid = 1;
+    current->file_entries[fd].file = file;
+    current->file_entries[fd].offset = 0;
+    if ((flags & O_WRONLY) || (flags & O_RDWR)) {
+        current->file_entries[fd].writable = 1;
+    }
+    if (((flags & O_WRONLY) || (flags & O_RDWR)) && (flags & O_TRUNC)) {
+        do_vfs_truncate(&current->file_entries[fd], 0x0);
+    }
+    return fd;
+}
 
 void
 task_misc_init(void)
@@ -108,4 +162,5 @@ task_misc_init(void)
     register_system_call(SYS_EXIT_IDX, 1, (call_ptr)call_sys_exit);
     register_system_call(SYS_SLEEP_IDX, 1, (call_ptr)call_sys_sleep);
     register_system_call(SYS_KILL_IDX, 2, (call_ptr)call_sys_kill);
+    register_system_call(SYS_OPEN_IDX, 3, (call_ptr)call_sys_open);
 }

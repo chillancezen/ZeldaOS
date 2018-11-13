@@ -11,6 +11,7 @@
 #include <lib/include/list.h>
 #include <lib/include/hash_table.h>
 #include <kernel/include/userspace_vma.h>
+#include <filesystem/include/file.h>
 #include <kernel/include/timer.h>
 // this default disposition and description of Signals can be found here:
 // // https://www.linuxjournal.com/files/linuxjournal.com/linuxjournal/articles/039/3985/3985t1.html
@@ -104,7 +105,11 @@ struct task {
     
     // Signal entries
     struct signal_entry sig_entries[SIG_MAX];
+
+    // The file descriptor entries
+    struct file_entry file_entries[MAX_FILE_DESCRIPTR_PER_TASK];
 };
+
 extern struct task * current;
 #define IS_TASK_KERNEL_TYPE (_task) ((_task)->privilege_level == DPL_0)
 

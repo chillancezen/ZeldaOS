@@ -18,4 +18,7 @@ signal(int signal, void (*handler)(int32_t signal));
 int32_t
 kill(uint32_t task_id, int32_t signal);
 
+int32_t
+open(const uint8_t * path, uint32_t flags, ...);
+
 #endif

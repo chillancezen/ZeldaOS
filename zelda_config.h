@@ -89,6 +89,10 @@
  * enable/disable task preemption
  */
 #define TASK_PREEMPTION 1
+/*
+ * maximum number of file descriptors one task can contain
+ */
+#define MAX_FILE_DESCRIPTR_PER_TASK 256
 
 #define PRE_PROCESS_SIGNAL
 

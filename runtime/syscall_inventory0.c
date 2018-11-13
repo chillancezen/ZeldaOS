@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2018 Jie Zheng
  */
-
+#include <stdarg.h>
 #include <syscall_inventory.h>
 #include <zelda_posix.h>
 
@@ -32,3 +32,12 @@ kill(uint32_t task_id, int32_t signal)
     return do_system_call2(SYS_KILL_IDX, task_id, signal);
 }
 
+int32_t
+open(const uint8_t * path, uint32_t flags, ...)
+{
+    int32_t mode = 0;
+    va_list arg_ptr;
+    va_start(arg_ptr, flags);
+    mode = va_arg(arg_ptr, int32_t);
+    return do_system_call3(SYS_OPEN_IDX, (uint32_t)path, flags, mode);
+}

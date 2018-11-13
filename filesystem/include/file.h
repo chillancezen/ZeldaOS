@@ -35,7 +35,8 @@ struct file {
 struct file_entry {
     struct file * file;
     uint32_t offset; 
-    uint32_t valid:1; 
+    uint32_t valid:1;
+    uint32_t writable:1; 
 };
 
 /*

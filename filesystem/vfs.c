@@ -362,6 +362,9 @@ do_vfs_write(struct file_entry * entry,
     int32_t result = 0;
     ASSERT(entry->file->ops);
     ASSERT(entry->file->ops->write);
+    if (!entry->writable) {
+        return -ERR_NOT_SUPPORTED;
+    }
     result = entry->file->ops->write(
         entry->file,
         entry->offset,

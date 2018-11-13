@@ -267,6 +267,7 @@ memfs_init(void)
             struct file_entry entry;
             entry.file = file;
             entry.offset = 0x0;
+            entry.writable = 0x1;
             result = do_vfs_read(&entry, buffer, 16);
             ASSERT(result == 0);
             result = do_vfs_write(&entry, "Hello World", 11);
