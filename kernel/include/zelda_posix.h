@@ -43,6 +43,7 @@ enum SYSCALL_INDEX {
     SYS_EXIT_IDX,
     SYS_SLEEP_IDX,
     SYS_SIGNAL_IDX,
+    SYS_KILL_IDX
 };
 
 enum SIGNAL {

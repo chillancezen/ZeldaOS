@@ -79,6 +79,26 @@ call_sys_sleep(struct x86_cpustate * cpu, uint32_t milisecond)
 {
     return sleep(milisecond);
 }
+// If task_id lower than 0. we send signal to `current`
+static int32_t
+call_sys_kill(struct x86_cpustate * cpu, uint32_t task_id, uint32_t signal)
+{
+    struct task * task = current;
+    if (signal <= SIG_INVALID || signal >= SIG_MAX)
+        return -ERR_INVALID_ARG;
+    if (((int32_t)task_id) >= 0) {
+        task = search_task_by_id(task_id);
+    }
+    if (!task) {
+        return -ERR_NOT_FOUND;
+    }
+    if (signal == SIGQUIT) {
+        signal_task(task, SIGCONT);
+    }
+    signal_task(task, signal);
+    return OK;
+}
+
 void
 task_misc_init(void)
 {
@@ -87,4 +107,5 @@ task_misc_init(void)
         "CPU Yield Trap");
     register_system_call(SYS_EXIT_IDX, 1, (call_ptr)call_sys_exit);
     register_system_call(SYS_SLEEP_IDX, 1, (call_ptr)call_sys_sleep);
+    register_system_call(SYS_KILL_IDX, 2, (call_ptr)call_sys_kill);
 }
