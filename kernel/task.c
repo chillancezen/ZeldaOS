@@ -62,7 +62,16 @@ struct task * current;
 static uint32_t __ready_to_schedule;
 static struct task * kernel_idle_task = NULL;
 static enum task_state transition_table[TASK_STATE_MAX][TASK_STATE_MAX];
-
+static struct hash_node kernel_task_hash_heads[KERNEL_TASK_HASH_TABLE_SIZE];
+static struct hash_stub kernel_task_hash_stub;
+static uint32_t task_seed = 0x0;
+static void
+kernel_task_hash_table_init(void)
+{
+    kernel_task_hash_stub.stub_mask = KERNEL_TASK_HASH_TABLE_SIZE -1;
+    kernel_task_hash_stub.heads = kernel_task_hash_heads;
+    memset(kernel_task_hash_heads, 0x0, sizeof(kernel_task_hash_heads));
+}
 __attribute__((constructor)) static void
 task_state_transition_init(void)
 {
@@ -195,6 +204,7 @@ malloc_task(void)
     _task = malloc(sizeof(struct task));
     if (_task) {
         memset(_task, 0x0, sizeof(struct task));
+        _task->task_id = task_seed++;
     }
     return _task;
 }
@@ -361,6 +371,7 @@ reclaim_task(struct task * task)
         free(task->privilege_level0_stack);
     if (task->signaled_privilege_level0_stack)
         free(task->signaled_privilege_level0_stack);
+    ASSERT(unregister_task_from_task_table(task) == OK);
     free_task(task);
     LOG_DEBUG("Finished reclaiming task::0x%x\n", task);
     return OK;
@@ -373,7 +384,8 @@ dump_tasks(void)
     LOG_INFO("Dump tasks:\n");
     LIST_FOREACH_START(&task_list_head, _elem) {
         _task = CONTAINER_OF(_elem, struct task, list);
-        LOG_INFO("task-%x entry:0x%x\n", _task, _task->entry);
+        LOG_INFO("task-%d(0x%x) entry:0x%x\n",
+            _task->task_id, _task, _task->entry);
     }
     LIST_FOREACH_END();
 }
@@ -425,6 +437,7 @@ create_kernel_task(void (*entry)(void), struct task ** task_ptr)
     LOG_DEBUG("kernel task 0x%x created\n", task);
 
     *task_ptr = task;
+    ASSERT(OK == register_task_in_task_table(task));
     ret = OK;
     task_error:
         if (task) {
@@ -534,6 +547,56 @@ task_post_interrupt_handler(struct x86_cpustate * cpu)
         }
     }
 }
+
+static uint32_t
+task_hash(void * task_id)
+{
+    return (uint32_t)task_id;
+}
+
+static uint32_t
+task_identity(struct hash_node * node, void * task_id)
+{
+    struct task * task = CONTAINER_OF(node, struct task, node);
+    return task->task_id == (uint32_t)task_id;
+}
+
+struct task *
+search_task_by_id(uint32_t id)
+{
+    struct hash_node * node = NULL;
+    node = search_hash_node(&kernel_task_hash_stub,
+        (void *)id,
+        task_hash,
+        task_identity);
+    return node ? CONTAINER_OF(node, struct task, node) : NULL;
+}
+/*
+ * rteurn OK if successful. otherwise -ERR_EXIST is returned
+ */
+int32_t
+register_task_in_task_table(struct task * task)
+{
+    int32_t result = OK;
+    result = add_hash_node(&kernel_task_hash_stub,
+        (void *)task->task_id,
+        &task->node,
+        task_hash,
+        task_identity);
+    return result;
+}
+
+int32_t
+unregister_task_from_task_table(struct task * task)
+{
+    int32_t result = OK;
+    result = delete_hash_node(&kernel_task_hash_stub,
+        (void *)task->task_id,
+        task_hash,
+        task_identity);
+    return result;
+}
+
 /*
  * This is the kernel idle task which will always be selected and select 
  */
@@ -577,4 +640,5 @@ task_pre_init(void)
     list_init(&task_exit_list_head);
     list_init(&task_zombie_list_head);
     list_init(&task_blocking_list_head);
+    kernel_task_hash_table_init();
 }

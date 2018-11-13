@@ -9,6 +9,7 @@
 #include <x86/include/interrupt.h>
 #include <kernel/include/printk.h>
 #include <lib/include/list.h>
+#include <lib/include/hash_table.h>
 #include <kernel/include/userspace_vma.h>
 #include <kernel/include/timer.h>
 // this default disposition and description of Signals can be found here:
@@ -39,6 +40,11 @@ struct signal_entry {
 };
 
 struct task {
+    // The task_id which identifies the task mainly in userland.
+    // the task is stored and searched in the global hash table. the `node`
+    // ease the work to store and search
+    uint32_t task_id;
+    struct hash_node node;
     struct list_elem list;
     // `state` is the current state of the task
     // `non_stop_state` is the state of the task before the task goes into 
@@ -126,6 +132,15 @@ extern struct task * current;
 }
 
 #define signal_pending(_task) (!!(_task)->signal_pending)
+
+struct task *
+search_task_by_id(uint32_t id);
+
+int32_t
+register_task_in_task_table(struct task * task);
+
+int32_t
+unregister_task_from_task_table(struct task * task);
 
 void
 task_signal_init(struct task * task);

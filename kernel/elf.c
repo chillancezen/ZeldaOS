@@ -452,6 +452,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         enable_task_paging(current);
     else
         enable_kernel_paging();
+    ASSERT(OK == register_task_in_task_table(_task));
     task_put(_task);
     return ret;
     page_error:

@@ -92,4 +92,7 @@
 
 #define PRE_PROCESS_SIGNAL
 
+// the size of kernel task hash table.
+// it must be power of 2.
+#define KERNEL_TASK_HASH_TABLE_SIZE 1024
 
