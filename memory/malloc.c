@@ -135,10 +135,15 @@ malloc_align(int len, int align)
             user_ptr = __malloc((struct malloc_header *)free_chunk_addr,
                 len,
                 align);
-            if (user_ptr)
+            if (user_ptr) {
+                LOG_TRIVIA("memory allocation: [size:%d align:%d] as 0x%x\n",
+                    len, align, user_ptr);
                 return user_ptr;
+            }
         }
     }
+    LOG_TRIVIA("memory allocation: [size:%d align:%d] as 0x%x\n",
+        len, align, NULL);
     return NULL;
 }
 
@@ -194,6 +199,7 @@ free(void * mem)
     ASSERT(padding_hdr->magic == MALLOC_MAGIC);
     malloc_hdr = (struct malloc_header *)(((uint32_t)padding_hdr) -
         padding_hdr->padding - sizeof(struct malloc_header));
+    LOG_TRIVIA("memory free: 0x%x is_free:%d\n", mem, malloc_hdr->free);
     if (malloc_hdr->free)
         return;
     __free(malloc_hdr);

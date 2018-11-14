@@ -225,7 +225,7 @@ memfs_init(void)
     tmpfs_tmp_root_file.type = FILE_TYPE_MARK;
     ASSERT(!register_file_system((uint8_t *)"/home/", &tmpfs_home));
     ASSERT(!register_file_system((uint8_t *)"/tmp/", &tmpfs_tmp));
-#if defined(INLINE_TEST)
+#if !defined(INLINE_TEST)
     {
         int32_t result = OK;
         uint8_t * path = (uint8_t *)"//home/cute";

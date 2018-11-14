@@ -54,6 +54,15 @@ split_path(uint8_t * path,
         }
 
     }
+    {
+        // Dump the splitted_path
+        int idx = 0;
+        LOG_TRIVIA("splitted path:[\n");
+        for (idx = 0; idx < *iptr; idx++) {
+            LOG_TRIVIA("    %s\n", array[idx]);
+        }
+        LOG_TRIVIA("]\n");
+    }
 }
 
 /*

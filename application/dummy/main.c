@@ -83,13 +83,18 @@ int main(int argc, char *argv[])
 {
     int32_t ret = 0;
     ret = signal(SIGINT, interrupt_handler);
-    while(1) {
+    while(0) {
         print_serial(argv[0]);
         print_serial("\n");
         sleep(10000);
         //kill(-1, SIGINT);
     }
-
+    if (1) {
+        int fd = open("/home/foo", O_RDWR|O_CREAT);
+        print_serial("opened fd:");
+        print_hexdecimal(fd);
+        print_serial("\n");
+    }
 #if 0
     *(uint32_t *)0x42802000 = 0;
     int _start = (int)&_zelda_constructor_init_start;

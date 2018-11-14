@@ -438,7 +438,10 @@ create_kernel_task(void (*entry)(void), struct task ** task_ptr)
 
     *task_ptr = task;
     ASSERT(OK == register_task_in_task_table(task));
-    ret = OK;
+    // XXX:WOW, this place hits a serious bug which caused the kernel panic
+    // , the task is recycled and once again the memory is allocated to 
+    // other sub-system as new data structure, the task is messed up.
+    return OK;
     task_error:
         if (task) {
             if (task->privilege_level0_stack)
@@ -521,13 +524,16 @@ void
 task_pre_interrupt_handler(struct x86_cpustate * cpu)
 {
     if (current) {
+        uint32_t old_interrupt_depth = current->interrupt_depth;
         current->interrupt_depth++;
         if (current->signal_scheduled) {
             current->signaled_cpu = cpu;
-            LOG_TRIVIA("Save task:0x%x's signaled-cpu:0x%x\n", current, cpu);
+            LOG_TRIVIA("Save task:0x%x's signaled-cpu:0x%x [%d --> %d]\n",
+                current, cpu, old_interrupt_depth, current->interrupt_depth);
         } else {
             current->cpu = cpu;
-            LOG_TRIVIA("Save task:0x%x's normal-cpu:0x%x\n", current, cpu);
+            LOG_TRIVIA("Save task:0x%x's normal-cpu:0x%x [%d --> %d]\n",
+                current, cpu, old_interrupt_depth, current->interrupt_depth);
         }
     }
 }
@@ -536,13 +542,16 @@ void
 task_post_interrupt_handler(struct x86_cpustate * cpu)
 {
     if (current) {
+        uint32_t old_interrupt_depth = current->interrupt_depth;
         current->interrupt_depth--;
         ASSERT(((int32_t)current->interrupt_depth) >= 0);
         if (current->signal_scheduled) {
-            LOG_TRIVIA("Restore task:0x%x's signaled-cpu:0x%x\n", current, cpu);
+            LOG_TRIVIA("Restore task:0x%x's signaled-cpu:0x%x [%d --> %d]\n",
+                current, cpu, old_interrupt_depth, current->interrupt_depth);
             ASSERT(current->signaled_cpu == cpu);
         } else {
-            LOG_TRIVIA("Restore task:0x%x's normal-cpu:%x\n", current, cpu);
+            LOG_TRIVIA("Restore task:0x%x's normal-cpu:0x%x [%d --> %d]\n",
+                current, cpu, old_interrupt_depth, current->interrupt_depth);
             ASSERT(current->cpu == cpu);
         }
     }
@@ -617,6 +626,7 @@ task_init(void)
     task_signal_sub_init();
     ASSERT(OK == create_kernel_task(kernel_idle_task_body, &kernel_idle_task));
     ASSERT(kernel_idle_task);
+    LOG_INFO("registered kernel idle task:0x%x\n", kernel_idle_task);
 #if !defined(INLINE_TEST)
     struct task * _task = malloc_task();
     ASSERT(_task);

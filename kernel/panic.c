@@ -60,5 +60,9 @@ panic(void)
             break;
         LOG_INFO("   frame #%d <%x>\n", frame, eip);
         ebp = ((uint32_t *)ebp)[0];
+        //XXX: another bug fix: do not jump to user land in case the kernel
+        //in a interrupt context.
+        if (ebp >= ((uint32_t)USERSPACE_BOTTOM))
+            break;
     }
 }
