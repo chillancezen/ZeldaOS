@@ -21,4 +21,10 @@ kill(uint32_t task_id, int32_t signal);
 int32_t
 open(const uint8_t * path, uint32_t flags, ...);
 
+int32_t
+close(uint32_t fd);
+
+int32_t
+read(uint32_t fd, void * buffer, int32_t count);
+
 #endif

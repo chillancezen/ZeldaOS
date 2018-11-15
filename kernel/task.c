@@ -11,6 +11,8 @@
 #include <memory/include/paging.h>
 #include <kernel/include/system_call.h>
 #include <kernel/include/zelda_posix.h>
+#include <filesystem/include/vfs.h>
+
 /*
  * The task state transition diagram, any exceptional transition is not allowed
  *
@@ -364,6 +366,23 @@ reclaim_task(struct task * task)
             ASSERT(_list);
             _vma = CONTAINER_OF(_list, struct vm_area, list);
             free(_vma);
+        }
+    }
+    // close all the file descriptor
+    {
+        int idx = 0;
+        int32_t vfs_result = 0;
+        for (idx = 0; idx < MAX_FILE_DESCRIPTR_PER_TASK; idx++) {
+            if (!task->file_entries[idx].valid)
+                continue;
+            ASSERT(task->file_entries[idx].file);
+            vfs_result = do_vfs_close(task->file_entries[idx].file);
+            task->file_entries[idx].valid = 0;
+            task->file_entries[idx].writable = 0;
+            task->file_entries[idx].offset = 0;
+            task->file_entries[idx].file = NULL;
+            LOG_TRIVIA("close remaining open file descriptor: {task:0x%x, "
+                "fd:%d, result:%d}\n", task, idx,vfs_result);
         }
     }
     // Free task's PL0 stack and task itself

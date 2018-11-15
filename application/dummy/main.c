@@ -90,10 +90,24 @@ int main(int argc, char *argv[])
         //kill(-1, SIGINT);
     }
     if (1) {
-        int fd = open("/home/foo", O_RDWR|O_CREAT);
+        int idx = 0;
+        char buffer[256];
+        int fd = open("/etc/dummy.cfg", O_RDWR);
         print_serial("opened fd:");
         print_hexdecimal(fd);
         print_serial("\n");
+        for (idx = 0; idx < 256; idx++)
+            buffer[idx] = 0;
+        idx = read(fd, buffer,16);
+        print_serial("read file:");
+        print_serial(buffer);
+        print_serial("\n");
+        idx = read(fd, buffer,16);
+        print_serial("read count:");
+        print_hexdecimal(idx);
+        print_serial("\n");
+
+        close(fd);
     }
 #if 0
     *(uint32_t *)0x42802000 = 0;

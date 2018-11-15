@@ -150,7 +150,46 @@ call_sys_open(struct x86_cpustate * cpu,
     if (((flags & O_WRONLY) || (flags & O_RDWR)) && (flags & O_TRUNC)) {
         do_vfs_truncate(&current->file_entries[fd], 0x0);
     }
+    LOG_TRIVIA("open a file {task:0x%x, path:%s, fd:%d}\n",
+        current, path, fd);
     return fd;
+}
+
+static int32_t
+call_sys_close(struct x86_cpustate * cpu, int32_t fd)
+{
+    int32_t ret = OK;
+    if (fd < 0 || fd >= MAX_FILE_DESCRIPTR_PER_TASK) {
+        return -ERR_INVALID_ARG;
+    }
+    ASSERT(current);
+    if (!current->file_entries[fd].valid) {
+        return -ERR_INVALID_ARG;
+    }
+    ret = do_vfs_close(current->file_entries[fd].file);
+    current->file_entries[fd].valid = 0;
+    current->file_entries[fd].writable = 0;
+    current->file_entries[fd].file = NULL;
+    current->file_entries[fd].offset = 0;
+    LOG_TRIVIA("error closing file {task:0x%x, fd:%d, result:%d}\n",
+        current, fd, ret);
+    return ret;
+}
+static int32_t
+call_sys_read(struct x86_cpustate * cpu,
+    int32_t fd,
+    uint8_t * buffer,
+    int32_t size_to_read)
+{
+    int read_result = -ERR_GENERIC;
+    ASSERT(current);
+    if (fd < 0 ||
+        fd >= MAX_FILE_DESCRIPTR_PER_TASK ||
+        !current->file_entries[fd].valid) {
+        return -ERR_INVALID_ARG;
+    }
+    read_result = do_vfs_read(&current->file_entries[fd], buffer, size_to_read);
+    return read_result;
 }
 
 void
@@ -163,4 +202,6 @@ task_misc_init(void)
     register_system_call(SYS_SLEEP_IDX, 1, (call_ptr)call_sys_sleep);
     register_system_call(SYS_KILL_IDX, 2, (call_ptr)call_sys_kill);
     register_system_call(SYS_OPEN_IDX, 3, (call_ptr)call_sys_open);
+    register_system_call(SYS_CLOSE_IDX, 1, (call_ptr)call_sys_close);
+    register_system_call(SYS_READ_IDX, 3, (call_ptr)call_sys_read);
 }

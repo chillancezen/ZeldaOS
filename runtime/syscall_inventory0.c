@@ -41,3 +41,16 @@ open(const uint8_t * path, uint32_t flags, ...)
     mode = va_arg(arg_ptr, int32_t);
     return do_system_call3(SYS_OPEN_IDX, (uint32_t)path, flags, mode);
 }
+
+
+int32_t
+close(uint32_t fd)
+{
+    return do_system_call1(SYS_CLOSE_IDX, fd);
+}
+
+int32_t
+read(uint32_t fd, void * buffer, int32_t count)
+{
+    return do_system_call3(SYS_READ_IDX,fd, (uint32_t)buffer, count);
+}
