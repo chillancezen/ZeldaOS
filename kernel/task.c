@@ -114,6 +114,7 @@ raw_task_wake_up(struct task * task)
             task->non_stop_state = TASK_STATE_RUNNING;
             break;
         default:
+            LOG_ERROR("current task state:%d\n", task->state);
             __not_reach();
             break;
     }
@@ -544,15 +545,22 @@ task_pre_interrupt_handler(struct x86_cpustate * cpu)
 {
     if (current) {
         uint32_t old_interrupt_depth = current->interrupt_depth;
+        struct x86_cpustate * old_state = NULL;
         current->interrupt_depth++;
         if (current->signal_scheduled) {
+            old_state = current->signaled_cpu;
             current->signaled_cpu = cpu;
-            LOG_TRIVIA("Save task:0x%x's signaled-cpu:0x%x [%d --> %d]\n",
-                current, cpu, old_interrupt_depth, current->interrupt_depth);
+            LOG_TRIVIA("Save task:0x%x's signaled-cpu:"
+                "0x%x-->0x%x [%d --> %d]\n",
+                current,old_state,
+                cpu, old_interrupt_depth, current->interrupt_depth);
         } else {
+            old_state = current->cpu;
             current->cpu = cpu;
-            LOG_TRIVIA("Save task:0x%x's normal-cpu:0x%x [%d --> %d]\n",
-                current, cpu, old_interrupt_depth, current->interrupt_depth);
+            LOG_TRIVIA("Save task:0x%x's normal-cpu:"
+                "0x%x-->0x%x [%d --> %d]\n",
+                current, old_state, cpu,
+                old_interrupt_depth, current->interrupt_depth);
         }
     }
 }
@@ -562,16 +570,23 @@ task_post_interrupt_handler(struct x86_cpustate * cpu)
 {
     if (current) {
         uint32_t old_interrupt_depth = current->interrupt_depth;
+        struct x86_cpustate * old_state = NULL;
         current->interrupt_depth--;
         ASSERT(((int32_t)current->interrupt_depth) >= 0);
         if (current->signal_scheduled) {
-            LOG_TRIVIA("Restore task:0x%x's signaled-cpu:0x%x [%d --> %d]\n",
-                current, cpu, old_interrupt_depth, current->interrupt_depth);
-            ASSERT(current->signaled_cpu == cpu);
+            old_state = current->signaled_cpu;
+            LOG_TRIVIA("Restore task:0x%x's signaled-cpu:"
+                "0x%x-->0x%x [%d --> %d]\n",
+                current,old_state, cpu,
+                old_interrupt_depth, current->interrupt_depth);
+            //ASSERT(current->signaled_cpu == cpu);
         } else {
-            LOG_TRIVIA("Restore task:0x%x's normal-cpu:0x%x [%d --> %d]\n",
-                current, cpu, old_interrupt_depth, current->interrupt_depth);
-            ASSERT(current->cpu == cpu);
+            old_state = current->cpu;
+            LOG_TRIVIA("Restore task:0x%x's normal-cpu:"
+                "0x%x-->0x%x [%d --> %d]\n",
+                current, old_state, cpu,
+                old_interrupt_depth, current->interrupt_depth);
+            //ASSERT(current->cpu == cpu);
         }
     }
 }

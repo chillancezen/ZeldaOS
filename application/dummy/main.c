@@ -92,7 +92,8 @@ int main(int argc, char *argv[])
     if (1) {
         int idx = 0;
         char buffer[256];
-        int fd = open("/etc/dummy.cfg", O_RDWR);
+        int fd = open("/home/foo", O_RDWR|O_CREAT, 0x0);
+        //int fd = open("/etc/dummy.cfg", O_RDWR);
         print_serial("opened fd:");
         print_hexdecimal(fd);
         print_serial("\n");
@@ -102,12 +103,28 @@ int main(int argc, char *argv[])
         print_serial("read file:");
         print_serial(buffer);
         print_serial("\n");
-        idx = read(fd, buffer,16);
+        idx = write(fd, "Hello world,jjjzz",16);
+        print_serial("write count:");
+        print_hexdecimal(idx);
+        print_serial("\n");
+
+        //fd = open("/home/foo", O_RDWR);
+        print_hexdecimal(fd);
+        print_serial("\n");
+        for (idx = 0; idx < 256; idx++)
+            buffer[idx] = 0;
+        idx = read(fd, buffer,15);
+        print_serial("read file:");
+        print_serial(buffer);
+        print_serial("\n");
         print_serial("read count:");
         print_hexdecimal(idx);
         print_serial("\n");
 
         close(fd);
+    }
+    while(1) {
+        sleep(100);
     }
 #if 0
     *(uint32_t *)0x42802000 = 0;

@@ -27,4 +27,7 @@ close(uint32_t fd);
 int32_t
 read(uint32_t fd, void * buffer, int32_t count);
 
+int32_t
+write(uint32_t fd, void * buffer, int32_t count);
+
 #endif

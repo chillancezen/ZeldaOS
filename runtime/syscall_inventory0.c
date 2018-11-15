@@ -54,3 +54,9 @@ read(uint32_t fd, void * buffer, int32_t count)
 {
     return do_system_call3(SYS_READ_IDX,fd, (uint32_t)buffer, count);
 }
+
+int32_t
+write(uint32_t fd, void * buffer, int32_t count)
+{
+    return do_system_call3(SYS_WRITE_IDX, fd, (uint32_t)buffer, count);
+}

@@ -78,6 +78,8 @@ paging_fault_handler(struct x86_cpustate * cpu)
         :"=m"(linear_addr)
         :
         :"%edx");
+    LOG_TRIVIA("paging fault {linear address:0x%x, task:0x%x}\n",
+        linear_addr, current);
     if (linear_addr < ((uint32_t)USERSPACE_BOTTOM)) {
         result = handle_kernel_page_fault(cpu, linear_addr, &esp);
         if (result == OK) {

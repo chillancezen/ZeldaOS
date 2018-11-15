@@ -192,6 +192,23 @@ call_sys_read(struct x86_cpustate * cpu,
     return read_result;
 }
 
+static int32_t
+call_sys_write(struct x86_cpustate * cpu,
+    int32_t fd,
+    uint8_t * buffer,
+    int32_t size_to_write)
+{
+    int write_result = -ERR_GENERIC;
+    ASSERT(current);
+    if (fd < 0 ||
+        fd >= MAX_FILE_DESCRIPTR_PER_TASK ||
+        !current->file_entries[fd].valid) {
+        return -ERR_INVALID_ARG;
+    }
+    write_result = do_vfs_write(&current->file_entries[fd],
+        buffer, size_to_write);
+    return write_result;
+}
 void
 task_misc_init(void)
 {
@@ -204,4 +221,5 @@ task_misc_init(void)
     register_system_call(SYS_OPEN_IDX, 3, (call_ptr)call_sys_open);
     register_system_call(SYS_CLOSE_IDX, 1, (call_ptr)call_sys_close);
     register_system_call(SYS_READ_IDX, 3, (call_ptr)call_sys_read);
+    register_system_call(SYS_WRITE_IDX, 3, (call_ptr)call_sys_write);
 }

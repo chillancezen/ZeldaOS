@@ -32,7 +32,7 @@ register_timer(struct timer_entry * entry)
     ASSERT(!entry->node.parent);
     entry->state = timer_state_scheduled;
     attach_heap_node(&timer_heap, &entry->node, timer_compare);
-    LOG_DEBUG("Registered timer entry:0x%x\n", entry);
+    LOG_TRIVIA("Registered timer entry:0x%x\n", entry);
 }
 
 void
@@ -43,7 +43,7 @@ cancel_timer(struct timer_entry * entry)
     ASSERT(!entry->node.left);
     ASSERT(!entry->node.right);
     ASSERT(!entry->node.parent);
-    LOG_DEBUG("Cancel timer entry:0x%x\n", entry);
+    LOG_TRIVIA("Cancel timer entry:0x%x\n", entry);
 }
 void
 schedule_timer(void)
@@ -62,7 +62,7 @@ schedule_timer(void)
         ASSERT(timer->state == timer_state_scheduled);
         ASSERT(timer->callback);
         timer->callback(timer, timer->priv);
-        LOG_DEBUG("Scheduled timer:0x%x\n", timer);
+        LOG_TRIVIA("Scheduled timer:0x%x\n", timer);
     }
 }
 void
