@@ -26,6 +26,8 @@
 #include <kernel/include/rtc.h>
 #include <lib/include/heap_sort.h>
 #include <kernel/include/timer.h>
+#include <filesystem/include/devfs.h>
+
 
 static struct multiboot_info * boot_info;
 static void
@@ -76,6 +78,7 @@ init4(void)
     zeldafs_init();
     dummyfs_init();
     memfs_init();
+    devfs_init();
 }
 static void
 post_init(void)
@@ -101,6 +104,7 @@ post_init(void)
             PAGE_CACHE_ENABLED);
    }
 #endif
+   serial_post_init();
    timer_init();
    task_init();
    schedule_enable();

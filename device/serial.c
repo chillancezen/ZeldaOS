@@ -4,6 +4,7 @@
 
 #include <x86/include/ioport.h>
 #include <kernel/include/printk.h>
+#include <filesystem/include/devfs.h>
 
 #define COM1_PORT 0x3f8
 
@@ -33,5 +34,44 @@ serial_init(void)
     LOG_INFO("Initialize serial port output channel\n");
 }
 
+static int32_t
+serial0_dev_size(struct file * file)
+{
+    return 0;
+}
+static int32_t
+serial0_dev_stat(struct file * file, struct stat * stat)
+{
+    stat->st_size = 0;
+    return OK;
+}
 
+static int32_t
+serial0_dev_write(struct file * file, uint32_t offset, void * buffer, int size)
+{
+    int idx = 0;
+    uint8_t * ptr = (uint8_t *)buffer;
+    for (idx = 0; idx < size; idx++) {
+        write_serial(ptr[idx]);
+    }
+    return size;
+}
+static struct file_operation serial0_dev_ops = {
+    .size = serial0_dev_size,
+    .stat = serial0_dev_stat,
+    .read = NULL,
+    .write = serial0_dev_write,
+    .truncate = NULL,
+    .ioctl = NULL
+};
 
+void
+serial_post_init(void)
+{
+    struct file_system * dev_fs = get_dev_filesystem();
+    ASSERT(register_dev_node(dev_fs,
+        (uint8_t *)"/serial0",
+        0x0,
+        &serial0_dev_ops,
+        NULL));
+}

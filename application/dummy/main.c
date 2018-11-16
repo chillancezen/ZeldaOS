@@ -132,6 +132,13 @@ int main(int argc, char *argv[])
             print_hexdecimal(_stat.st_size);
             print_serial("\n");
         }
+        {
+            int fd1 = open("/dev/serial0", O_RDWR);
+            int writerc = write(fd1, "written to serial0\n", 20);
+            print_serial("serial write:");
+            print_hexdecimal(writerc);
+            print_serial("\n");
+        }
         close(fd);
     }
     while(1) {

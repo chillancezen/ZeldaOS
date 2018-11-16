@@ -6,5 +6,6 @@
 #include <lib/include/types.h>
 void serial_init(void);
 void write_serial(uint8_t a);
+void serial_post_init(void);
 
 #endif
