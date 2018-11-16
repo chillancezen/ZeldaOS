@@ -3,7 +3,21 @@
  */
 #ifndef _ZELDA_POSIX_H
 #define _ZELDA_POSIX_H
+#include <stdint.h>
 
+/*
+ * https://github.com/freebsd/freebsd/blob/master/sys/sys/stat.h#L160
+ */
+struct stat {
+    uint16_t st_dev;
+    uint16_t st_inode;
+    uint32_t st_mode;
+    uint16_t st_nlink;
+    uint16_t st_uid;
+    uint16_t st_gid;
+    uint16_t st_rdev;
+    uint32_t st_size;
+}__attribute__((packed));
 
 // The File SEEK macro from: Linux/fs.h
 
@@ -43,6 +57,9 @@ enum SYSCALL_INDEX {
     SYS_CLOSE_IDX,
     SYS_READ_IDX,
     SYS_WRITE_IDX,
+    SYS_LSEEK_IDX,
+    SYS_STAT_IDX,
+    SYS_FSTAT_IDX,
     SYS_EXIT_IDX,
     SYS_SLEEP_IDX,
     SYS_SIGNAL_IDX,

@@ -113,6 +113,7 @@ int main(int argc, char *argv[])
         print_serial("\n");
         for (idx = 0; idx < 256; idx++)
             buffer[idx] = 0;
+        lseek(fd, 1, 0);
         idx = read(fd, buffer,15);
         print_serial("read file:");
         print_serial(buffer);
@@ -121,6 +122,16 @@ int main(int argc, char *argv[])
         print_hexdecimal(idx);
         print_serial("\n");
 
+        {
+            int fd0 = open("/usr/bin/dummy", 0);
+            struct stat _stat;
+            int rc = fstat(fd0, &_stat);
+            print_hexdecimal(fd0);
+            print_serial("\n");
+            print_serial("file path stat:");
+            print_hexdecimal(_stat.st_size);
+            print_serial("\n");
+        }
         close(fd);
     }
     while(1) {

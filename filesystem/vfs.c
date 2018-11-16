@@ -554,3 +554,48 @@ do_vfs_path_delete(const uint8_t * path)
     return result;
 }
 
+/*
+ * the VFS layer interface to fetch the state of the file
+ */
+int32_t
+do_vfs_stat(const uint8_t * path, struct stat * buf)
+{
+    int32_t result = -ERR_GENERIC;
+    uint8_t c_name[MAX_PATH];
+    uint8_t sub_path[MAX_PATH];
+    struct file * file = NULL;
+    struct mount_entry * mount_entry = search_mount_entry(path);
+    if (!mount_entry) {
+        LOG_TRIVIA("can not find mount entry for path:%s\n", path);
+        return -ERR_INVALID_ARG;
+    }
+    {
+        int iptr = 0;
+        int iptr_dst = 0;
+        memset(c_name, 0x0, sizeof(c_name));
+        memset(sub_path, 0x0, sizeof(sub_path));
+        canonicalize_path_name(c_name, path);
+        for (iptr = 0; iptr < MAX_PATH; iptr++) {
+            if (c_name[iptr] != mount_entry->mount_point[iptr])
+                break;
+        }
+        ASSERT(!mount_entry->mount_point[iptr]);
+        for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
+            sub_path[iptr_dst++] = c_name[iptr];
+        }
+    }
+    ASSERT(mount_entry->fs->fs_ops->fs_open);
+    file = mount_entry->fs->fs_ops->fs_open(mount_entry->fs, sub_path);
+    if (!file) {
+        LOG_TRIVIA("Failed to find file:%s\n", c_name);
+        return -ERR_NOT_FOUND;
+    }
+    if (!file->ops->stat) {
+        LOG_TRIVIA("stat not supported for file:%s\n", c_name);
+        return -ERR_NOT_SUPPORTED;
+    }
+    memset(buf, 0x0, sizeof(struct stat));
+    result = file->ops->stat(file, buf);
+    return result;
+}
+

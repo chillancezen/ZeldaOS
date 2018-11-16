@@ -52,6 +52,16 @@ tmpfs_file_size(struct file * file)
     }
     return size;   
 }
+
+static int32_t
+tmpfs_file_stat(struct file * file, struct stat * stat)
+{
+    struct mem_block_hdr * block_hdr = (struct mem_block_hdr *)file->priv;
+    stat->st_mode = file->mode;
+    stat->st_size = block_hdr->nr_used;
+    return OK;
+}
+
 static int32_t
 tmpfs_file_truncate(struct file * file, int offset)
 {
@@ -69,6 +79,7 @@ static struct file_operation tmpfs_file_operation = {
     .read = tmpfs_read_file,
     .write = tmpfs_write_file,
     .size = tmpfs_file_size,
+    .stat = tmpfs_file_stat,
     .truncate = tmpfs_file_truncate,
 };
 

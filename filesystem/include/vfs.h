@@ -54,6 +54,9 @@ do_vfs_lseek(struct file_entry * entry, uint32_t offset, uint32_t whence);
 int32_t
 do_vfs_truncate(struct file_entry * entry, uint32_t offset);
 
+int32_t
+do_vfs_stat(const uint8_t * path, struct stat * buf);
+
 struct file *
 do_vfs_create(const uint8_t * path, uint32_t flags, uint32_t mode);
 

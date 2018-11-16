@@ -60,3 +60,21 @@ write(uint32_t fd, void * buffer, int32_t count)
 {
     return do_system_call3(SYS_WRITE_IDX, fd, (uint32_t)buffer, count);
 }
+
+int32_t
+lseek(uint32_t fd, uint32_t offset, uint32_t whence)
+{
+    return do_system_call3(SYS_LSEEK_IDX, fd, offset, whence);
+}
+
+int32_t
+stat(const uint8_t * path, struct stat * stat)
+{
+    return do_system_call2(SYS_STAT_IDX, (uint32_t)path, (uint32_t)stat);
+}
+
+int32_t
+fstat(uint32_t fd, struct stat * stat)
+{
+    return do_system_call2(SYS_FSTAT_IDX, fd, (uint32_t)stat);
+}

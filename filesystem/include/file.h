@@ -6,6 +6,8 @@
 
 #include <lib/include/types.h>
 #include <lib/include/generic_tree.h>
+#include <kernel/include/zelda_posix.h>
+
 #define MAX_PATH 256
 
 struct file_operation;
@@ -47,6 +49,7 @@ struct file_entry {
 
 struct file_operation {
     int32_t (*size)(struct file * _file);
+    int32_t (*stat)(struct file * _file, struct stat * stat);
     int32_t (*read)(struct file * _file, uint32_t offset, void * buffer, int size);
     int32_t (*write)(struct file * _file, uint32_t offset, void * buffer, int size);
     int32_t (*truncate)(struct file * _file, int offset);

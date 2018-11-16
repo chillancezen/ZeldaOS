@@ -30,4 +30,13 @@ read(uint32_t fd, void * buffer, int32_t count);
 int32_t
 write(uint32_t fd, void * buffer, int32_t count);
 
+int32_t
+lseek(uint32_t fd, uint32_t offset, uint32_t whence);
+
+int32_t
+stat(const uint8_t * path, struct stat * stat);
+
+int32_t
+fstat(uint32_t fd, struct stat * stat);
+
 #endif

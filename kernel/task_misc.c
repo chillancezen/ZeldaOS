@@ -209,6 +209,50 @@ call_sys_write(struct x86_cpustate * cpu,
         buffer, size_to_write);
     return write_result;
 }
+static int32_t
+call_sys_lseek(struct x86_cpustate * cpu,
+    int32_t fd,
+    int32_t offset,
+    int32_t whence)
+{
+    ASSERT(current);
+    if (fd < 0 ||
+        fd >= MAX_FILE_DESCRIPTR_PER_TASK ||
+        !current->file_entries[fd].valid) {
+        return -ERR_INVALID_ARG;
+    }
+    return do_vfs_lseek(&current->file_entries[fd],
+        offset,
+        whence);
+}
+static int32_t
+call_sys_stat(struct x86_cpustate * cpu,
+    uint8_t * path,
+    struct stat * buf)
+{
+    return do_vfs_stat(path, buf);
+}
+
+static int32_t
+call_sys_fstat(struct x86_cpustate * cpu,
+    int32_t fd,
+    struct stat * buf)
+{
+    struct file * file = NULL;
+    ASSERT(current);
+    if (fd < 0 ||
+        fd >= MAX_FILE_DESCRIPTR_PER_TASK ||
+        !current->file_entries[fd].valid) {
+        return -ERR_INVALID_ARG;
+    }
+    file = current->file_entries[fd].file;
+    ASSERT(file);
+    if (!file->ops->stat) {
+        return -ERR_NOT_SUPPORTED;
+    }
+    memset(buf, 0x0, sizeof(struct stat));
+    return file->ops->stat(file, buf);
+}
 void
 task_misc_init(void)
 {
@@ -222,4 +266,7 @@ task_misc_init(void)
     register_system_call(SYS_CLOSE_IDX, 1, (call_ptr)call_sys_close);
     register_system_call(SYS_READ_IDX, 3, (call_ptr)call_sys_read);
     register_system_call(SYS_WRITE_IDX, 3, (call_ptr)call_sys_write);
+    register_system_call(SYS_LSEEK_IDX, 3, (call_ptr)call_sys_lseek);
+    register_system_call(SYS_STAT_IDX, 2, (call_ptr)call_sys_stat);
+    register_system_call(SYS_FSTAT_IDX, 2, (call_ptr)call_sys_fstat);
 }

@@ -5,6 +5,7 @@
 #define _FILESYSTEM_H
 
 #include <lib/include/types.h>
+#include <kernel/include/zelda_posix.h>
 
 enum FILE_SYSTEM_TYPE {
     ZELDA_FS,
@@ -12,19 +13,6 @@ enum FILE_SYSTEM_TYPE {
     DEV_FS,
     VSI_FS,
     DUMMY_FS,
-};
-/*
- * https://github.com/freebsd/freebsd/blob/master/sys/sys/stat.h#L160
- */
-struct stat {
-    uint16_t st_dev;
-    uint16_t st_inode;
-    uint32_t st_mode;
-    uint16_t st_nlink;
-    uint16_t st_uid;
-    uint16_t st_gid;
-    uint16_t st_rdev;
-    uint32_t st_size;
 };
 
 struct file;

@@ -52,10 +52,20 @@ zeldafs_file_size(struct file * file)
     ASSERT(zelda_file);
     return zelda_file->length;
 }
+static int32_t
+zeldafs_file_stat(struct file * file, struct stat * buf)
+{
+    struct zelda_file * zelda_file = file->priv;
+    ASSERT(zelda_file);
+    buf->st_mode = file->mode;
+    buf->st_size = zelda_file->length;
+    return OK;
+}
 struct file_operation zeldafs_file_ops = {
     .read = zeldafs_file_read,
     .write = zeldafs_file_write,
     .size = zeldafs_file_size,
+    .stat = zeldafs_file_stat,
 };
 struct zelda_file *
 search_zelda_file(char * name)
