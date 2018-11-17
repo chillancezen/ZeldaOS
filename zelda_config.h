@@ -100,7 +100,9 @@
 // it must be power of 2.
 #define KERNEL_TASK_HASH_TABLE_SIZE 1024
 
+
 /*
- * The number of terminals, we switches by group key: Alt+[F2-F7]
+ * The number of terminals, we switch terminals by group key: Alt+[F2-F7]
+ * the default console is switched to by enter Alt+F1
  */
 #define MAX_TERMINALS 6

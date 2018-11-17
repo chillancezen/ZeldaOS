@@ -5,10 +5,14 @@
 #include <kernel/include/printk.h>
 #include <filesystem/include/devfs.h>
 #include <device/include/pseudo_terminal.h>
+#include <device/include/keyboard.h>
+#include <device/include/keyboard_scancode.h>
 
 #define VIDEO_MEMORY_BASE 0xb8000
 
 static uint16_t (*video_ptr)[PTTY_COLUMNS] = (void *)VIDEO_MEMORY_BASE;
+static struct pseudo_terminal_master ptties[MAX_TERMINALS];
+struct pseudo_terminal_master * current_ptty = NULL;
 
 int32_t
 ptty_init(struct pseudo_terminal_master * ptm)
@@ -77,18 +81,50 @@ ptty_dev_write(struct file * file, uint32_t offset, void * buffer, int size)
     for (idx = 0; idx < size; idx++) {
         ptty_enqueue_byte(ptm, ptr[idx]);
     }
-    ptty_flush_terminal(ptm);
+    if (ptm == current_ptty)
+        ptty_flush_terminal(ptm);
     return size;
 }
+
+static int32_t
+ptty_dev_size(struct file * file)
+{
+    return 25 * 80;
+}
+
+static int32_t
+ptty_dev_stat(struct file * file, struct stat * buff)
+{
+    buff->st_size = 25 * 80;
+    return OK;
+}
+
 static struct file_operation ptty_dev_ops = {
-        .size = NULL,
-        .stat = NULL,
+        .size = ptty_dev_size,
+        .stat = ptty_dev_stat,
         .read = NULL,
         .write = ptty_dev_write,
         .truncate = NULL,
         .ioctl = NULL
 };
-struct pseudo_terminal_master ptties[MAX_TERMINALS];
+
+static void
+switch_to_default_console(void * arg)
+{
+    expose_default_console();
+    current_ptty = NULL;
+}
+
+static void
+switch_to_pseudo_terminal(void * arg)
+{
+    uint32_t ptty_index = (uint32_t)arg;
+    ASSERT(ptty_index >= 0 && ptty_index < MAX_TERMINALS);
+    hide_default_console();
+    current_ptty = &ptties[ptty_index];
+    current_ptty->need_scroll = 1;
+    ptty_flush_terminal(current_ptty);
+}
 
 void
 ptty_post_init(void)
@@ -106,4 +142,15 @@ ptty_post_init(void)
             &ptty_dev_ops,
             &ptties[idx]));
     }
+    ASSERT(!register_shortcut_entry(SCANCODE_F1,
+        KEY_STATE_ALT_PRESSED,
+        switch_to_default_console,
+        NULL));
+    for (idx = 0; idx < MAX_TERMINALS; idx++) {
+        ASSERT(!register_shortcut_entry(SCANCODE_F2 + idx,
+            KEY_STATE_ALT_PRESSED,
+            switch_to_pseudo_terminal,
+            (void *)idx));
+    }
+
 }

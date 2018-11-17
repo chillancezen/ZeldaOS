@@ -70,5 +70,6 @@ extern int __log_level;
 #define __not_reach() ASSERT(__NOT_REACHED)
 void hide_default_console(void);
 void expose_default_console(void);
+void reset_video_buffer(void);
 void set_log_level(int);
 #endif

@@ -22,14 +22,27 @@ static uint16_t (*vga_ptr)[VGA_MAX_COL] = (void *)VGA_MEMORY_BASE;
 static int default_console_hidden = 0;
 
 void
+reset_video_buffer(void)
+{
+    int idx_row;
+    int idx_col;
+    for (idx_row = 0; idx_row < VGA_MAX_ROW; idx_row++)
+        for(idx_col = 0; idx_col < VGA_MAX_COL; idx_col++)
+            vga_ptr[idx_row][idx_col] &= 0xff00;
+}
+
+void
 hide_default_console(void)
 {
     default_console_hidden = 1;
+    reset_video_buffer();
 }
 void
 expose_default_console(void)
 {
     default_console_hidden = 0;
+    reset_video_buffer();
+    printk_flush();
 }
 void
 set_log_level(int level)

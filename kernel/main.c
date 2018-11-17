@@ -121,7 +121,6 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     post_init();
 #if defined(INLINE_TEST)
     heap_sort_test();
-    hide_default_console();
 #endif
     sti();
     /*
