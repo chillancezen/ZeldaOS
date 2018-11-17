@@ -19,7 +19,18 @@ static int vga_col_idx = 0;
 
 static uint8_t vga_shadow_memory[VGA_MAX_ROW+1][VGA_MAX_COL];
 static uint16_t (*vga_ptr)[VGA_MAX_COL] = (void *)VGA_MEMORY_BASE;
+static int default_console_hidden = 0;
 
+void
+hide_default_console(void)
+{
+    default_console_hidden = 1;
+}
+void
+expose_default_console(void)
+{
+    default_console_hidden = 0;
+}
 void
 set_log_level(int level)
 {
@@ -65,6 +76,8 @@ void printk_flush()
     int real_row_idx = 0;
     int idx = vga_row_front;
     int tmp_idx;
+    if (default_console_hidden)
+        return;
     for (; (vga_row_idx + 1) % (VGA_MAX_ROW + 1) != idx;
         idx = (idx + 1) % (VGA_MAX_ROW + 1), real_row_idx++){
         for (tmp_idx = 0; tmp_idx < VGA_MAX_COL; tmp_idx++)

@@ -74,7 +74,11 @@ extern void * _zelda_constructor_init_end;
 static void
 interrupt_handler(int signal)
 {
+    char buffer[] = "ZELDA=/root/ZeldaOS/ make _zelda_constructor_init_start";
+    int fd = open("/dev//ptm1", O_RDWR);
     print_serial("Application Signal interrupted\n");
+    write(fd, buffer, sizeof(buffer));
+    close(fd);
     sleep(100);
     print_serial("Application Signal interrupted ends\n");
     //kill(-1, SIGKILL);
@@ -133,7 +137,8 @@ int main(int argc, char *argv[])
             print_serial("\n");
         }
         {
-            int fd1 = open("/dev/serial0", O_RDWR);
+            int fd1 = open("/dev/ptm1", O_RDWR);
+            //int fd1 = open("/dev/serial0", O_RDWR);
             int writerc = write(fd1, "written to serial0\n", 20);
             print_serial("serial write:");
             print_hexdecimal(writerc);

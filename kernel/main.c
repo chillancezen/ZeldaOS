@@ -27,7 +27,7 @@
 #include <lib/include/heap_sort.h>
 #include <kernel/include/timer.h>
 #include <filesystem/include/devfs.h>
-
+#include <device/include/pseudo_terminal.h>
 
 static struct multiboot_info * boot_info;
 static void
@@ -105,6 +105,7 @@ post_init(void)
    }
 #endif
    serial_post_init();
+   ptty_post_init();
    timer_init();
    task_init();
    schedule_enable();
@@ -120,6 +121,7 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     post_init();
 #if defined(INLINE_TEST)
     heap_sort_test();
+    hide_default_console();
 #endif
     sti();
     /*

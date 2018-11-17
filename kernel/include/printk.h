@@ -68,6 +68,7 @@ extern int __log_level;
 #define VAR64(val)  (uint32_t)((val) >> 32), (uint32_t)(val)
 #define __NOT_REACHED 0x0
 #define __not_reach() ASSERT(__NOT_REACHED)
-
+void hide_default_console(void);
+void expose_default_console(void);
 void set_log_level(int);
 #endif
