@@ -146,6 +146,21 @@ int main(int argc, char *argv[])
         }
         close(fd);
     }
+    {
+        int idx;
+        int read_rc;
+        char buff[32];
+        int fd2 = open("/dev/ptm0", O_RDWR);
+        while (1) {
+            for (idx = 0; idx < 32; idx++)
+                buff[idx] = 0;
+            read_rc = read(fd2, buff, 32);
+            print_hexdecimal(read_rc);
+            print_serial(":");
+            print_serial(buff);
+            print_serial("\n");
+        }
+    }
     while(1) {
         sleep(100);
     }

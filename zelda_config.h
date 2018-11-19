@@ -106,3 +106,5 @@
  * the default console is switched to by enter Alt+F1
  */
 #define MAX_TERMINALS 6
+#define PSEUDO_BUFFER_SIZE 64
+

@@ -7,6 +7,7 @@
 #include <device/include/pseudo_terminal.h>
 #include <device/include/keyboard.h>
 #include <device/include/keyboard_scancode.h>
+#include <kernel/include/task.h>
 
 #define VIDEO_MEMORY_BASE 0xb8000
 
@@ -18,6 +19,10 @@ int32_t
 ptty_init(struct pseudo_terminal_master * ptm)
 {
     memset(ptm, 0x0, sizeof(struct pseudo_terminal_master));
+    ptm->ring.ring_size = PSEUDO_BUFFER_SIZE;
+    ring_reset(&ptm->ring);
+    ASSERT(ring_empty(&ptm->ring));
+    initialize_wait_queue_head(&ptm->wq_head);
     return OK;
 }
 
@@ -70,6 +75,34 @@ ptty_flush_terminal(struct pseudo_terminal_master * ptm)
     ptm->need_scroll = 0;
     return OK;
 }
+static int32_t
+ptty_dev_read(struct file * file, uint32_t offset, void * buffer, int size)
+{
+    int32_t result = -ERR_GENERIC;
+    struct wait_queue wait;
+    struct pseudo_terminal_master * ptm  = file->priv;
+    // must be in task context, if not, return immediately
+    if (!current)
+        return -ERR_NOT_SUPPORTED;
+    ASSERT(ptm);
+    initialize_wait_queue_entry(&wait, current);
+    add_wait_queue_entry(&ptm->wq_head, &wait);
+
+    // wait for the task to be foregrounded. 
+    while (current_ptty->foreground_task_id !=current->task_id ||
+        ring_empty(&ptm->ring)) {
+        transit_state(current, TASK_STATE_INTERRUPTIBLE);
+        yield_cpu();
+        if (signal_pending(current)) {
+            result = -ERR_INTERRUPTED;
+            goto out;
+        }
+    }
+    result = read_ring(&ptm->ring, buffer, size);
+    out:
+        remove_wait_queue_entry(&ptm->wq_head, &wait);
+        return result;
+}
 
 static int32_t
 ptty_dev_write(struct file * file, uint32_t offset, void * buffer, int size)
@@ -102,7 +135,7 @@ ptty_dev_stat(struct file * file, struct stat * buff)
 static struct file_operation ptty_dev_ops = {
         .size = ptty_dev_size,
         .stat = ptty_dev_stat,
-        .read = NULL,
+        .read = ptty_dev_read,
         .write = ptty_dev_write,
         .truncate = NULL,
         .ioctl = NULL
@@ -112,6 +145,9 @@ static void
 switch_to_default_console(void * arg)
 {
     expose_default_console();
+    if (current_ptty) {
+        ring_reset(&current_ptty->ring);
+    }
     current_ptty = NULL;
 }
 
@@ -124,6 +160,7 @@ switch_to_pseudo_terminal(void * arg)
     current_ptty = &ptties[ptty_index];
     current_ptty->need_scroll = 1;
     ptty_flush_terminal(current_ptty);
+    ring_reset(&current_ptty->ring);
 }
 
 void

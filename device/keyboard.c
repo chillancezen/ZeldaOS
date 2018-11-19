@@ -14,6 +14,7 @@
 #include <lib/include/string.h>
 #include <lib/include/errorcode.h>
 #include <memory/include/paging.h>
+#include <device/include/pseudo_terminal.h>
 
 #define KEYBOARD_INTERRUPT_VECTOR (0x20 + 1)
 #define KEY_SPACE_SIZE 256
@@ -126,29 +127,41 @@ uint8_t to_ascii(uint8_t scancode, uint8_t keystate)
     return __ascii_code;
 }
 
-static void
+static int32_t
 hook_scancode(uint8_t scancode, uint8_t keystate)
 {
     int idx = 0;
+    int32_t handled = 0;
     for (idx = 0; idx < shortcut_entry_ptr; idx++) {
         if (shortcut_entries[idx].scancode == scancode && 
             shortcut_entries[idx].keystate == keystate)
             break;
     }
-    if(idx < shortcut_entry_ptr && shortcut_entries[idx].handler)
+    if(idx < shortcut_entry_ptr && shortcut_entries[idx].handler) {
         shortcut_entries[idx].handler(shortcut_entries[idx].arg);
+        handled = 1;
+    }
+    return handled;
 }
 
 uint32_t keyboard_interrupt_handler(struct x86_cpustate * parg __used)
 {
     uint8_t scancode = retrieve_scancode();
     uint8_t asciicode;
+    int32_t handled;
     scancode = process_scancode(scancode);
-    hook_scancode(scancode, key_state);
+    handled = hook_scancode(scancode, key_state);
     asciicode = to_ascii(scancode, key_state);
 
-    if (key_state & KEY_STATE_PRESSED && asciicode != 0xff){
-        //printk("%c", asciicode); 
+    if (key_state & KEY_STATE_PRESSED &&
+        asciicode != 0xff &&
+        !handled){
+        if (current_ptty) {
+            // if current ptty is switched to, the ascii code is enqueued the
+            // ring buffer, and wake up the wq_head;
+            ring_enqueue(&current_ptty->ring, asciicode);
+            wake_up(&current_ptty->wq_head);
+        }
     }
     return (uint32_t)parg;
 }
