@@ -78,3 +78,9 @@ fstat(uint32_t fd, struct stat * stat)
 {
     return do_system_call2(SYS_FSTAT_IDX, fd, (uint32_t)stat);
 }
+
+int32_t
+getpid(void)
+{
+    return do_system_call0(SYS_GETPID_IDX);
+}

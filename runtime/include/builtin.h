@@ -39,4 +39,7 @@ stat(const uint8_t * path, struct stat * stat);
 int32_t
 fstat(uint32_t fd, struct stat * stat);
 
+int32_t
+getpid(void);
+
 #endif

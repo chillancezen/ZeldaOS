@@ -86,6 +86,10 @@ interrupt_handler(int signal)
 int main(int argc, char *argv[])
 {
     int32_t ret = 0;
+    int32_t pid = getpid();
+    print_serial("pid:");
+    print_hexdecimal(pid);
+    print_serial("\n");
     ret = signal(SIGINT, interrupt_handler);
     while(0) {
         print_serial(argv[0]);

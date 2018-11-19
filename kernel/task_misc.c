@@ -253,6 +253,12 @@ call_sys_fstat(struct x86_cpustate * cpu,
     memset(buf, 0x0, sizeof(struct stat));
     return file->ops->stat(file, buf);
 }
+static int32_t
+call_sys_getpid(struct x86_cpustate * cpu)
+{
+    ASSERT(current);
+    return current->task_id;
+}
 void
 task_misc_init(void)
 {
@@ -269,4 +275,5 @@ task_misc_init(void)
     register_system_call(SYS_LSEEK_IDX, 3, (call_ptr)call_sys_lseek);
     register_system_call(SYS_STAT_IDX, 2, (call_ptr)call_sys_stat);
     register_system_call(SYS_FSTAT_IDX, 2, (call_ptr)call_sys_fstat);
+    register_system_call(SYS_GETPID_IDX, 0, (call_ptr)call_sys_getpid);
 }
