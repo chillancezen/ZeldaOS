@@ -56,3 +56,4 @@ dkms.conf
 *.map
 *.qcow2
 Zelda.drive
+!runtime/libc/*

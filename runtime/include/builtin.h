@@ -45,4 +45,7 @@ getpid(void);
 void *
 sbrk(uint32_t increment);
 
+int32_t
+isatty(uint32_t fd);
+
 #endif

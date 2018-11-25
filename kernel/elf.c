@@ -58,6 +58,7 @@ validate_static_elf32_format(uint8_t * mem, int32_t length)
  * http://ethv.net/weblog/004-program-loading-on-linux-3.html
  * note auxiliary vector is not supported for now.
  * the returned value is the new PL3 stack position
+ * FIXME:There is a catastrophe BUG to resove commands, mustfix is needed.
  */
 uint32_t
 resolve_commands(uint32_t pl3_stack_top, uint8_t * command)

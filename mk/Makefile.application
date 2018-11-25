@@ -9,7 +9,8 @@ ifeq ($(APP),)
 $(error 'please specify variable:APP')
 endif
 
-RUNTIME = $(wildcard $(ZELDA)/runtime/*.o)
+RUNTIME=$(wildcard $(ZELDA)/runtime/*.o)
+NEWLIBC=$(ZELDA)/runtime/libc/libc.a
 
 
 OBJS = $(patsubst %.c,%.o,$(SRCS))
@@ -17,11 +18,12 @@ OBJS = $(patsubst %.c,%.o,$(SRCS))
 %.o:%.c
 	@echo "[CC] $(APP):$<"
 	@gcc -m32 $(CFLAGS) -nostdlib -fno-builtin -I$(ZELDA)/runtime/include \
-	-include $(ZELDA)/kernel/include/zelda_posix.h -include builtin.h -c -o $@ $<
+	-include $(ZELDA)/kernel/include/zelda_posix.h  -c -o $@ $<
 
 $(APP):$(OBJS)
 	@echo "[LD] $(APP):$@"
-	@ld -melf_i386 $(LDFLAGS) -Map=$(APP).map -T $(ZELDA)/mk/linker.ld.application -o $(APP) $(OBJS) $(RUNTIME)
+	@ld -melf_i386 $(LDFLAGS) -Map=$(APP).map -T \
+		$(ZELDA)/mk/linker.ld.application -o $(APP) $(OBJS) $(RUNTIME) $(NEWLIBC)
 
 clean:
 	@rm -f $(APP) *.o *.map; \

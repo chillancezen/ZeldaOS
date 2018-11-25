@@ -132,13 +132,20 @@ ptty_dev_stat(struct file * file, struct stat * buff)
     return OK;
 }
 
+static int32_t
+ptty_dev_isatty(struct file * file)
+{
+    return 1;
+}
+
 static struct file_operation ptty_dev_ops = {
-        .size = ptty_dev_size,
-        .stat = ptty_dev_stat,
-        .read = ptty_dev_read,
-        .write = ptty_dev_write,
-        .truncate = NULL,
-        .ioctl = NULL
+    .isatty = ptty_dev_isatty,
+    .size = ptty_dev_size,
+    .stat = ptty_dev_stat,
+    .read = ptty_dev_read,
+    .write = ptty_dev_write,
+    .truncate = NULL,
+    .ioctl = NULL
 };
 
 static void

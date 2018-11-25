@@ -90,3 +90,10 @@ sbrk(uint32_t increment)
 {
     return (void *)do_system_call1(SYS_SBRK_IDX, increment);
 }
+
+
+int32_t
+isatty(uint32_t fd)
+{
+    return do_system_call1(SYS_ISATTY_IDX, fd);
+}

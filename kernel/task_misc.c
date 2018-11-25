@@ -283,6 +283,23 @@ call_sys_sbrk(struct x86_cpustate * cpu, int32_t increment)
         increment);
     return result == OK ? previous_program_break : -1;
 }
+static uint32_t
+call_sys_isatty(struct x86_cpustate * cpu, int32_t fd)
+{
+    struct file * file = NULL;
+    ASSERT(current);
+    if (fd < 0||
+        fd >= MAX_FILE_DESCRIPTR_PER_TASK ||
+        !current->file_entries[fd].valid) {
+        return 0;
+    }
+    file = current->file_entries[fd].file;
+    ASSERT(file);
+    if (!file->ops->isatty) {
+        return 0;
+    }
+    return file->ops->isatty(file);
+}
 
 void
 task_misc_init(void)
@@ -302,4 +319,5 @@ task_misc_init(void)
     register_system_call(SYS_FSTAT_IDX, 2, (call_ptr)call_sys_fstat);
     register_system_call(SYS_GETPID_IDX, 0, (call_ptr)call_sys_getpid);
     register_system_call(SYS_SBRK_IDX, 1, (call_ptr)call_sys_sbrk);
+    register_system_call(SYS_ISATTY_IDX, 1, (call_ptr)call_sys_isatty);
 }

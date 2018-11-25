@@ -274,10 +274,10 @@ zeldafs_init(void)
         struct zelda_file * _file = search_zelda_file("/usr/bin/dummy");
         printk("found zelda file:%x\n", _file);
         rc = validate_static_elf32_format(_file->content, _file->length);
-        rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy 'foo' bar \"bar cute\" 34");
+        rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b tty=/dev/ptm0 B=\"cute adorable\" /usr/bin/dummy 'foo' bar \"bar cute\" 34");
 
         //rc = validate_static_elf32_format(_file->content, _file->length);
-        //rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b  B=\"cute adorable\" /usr/bin/dummy000 212");
+        //rc1 = load_static_elf32(_file->content, (uint8_t *)" A=b  B=\"cute adorable\" /usr/bin/dummy000 212");
 
         //rc1 = load_static_elf32(_file->content, (uint8_t *)" A=b /usr/bin/dummy11");
         printk("load elf:%d %d\n", rc, rc1);
