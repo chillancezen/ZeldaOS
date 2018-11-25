@@ -40,4 +40,10 @@ struct vm_area *
 search_userspace_vma_by_addr(struct list_elem * head, uint32_t vaddr);
 
 int __extend_vm_area(struct vm_area * _vma, int direction, int length);
+
+int
+extend_vm_area(struct list_elem * vmas_head,
+    struct vm_area * target_vma,
+    int direction,
+    int length);
 #endif

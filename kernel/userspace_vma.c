@@ -42,15 +42,15 @@ __extend_vm_area(struct vm_area * _vma, int direction, int length)
     switch(direction)
     {
         case VMA_EXTEND_UPWARD:
-            _vma->virt_addr += length;
-            _vma->phy_addr += length;
             break;
         case VMA_EXTEND_DOWNWARD:
             _vma->virt_addr -= length;
-            _vma->phy_addr -= length;
+            if (_vma->exact)
+                _vma->phy_addr -= length;
             break;
         default:
-            ASSERT(0);
+            __not_reach();
+            break;
     }
     _vma->length += length;
     return OK;

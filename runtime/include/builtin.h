@@ -42,4 +42,7 @@ fstat(uint32_t fd, struct stat * stat);
 int32_t
 getpid(void);
 
+void *
+sbrk(uint32_t increment);
+
 #endif

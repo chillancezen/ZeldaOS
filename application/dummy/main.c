@@ -81,10 +81,11 @@ interrupt_handler(int signal)
     close(fd);
     sleep(100);
     print_serial("Application Signal interrupted ends\n");
-    //kill(-1, SIGKILL);
+    kill(-1, SIGKILL);
 }
 int main(int argc, char *argv[])
 {
+    int index = 0;
     int32_t ret = 0;
     int32_t pid = getpid();
     print_serial("pid:");
@@ -96,6 +97,15 @@ int main(int argc, char *argv[])
         print_serial("\n");
         sleep(10000);
         //kill(-1, SIGINT);
+    }
+    //for (index = 0; index < 5; index ++)
+    while (1){
+        void * boundary = sbrk(4096); 
+        print_serial("sbrk:0x");
+        print_hexdecimal((uint32_t)boundary);
+        print_serial("\n");
+        if (boundary == (void *)-1)
+            break;
     }
     if (1) {
         int idx = 0;

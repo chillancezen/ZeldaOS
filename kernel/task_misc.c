@@ -9,6 +9,7 @@
 #include <kernel/include/timer.h>
 #include <lib/include/string.h>
 #include <filesystem/include/vfs.h>
+#include <kernel/include/userspace_vma.h>
 
 #define CPU_YIELD_TRAP_VECTOR 0x88
 static void
@@ -259,6 +260,30 @@ call_sys_getpid(struct x86_cpustate * cpu)
     ASSERT(current);
     return current->task_id;
 }
+/*
+ * caveat: when error happens, the return value is -1. otherwise, the previous
+ * program break is returned.other errcode is not returned for the purpose of
+ * not confusing the userspace address.
+ */
+static uint32_t
+call_sys_sbrk(struct x86_cpustate * cpu, int32_t increment)
+{
+    int32_t result;
+    uint32_t previous_program_break;
+    struct vm_area * data_vma = NULL;
+    ASSERT(current);
+    data_vma = search_userspace_vma(&current->vma_list, (uint8_t *)USER_VMA_HEAP);
+    if (!data_vma) {
+        return -1;
+    }
+    previous_program_break = (uint32_t)(data_vma->virt_addr + data_vma->length);
+    result = extend_vm_area(&current->vma_list,
+        data_vma,
+        VMA_EXTEND_UPWARD,
+        increment);
+    return result == OK ? previous_program_break : -1;
+}
+
 void
 task_misc_init(void)
 {
@@ -276,4 +301,5 @@ task_misc_init(void)
     register_system_call(SYS_STAT_IDX, 2, (call_ptr)call_sys_stat);
     register_system_call(SYS_FSTAT_IDX, 2, (call_ptr)call_sys_fstat);
     register_system_call(SYS_GETPID_IDX, 0, (call_ptr)call_sys_getpid);
+    register_system_call(SYS_SBRK_IDX, 1, (call_ptr)call_sys_sbrk);
 }

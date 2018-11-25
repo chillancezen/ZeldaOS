@@ -84,3 +84,9 @@ getpid(void)
 {
     return do_system_call0(SYS_GETPID_IDX);
 }
+
+void *
+sbrk(uint32_t increment)
+{
+    return (void *)do_system_call1(SYS_SBRK_IDX, increment);
+}
