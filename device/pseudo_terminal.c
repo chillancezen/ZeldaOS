@@ -8,8 +8,11 @@
 #include <device/include/keyboard.h>
 #include <device/include/keyboard_scancode.h>
 #include <kernel/include/task.h>
+#include <x86/include/ioport.h>
 
 #define VIDEO_MEMORY_BASE 0xb8000
+#define CONSOLE_CURSOR_PORT0 0x3d4
+#define CONSOLE_CURSOR_PORT1 0x3d5
 
 static uint16_t (*video_ptr)[PTTY_COLUMNS] = (void *)VIDEO_MEMORY_BASE;
 static struct pseudo_terminal_master ptties[MAX_TERMINALS];
@@ -47,6 +50,9 @@ ptty_enqueue_byte(struct pseudo_terminal_master * ptm, uint8_t value)
     return OK;
 }
 
+static void
+update_cusor(int x, int y);
+
 int32_t
 ptty_flush_terminal(struct pseudo_terminal_master * ptm)
 {
@@ -61,6 +67,7 @@ ptty_flush_terminal(struct pseudo_terminal_master * ptm)
             video_ptr[video_row_idx][idx_col] =
                 (video_ptr[video_row_idx][idx_col] & 0xff00) |
                 ptm->buffer[ptm->row_index][idx_col];
+        update_cusor(ptm->col_index, video_row_idx + 1);
     } else {
         for (idx_row = ptm->row_front;
             idx_row != ((ptm->row_index + 1) % (PTTY_ROWS + 1));
@@ -71,6 +78,7 @@ ptty_flush_terminal(struct pseudo_terminal_master * ptm)
                     ptm->buffer[idx_row][idx_col];
             }
         }
+        update_cusor(ptm->col_index, video_row_idx);
     }
     ptm->need_scroll = 0;
     return OK;
@@ -122,13 +130,13 @@ ptty_dev_write(struct file * file, uint32_t offset, void * buffer, int size)
 static int32_t
 ptty_dev_size(struct file * file)
 {
-    return 25 * 80;
+    return PTTY_ROWS * PTTY_COLUMNS;
 }
 
 static int32_t
 ptty_dev_stat(struct file * file, struct stat * buff)
 {
-    buff->st_size = 25 * 80;
+    buff->st_size = PTTY_ROWS * PTTY_COLUMNS;
     return OK;
 }
 
@@ -149,6 +157,34 @@ static struct file_operation ptty_dev_ops = {
 };
 
 static void
+disable_cursor(void)
+{
+    outb(CONSOLE_CURSOR_PORT0, 0x0a);
+    outb(CONSOLE_CURSOR_PORT1, 0x20);
+}
+
+static void
+update_cusor(int x, int y)
+{
+    uint16_t pos = y * PTTY_COLUMNS + x;
+    outb(CONSOLE_CURSOR_PORT0, 0x0f);
+    outb(CONSOLE_CURSOR_PORT1, (uint8_t)(pos & 0xff));
+    outb(CONSOLE_CURSOR_PORT0, 0x0e);
+    outb(CONSOLE_CURSOR_PORT1, (uint8_t)((pos >> 8) & 0xff));
+}
+
+static void
+enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
+{
+    outb(CONSOLE_CURSOR_PORT0, 0x0a);
+    outb(CONSOLE_CURSOR_PORT1,
+        (inb(CONSOLE_CURSOR_PORT1) & 0xc0) | cursor_start);
+    outb(CONSOLE_CURSOR_PORT0, 0x0b);
+    outb(CONSOLE_CURSOR_PORT1,
+        (inb(CONSOLE_CURSOR_PORT1) & 0xe0) | cursor_end);
+}
+
+static void
 switch_to_default_console(void * arg)
 {
     expose_default_console();
@@ -156,6 +192,7 @@ switch_to_default_console(void * arg)
         ring_reset(&current_ptty->ring);
     }
     current_ptty = NULL;
+    disable_cursor();
 }
 
 static void
@@ -166,6 +203,7 @@ switch_to_pseudo_terminal(void * arg)
     hide_default_console();
     current_ptty = &ptties[ptty_index];
     current_ptty->need_scroll = 1;
+    enable_cursor(0, 0);
     ptty_flush_terminal(current_ptty);
     ring_reset(&current_ptty->ring);
 }
@@ -196,5 +234,5 @@ ptty_post_init(void)
             switch_to_pseudo_terminal,
             (void *)idx));
     }
-
+    disable_cursor();
 }
