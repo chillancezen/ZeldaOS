@@ -301,6 +301,28 @@ call_sys_isatty(struct x86_cpustate * cpu, int32_t fd)
     return file->ops->isatty(file);
 }
 
+static uint32_t
+call_sys_ioctl(struct x86_cpustate * cpu,
+    int32_t fd,
+    uint32_t request,
+    void * foo,
+    void * bar)
+{
+    struct file * file = NULL;
+    ASSERT(current);
+    if (fd < 0||
+        fd >= MAX_FILE_DESCRIPTR_PER_TASK ||
+        !current->file_entries[fd].valid) {
+        return -ERR_INVALID_ARG;
+    }
+    file = current->file_entries[fd].file;
+    ASSERT(file);
+    if (!file->ops->ioctl) {
+        return -ERR_NOT_SUPPORTED;
+    }
+    return file->ops->ioctl(file, request, foo, bar);
+}
+
 void
 task_misc_init(void)
 {
@@ -320,4 +342,5 @@ task_misc_init(void)
     register_system_call(SYS_GETPID_IDX, 0, (call_ptr)call_sys_getpid);
     register_system_call(SYS_SBRK_IDX, 1, (call_ptr)call_sys_sbrk);
     register_system_call(SYS_ISATTY_IDX, 1, (call_ptr)call_sys_isatty);
+    register_system_call(SYS_IOCTL_IDX, 4, (call_ptr)call_sys_ioctl);
 }

@@ -54,7 +54,7 @@ struct file_operation {
     int32_t (*read)(struct file * _file, uint32_t offset, void * buffer, int size);
     int32_t (*write)(struct file * _file, uint32_t offset, void * buffer, int size);
     int32_t (*truncate)(struct file * _file, int offset);
-    int32_t (*ioctl)(struct file * _file, uint32_t request, ...);
+    int32_t (*ioctl)(struct file * _file, uint32_t request, void * foo, void * bar);
 };
 
 #endif 

@@ -67,6 +67,7 @@ enum SYSCALL_INDEX {
     SYS_GETPID_IDX,
     SYS_SBRK_IDX,
     SYS_ISATTY_IDX,
+    SYS_IOCTL_IDX,
 };
 
 enum SIGNAL {
@@ -95,4 +96,12 @@ enum SIGNAL {
     SIGTTOU = 27, // TTY output stopped.
     SIG_MAX,
 };
+
+
+// pseudo terminal ioctl request code
+#define PTTY_IOCTL_CLEAR 0x1
+#define PTTY_IOCTL_MASTER 0x2       // The master task id must be given
+#define PTTY_IOCTL_FOREGROUND 0x3   // the slave task id must be given
+#define PTTY_IOCTL_SLAVE_WRITE 0x4  // write to slave ring buffer
+
 #endif

@@ -97,3 +97,16 @@ isatty(uint32_t fd)
 {
     return do_system_call1(SYS_ISATTY_IDX, fd);
 }
+
+// The maximum number of argumnets is 4
+int32_t
+ioctl(uint32_t fd, uint32_t request, ...)
+{
+    int32_t foo = 0;
+    int32_t bar = 0;
+    va_list arg_ptr;
+    va_start(arg_ptr, request);
+    foo = va_arg(arg_ptr, int32_t);
+    bar = va_arg(arg_ptr, int32_t);
+    return do_system_call4(SYS_IOCTL_IDX, fd, request, foo, bar);
+}

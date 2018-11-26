@@ -48,4 +48,7 @@ sbrk(uint32_t increment);
 int32_t
 isatty(uint32_t fd);
 
+int32_t
+ioctl(uint32_t fd, uint32_t request, ...);
+
 #endif

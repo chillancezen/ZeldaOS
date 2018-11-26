@@ -32,6 +32,12 @@ struct pseudo_terminal_master {
         struct ring ring;
     // Do not inject any fields between `ring` and `buffer`
     uint8_t ring_buffer[PSEUDO_BUFFER_SIZE];
+    // Slave ring wait queue head 
+    struct wait_queue_head slave_wq_head; 
+    // Slave ring buffer
+    __attribute__((aligned(4)))
+        struct ring slave_ring;
+    uint8_t slave_ring_buffer[PSEUDO_BUFFER_SIZE];
 }__attribute__((packed));
 
 extern struct pseudo_terminal_master * current_ptty;

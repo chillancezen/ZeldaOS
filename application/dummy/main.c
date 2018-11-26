@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <zelda.h>
 static void
 interrupt_handler(int signal)
 {
@@ -22,11 +22,16 @@ int main(int argc, char *argv[])
     char * hint = "[link@hyrule.kingdom zelda] #";
     ret = signal(SIGINT, interrupt_handler);
     printf("pid:%d\n", getpid());
+    pseudo_terminal_enable_master();
+    pseudo_terminal_foreground(1);
+    pseudo_terminal_write_slave(hint, 17);
+    clear_screen();
     while(1) {
         memset(buffer, 0x0, sizeof(buffer));
         ret = read(0, buffer, 64);
         write(1, buffer, ret);
         if (buffer[ret -1] == '\n') {
+            clear_screen();
             write(1, hint, strlen(hint));
         }
     }

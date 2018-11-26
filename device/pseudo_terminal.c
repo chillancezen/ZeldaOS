@@ -26,6 +26,12 @@ ptty_init(struct pseudo_terminal_master * ptm)
     ring_reset(&ptm->ring);
     ASSERT(ring_empty(&ptm->ring));
     initialize_wait_queue_head(&ptm->wq_head);
+
+    ptm->slave_ring.ring_size = PSEUDO_BUFFER_SIZE;
+    ring_reset(&ptm->slave_ring);
+    ASSERT(ring_empty(&ptm->slave_ring));
+    initialize_wait_queue_head(&ptm->slave_wq_head);
+
     return OK;
 }
 
@@ -83,22 +89,22 @@ ptty_flush_terminal(struct pseudo_terminal_master * ptm)
     ptm->need_scroll = 0;
     return OK;
 }
+
 static int32_t
-ptty_dev_read(struct file * file, uint32_t offset, void * buffer, int size)
+__ptty_master_read(struct file * file, uint32_t offset, void * buffer, int size)
 {
     int32_t result = -ERR_GENERIC;
     struct wait_queue wait;
     struct pseudo_terminal_master * ptm  = file->priv;
     // must be in task context, if not, return immediately
-    if (!current)
-        return -ERR_NOT_SUPPORTED;
+    ASSERT(current);
     ASSERT(ptm);
+    ASSERT(current->task_id == ptm->master_task_id);
+
     initialize_wait_queue_entry(&wait, current);
     add_wait_queue_entry(&ptm->wq_head, &wait);
-
-    // wait for the task to be foregrounded. 
-    while (current_ptty->foreground_task_id !=current->task_id ||
-        ring_empty(&ptm->ring)) {
+    // wait until the master ring buffer is not empty
+    while (ring_empty(&ptm->ring)) {
         transit_state(current, TASK_STATE_INTERRUPTIBLE);
         yield_cpu();
         if (signal_pending(current)) {
@@ -110,6 +116,43 @@ ptty_dev_read(struct file * file, uint32_t offset, void * buffer, int size)
     out:
         remove_wait_queue_entry(&ptm->wq_head, &wait);
         return result;
+}
+
+static int32_t
+__ptty_slave_read(struct file * file, uint32_t offset, void * buffer, int size)
+{
+    int32_t result = -ERR_GENERIC;
+    struct wait_queue wait;
+    struct pseudo_terminal_master * ptm = file->priv;
+
+    initialize_wait_queue_entry(&wait, current);
+    add_wait_queue_entry(&ptm->slave_wq_head, &wait);
+
+    while (ptm->foreground_task_id != current->task_id ||
+        ring_empty(&ptm->slave_ring)) {
+        transit_state(current, TASK_STATE_INTERRUPTIBLE);
+        yield_cpu();
+        if (signal_pending(current)) {
+            result = -ERR_INTERRUPTED;
+            goto out;
+        }
+    }
+    result = read_ring(&ptm->slave_ring, buffer, size);
+    out:
+        remove_wait_queue_entry(&ptm->slave_wq_head, &wait);
+        return result;
+}
+
+static int32_t
+ptty_dev_read(struct file * file, uint32_t offset, void * buffer, int size)
+{
+    struct pseudo_terminal_master * ptm = file->priv;
+    if (!current)
+        return -ERR_INVALID_ARG;
+    if (ptm->master_task_id == current->task_id) {
+        return __ptty_master_read(file, offset, buffer, size);
+    }
+    return __ptty_slave_read(file, offset, buffer, size);
 }
 
 static int32_t
@@ -146,6 +189,53 @@ ptty_dev_isatty(struct file * file)
     return 1;
 }
 
+static void
+ptty_clear(struct pseudo_terminal_master * ptm)
+{
+    ptm->need_scroll = 0;
+    ptm->row_front = 0;
+    ptm->row_index = 0;
+    ptm->col_index = 0;
+    memset(ptm->buffer, 0x0, sizeof(ptm->buffer));
+    if (current_ptty == ptm)
+        reset_video_buffer();
+}
+
+static int32_t
+ptty_dev_ioctl(struct file * file, uint32_t request, void * foo, void * bar)
+{
+    int32_t result = OK;
+    struct pseudo_terminal_master * ptm = file->priv;
+    switch (request)
+    {
+        case PTTY_IOCTL_CLEAR:
+            ptty_clear(ptm);          
+            break;
+        case PTTY_IOCTL_MASTER:
+            ptm->master_task_id = (uint32_t)foo;
+            LOG_DEBUG("pseudo terminal:0x%x's master task set to:%d\n",
+                ptm, ptm->master_task_id);
+            break;
+        case PTTY_IOCTL_FOREGROUND:
+            ptm->foreground_task_id = (uint32_t)foo;
+            ring_reset(&ptm->slave_ring);
+            LOG_DEBUG("pseudo terminal:0x%x's slave task set to:%d\n",
+                ptm, ptm->foreground_task_id);
+            break;
+        case PTTY_IOCTL_SLAVE_WRITE:
+            {
+                void * buffer = foo;
+                uint32_t size = (uint32_t)bar;
+                result = write_ring(&ptm->slave_ring, buffer, size);
+            }
+            break;
+        default:
+            result = -ERR_NOT_PRESENT;
+            break;
+    }
+    return result;
+}
+
 static struct file_operation ptty_dev_ops = {
     .isatty = ptty_dev_isatty,
     .size = ptty_dev_size,
@@ -153,7 +243,7 @@ static struct file_operation ptty_dev_ops = {
     .read = ptty_dev_read,
     .write = ptty_dev_write,
     .truncate = NULL,
-    .ioctl = NULL
+    .ioctl = ptty_dev_ioctl
 };
 
 static void
