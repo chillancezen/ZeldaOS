@@ -51,4 +51,10 @@ isatty(uint32_t fd);
 int32_t
 ioctl(uint32_t fd, uint32_t request, ...);
 
+uint8_t *
+getcwd(uint8_t * buf, int32_t size);
+
+int32_t
+chdir(const uint8_t * path);
+
 #endif

@@ -160,6 +160,15 @@ transit_state(struct task * task, enum task_state target_state)
         task_state_to_string(prev_state),
         task_state_to_string(target_state));
 }
+
+void
+set_work_directory(struct task * task, uint8_t * cwd)
+{
+    memset(task->cwd, 0x0, sizeof(task->cwd));
+    strcpy_safe(task->cwd, cwd, sizeof(task->cwd));
+    LOG_TRIVIA("Task:0x%x cwd changed to:%s\n", task, task->cwd);
+}
+
 struct list_elem *
 get_task_list_head(void)
 {
@@ -404,8 +413,8 @@ dump_tasks(void)
     LOG_INFO("Dump tasks:\n");
     LIST_FOREACH_START(&task_list_head, _elem) {
         _task = CONTAINER_OF(_elem, struct task, list);
-        LOG_INFO("task-%d(0x%x) entry:0x%x\n",
-            _task->task_id, _task, _task->entry);
+        LOG_INFO("task-%d(0x%x) program:%s entry:0x%x\n",
+            _task->task_id, _task, _task->name, _task->entry);
     }
     LIST_FOREACH_END();
 }
@@ -414,7 +423,9 @@ dump_tasks(void)
  * OK is returned if successful and *task_ptr point to the newly created task.
  */
 uint32_t
-create_kernel_task(void (*entry)(void), struct task ** task_ptr)
+create_kernel_task(void (*entry)(void),
+    struct task ** task_ptr,
+    uint8_t * task_name)
 {
     struct x86_cpustate * cpu;
     uint32_t ret = -ERR_GENERIC;
@@ -454,6 +465,8 @@ create_kernel_task(void (*entry)(void), struct task ** task_ptr)
     cpu->ds = KERNEL_DATA_SELECTOR;
     task->cpu = cpu;
     task->interrupt_depth = 1;
+    strcpy_safe(task->name, task_name, sizeof(task->name));
+    set_work_directory(task, (uint8_t *)"/");
     LOG_DEBUG("kernel task 0x%x created\n", task);
 
     *task_ptr = task;
@@ -658,7 +671,9 @@ task_init(void)
 {
     task_misc_init();
     task_signal_sub_init();
-    ASSERT(OK == create_kernel_task(kernel_idle_task_body, &kernel_idle_task));
+    ASSERT(OK == create_kernel_task(kernel_idle_task_body,
+        &kernel_idle_task,
+        (uint8_t *)"kernel_idle_task"));
     ASSERT(kernel_idle_task);
     LOG_INFO("registered kernel idle task:0x%x\n", kernel_idle_task);
 #if !defined(INLINE_TEST)

@@ -25,7 +25,10 @@ int main(int argc, char *argv[])
     pseudo_terminal_enable_master();
     pseudo_terminal_foreground(1);
     pseudo_terminal_write_slave(hint, 17);
-    clear_screen();
+    {
+        uint8_t cwd[256];
+        printf("cwd:%s\n", getcwd(cwd, 256));
+    }
     while(1) {
         memset(buffer, 0x0, sizeof(buffer));
         ret = read(0, buffer, 64);

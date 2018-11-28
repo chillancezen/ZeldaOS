@@ -10,7 +10,9 @@
 extern void * _zelda_constructor_init_start;
 extern void * _zelda_constructor_init_end;
 #define PSEUDO_TERMINAL_KEY "tty"
-#define DEFAULT_PTTY "/dev/ptm0"
+#define CWD_ENV_KEY         "cwd"
+#define DEFAULT_PTTY        "/dev/ptm0"
+#define DEFAULT_CWD         "/home/zelda"
 
 extern int main(int argc, char ** argv);
 extern char **environ;
@@ -76,6 +78,13 @@ void _start(int argc, char ** argv)
     // with this initializator, we can then use getenv/setenv in stdlib
     // to manage the environment variables.
     environ = &argv[argc + 1];
+    {
+        // Initialize current working directory
+        char * cwd = getenv(CWD_ENV_KEY);
+        if (!cwd)
+            cwd = DEFAULT_CWD;
+        chdir(cwd);
+    }
     // Initialize the standard IO
     {
         char * tty = getenv(PSEUDO_TERMINAL_KEY);

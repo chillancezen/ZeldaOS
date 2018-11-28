@@ -46,7 +46,7 @@ hierarchy_create_directory(struct generic_tree * root_node,
                 return -ERR_OUT_OF_MEMORY;
             }
             memset(_file, 0x0, sizeof(struct file));
-            strcpy(_file->name, splitted_path[idx]);
+            strcpy_safe(_file->name, splitted_path[idx], sizeof(_file->name));
             _file->type = FILE_TYPE_DIR;
             _file->mode = 0x0;
             _file->priv = NULL;
@@ -116,7 +116,7 @@ hierarchy_create_file(struct generic_tree * root_node,
         // File not exist, try to create one
         _file = malloc(sizeof(struct file));
         memset(_file, 0x0, sizeof(struct file));
-        strcpy(_file->name, splitted_path[iptr -1]);
+        strcpy_safe(_file->name, splitted_path[iptr -1], sizeof(_file->name));
         _file->type = FILE_TYPE_REGULAR;
         _file->mode = 0x0;
         _file->priv = NULL;

@@ -110,3 +110,17 @@ ioctl(uint32_t fd, uint32_t request, ...)
     bar = va_arg(arg_ptr, int32_t);
     return do_system_call4(SYS_IOCTL_IDX, fd, request, foo, bar);
 }
+
+uint8_t *
+getcwd(uint8_t * buf, int32_t size)
+{
+    do_system_call2(SYS_GETCWD_IDX, (uint32_t)buf, size);
+    return buf;
+}
+
+int32_t
+chdir(const uint8_t * path)
+{
+    return do_system_call1(SYS_CHDIR_IDX, (uint32_t)path);
+}
+

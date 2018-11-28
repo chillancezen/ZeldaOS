@@ -243,7 +243,7 @@ zelda_fs_open(struct file_system * fs, const uint8_t * path)
     uint8_t * splitted_path[MAX_PATH];
     int32_t iptr = 0;
     memset(c_name, 0x0, sizeof(c_name));
-    strcpy(c_name, path);
+    strcpy_safe(c_name, path, sizeof(c_name));
     split_path(c_name, splitted_path, &iptr);
     file = zeldafs_search_file(splitted_path, iptr);
     return file;
@@ -274,7 +274,7 @@ zeldafs_init(void)
         struct zelda_file * _file = search_zelda_file("/usr/bin/dummy");
         printk("found zelda file:%x\n", _file);
         rc = validate_static_elf32_format(_file->content, _file->length);
-        rc1 = load_static_elf32(_file->content, (uint8_t *)"A=b tty=/dev/ptm0 B=\"cute adorable\" /usr/bin/dummy 'foo' bar \"bar cute\" 34");
+        rc1 = load_static_elf32(_file->content, (uint8_t *)"tty=/dev/ptm1 cwd='/home/Link' B=\"cute adorable\" /usr/bin/dummy 'foo' bar \"bar cute\" 34");
 
         //rc = validate_static_elf32_format(_file->content, _file->length);
         //rc1 = load_static_elf32(_file->content, (uint8_t *)" A=b  B=\"cute adorable\" /usr/bin/dummy000 212");

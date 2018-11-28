@@ -323,6 +323,29 @@ call_sys_ioctl(struct x86_cpustate * cpu,
     return file->ops->ioctl(file, request, foo, bar);
 }
 
+static uint32_t
+call_sys_getcwd(struct x86_cpustate * cpu, void * buffer, int32_t size)
+{
+    int idx;
+    uint8_t * ptr = (uint8_t *)buffer;
+    ASSERT(current);
+    for (idx = 0; idx < MAX_PATH && current->cwd[idx] && idx < size; idx++) {
+        ptr[idx] = current->cwd[idx];
+    }
+    if (idx < size) {
+        ptr[idx++] = '\x0';
+    }
+    return idx;
+}
+
+static uint32_t
+call_sys_chdir(struct x86_cpustate * cpu, void * buffer)
+{
+    ASSERT(current);
+    set_work_directory(current, (uint8_t *)buffer);
+    return OK;
+}
+
 void
 task_misc_init(void)
 {
@@ -343,4 +366,6 @@ task_misc_init(void)
     register_system_call(SYS_SBRK_IDX, 1, (call_ptr)call_sys_sbrk);
     register_system_call(SYS_ISATTY_IDX, 1, (call_ptr)call_sys_isatty);
     register_system_call(SYS_IOCTL_IDX, 4, (call_ptr)call_sys_ioctl);
+    register_system_call(SYS_GETCWD_IDX, 2, (call_ptr)call_sys_getcwd);
+    register_system_call(SYS_CHDIR_IDX, 1, (call_ptr)call_sys_chdir);
 }

@@ -52,7 +52,7 @@ register_kernel_vma(struct kernel_vma * vma)
     if (target_index == -1)
         return -ERR_OUT_OF_RESOURCE;
     _vma = &_kernel_vma[target_index];
-    strcpy(_vma->name, vma->name);
+    strcpy_safe(_vma->name, vma->name, sizeof(_vma->name));
     _vma->present = 1;
     _vma->exact = vma->exact;
     _vma->write_permission = vma->write_permission;
@@ -97,7 +97,7 @@ kernel_vma_init(void)
     /*
      * Setup initial layout linear VM area
      */
-    strcpy(_vma.name, (const uint8_t*)"Low1MB");
+    strcpy_safe(_vma.name, (const uint8_t*)"Low1MB", sizeof(_vma.name));
     _vma.exact = 1;
     _vma.write_permission = PAGE_PERMISSION_READ_WRITE;
     _vma.page_writethrough = PAGE_WRITEBACK;
@@ -107,7 +107,7 @@ kernel_vma_init(void)
     _vma.length = 0x100000;
     ASSERT(register_kernel_vma(&_vma) == OK);
 
-    strcpy(_vma.name, (const uint8_t*)"KernelImage");
+    strcpy_safe(_vma.name, (const uint8_t*)"KernelImage", sizeof(_vma.name));
     _vma.exact = 1;
     _vma.write_permission = PAGE_PERMISSION_READ_WRITE;
     _vma.page_writethrough = PAGE_WRITEBACK;
@@ -117,7 +117,7 @@ kernel_vma_init(void)
     _vma.length = sys_mem_start - 0x100000;
     ASSERT(register_kernel_vma(&_vma) == OK);
 
-    strcpy(_vma.name, (const uint8_t*)"PageInventory");
+    strcpy_safe(_vma.name, (const uint8_t*)"PageInventory", sizeof(_vma.name));
     _vma.exact = 1;
     _vma.write_permission = PAGE_PERMISSION_READ_WRITE;
     _vma.page_writethrough = PAGE_WRITEBACK;
@@ -127,7 +127,7 @@ kernel_vma_init(void)
     _vma.length = PAGE_SPACE_TOP - PAGE_SPACE_BOTTOM;
     ASSERT(register_kernel_vma(&_vma) == OK);
 
-    strcpy(_vma.name, (const uint8_t*)"KernelHeap");
+    strcpy_safe(_vma.name, (const uint8_t*)"KernelHeap", sizeof(_vma.name));
     _vma.exact = 0;
     _vma.write_permission = PAGE_PERMISSION_READ_WRITE;
     _vma.page_writethrough = PAGE_WRITEBACK;

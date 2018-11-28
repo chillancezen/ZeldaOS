@@ -32,11 +32,18 @@ strcmp(uint8_t * str1, uint8_t * str2)
     return *str1 - *str2;
 }
 
-void
+__attribute__((deprecated)) void
 strcpy(uint8_t * dst, const uint8_t * src)
 {
     int idx = 0;
     for(; (dst[idx] = src[idx]); idx++);
+}
+
+void
+strcpy_safe(uint8_t * dst, const uint8_t * src, int32_t max_size)
+{
+    int idx = 0;
+    for (; idx < max_size && (dst[idx] = src[idx]); idx++);
 }
 
 uint32_t

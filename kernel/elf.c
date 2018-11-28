@@ -58,10 +58,10 @@ validate_static_elf32_format(uint8_t * mem, int32_t length)
  * http://ethv.net/weblog/004-program-loading-on-linux-3.html
  * note auxiliary vector is not supported for now.
  * the returned value is the new PL3 stack position
- * FIXME:There is a catastrophe BUG to resove commands, mustfix is needed.
+ * FIXED:There is a catastrophe BUG to resove commands, mustfix is needed.
  */
-uint32_t
-resolve_commands(uint32_t pl3_stack_top, uint8_t * command)
+static uint32_t
+resolve_commands(uint32_t pl3_stack_top, uint8_t * command, uint8_t ** program)
 {
 #define QUOTE '"'
 #define APOSTROPHE '\''
@@ -91,6 +91,8 @@ resolve_commands(uint32_t pl3_stack_top, uint8_t * command)
     ptr = esp;
     esp = (uint8_t *)(((uint32_t)esp) & (~0x3));
 
+    // make sure the previous command space is not polluted
+    esp -= 4;
     while(*ptr) {
         for(; *ptr && *ptr == ' '; ptr++);
         if(!*ptr)
@@ -147,6 +149,7 @@ resolve_commands(uint32_t pl3_stack_top, uint8_t * command)
             break;
         }
     }
+    *program = start_stack[executable_index];
     /*
      * PUSH all the environment viriables and arguments
      */
@@ -189,6 +192,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     struct elf32_elf_header * elf_hdr = (struct elf32_elf_header *)mem;
     struct elf32_program_header * program_hdr;
     struct x86_cpustate * _cpu = NULL;
+    uint8_t * program_name = NULL;
     prev_task = current;
     if (!(_task = malloc_task()))
         goto task_error;
@@ -243,7 +247,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         goto vma_error;
     }
     memset(_vma, 0x0, sizeof(struct vm_area));
-    strcpy(_vma->name, (uint8_t *)KERNEL_VMA);
+    strcpy_safe(_vma->name, (uint8_t *)KERNEL_VMA, sizeof(_vma->name));
     _vma->kernel_vma = 1;
     _vma->pre_map = 0;
     _vma->exact = 0;
@@ -274,7 +278,8 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         memset(_vma, 0x0, sizeof(struct vm_area));
         sprintf((char *)_text_and_data_vma_name, "%s.%d", 
             USER_VMA_TEXT_AND_DATA, _text_and_data_counter++);
-        strcpy(_vma->name, (uint8_t *)_text_and_data_vma_name);
+        strcpy_safe(_vma->name, (uint8_t *)_text_and_data_vma_name,
+            sizeof(_vma->name));
         _vma->kernel_vma = 0;
         _vma->pre_map = 1;
         _vma->exact = 0;
@@ -305,7 +310,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         goto vma_error;
     }
     memset(_vma, 0x0, sizeof(struct vm_area));
-    strcpy(_vma->name, (uint8_t *)USER_VMA_HEAP);
+    strcpy_safe(_vma->name, (uint8_t *)USER_VMA_HEAP, sizeof(_vma->name));
     _vma->kernel_vma = 0;
     _vma->pre_map = 0;
     _vma->exact = 0;
@@ -325,7 +330,7 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         goto vma_error;
     }
     memset(_vma, 0x0, sizeof(struct vm_area));
-    strcpy(_vma->name, (uint8_t *)USER_VMA_STACK);
+    strcpy_safe(_vma->name, (uint8_t *)USER_VMA_STACK, sizeof(_vma->name));
     _vma->kernel_vma = 0;
     _vma->pre_map = 1;
     _vma->exact = 0;
@@ -346,7 +351,8 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         goto vma_error;
     }
     memset(_vma, 0x0, sizeof(struct vm_area));
-    strcpy(_vma->name, (uint8_t *)USER_VMA_SIGNAL_STACK);
+    strcpy_safe(_vma->name, (uint8_t *)USER_VMA_SIGNAL_STACK,
+        sizeof(_vma->name));
     _vma->kernel_vma = 0;
     _vma->pre_map = 1;
     _vma->exact = 0;
@@ -424,8 +430,10 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     _cpu->ss = USER_DATA_SELECTOR;
     _cpu->esp = resolve_commands(
         (uint32_t)(_vma->virt_addr + _vma->length - 0x10),
-        command);
+        command,
+        &program_name);
     ASSERT(!(_cpu->esp & 0x3));
+    strcpy_safe(_task->name, program_name, sizeof(_task->name));
     _cpu->eflags = EFLAGS_ONE | EFLAGS_INTERRUPT | EFLAGS_PL3_IOPL;
     _cpu->cs = USER_CODE_SELECTOR;
     _cpu->eip = elf_hdr->e_entry;

@@ -108,6 +108,11 @@ struct task {
 
     // The file descriptor entries
     struct file_entry file_entries[MAX_FILE_DESCRIPTR_PER_TASK];
+
+    // the name of the task, it could be duplicated
+    uint8_t name[MAX_PATH];
+    // the current working directory, it can be inherited
+    uint8_t cwd[MAX_PATH];
 };
 
 extern struct task * current;
@@ -156,6 +161,8 @@ signal_task(struct task * task, enum SIGNAL sig);
 void
 transit_state(struct task * task, enum task_state target_state);
 
+void
+set_work_directory(struct task * task, uint8_t * cwd);
 
 struct list_elem * get_task_list_head(void);
 struct task * malloc_task(void);
@@ -206,7 +213,9 @@ void
 yield_cpu(void);
 
 uint32_t
-create_kernel_task(void (*entry)(void), struct task ** task_ptr);
+create_kernel_task(void (*entry)(void),
+    struct task ** task_ptr,
+    uint8_t * task_name);
 
 void
 yield_cpu(void);

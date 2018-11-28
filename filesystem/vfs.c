@@ -224,7 +224,8 @@ register_file_system(uint8_t * mount_point, struct file_system * fs)
     }
     ASSERT(target_index < MOUNT_ENTRY_SIZE);
     memset(&mount_entries[target_index], 0x0, sizeof(struct mount_entry));
-    strcpy(mount_entries[target_index].mount_point, c_name);
+    strcpy_safe(mount_entries[target_index].mount_point, c_name,
+        sizeof(mount_entries[target_index].mount_point));
     mount_entries[target_index].fs = fs;
     mount_entries[target_index].valid = 1;
     LOG_INFO("Registered file system, mount point:%s, type:%s\n",
