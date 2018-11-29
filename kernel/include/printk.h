@@ -72,4 +72,12 @@ void hide_default_console(void);
 void expose_default_console(void);
 void reset_video_buffer(void);
 void set_log_level(int);
+
+int
+vga_enqueue_byte(uint8_t target,
+    void * opaque0 __used,
+    void * opaque1 __used);
+void
+printk_flush(void);
+
 #endif

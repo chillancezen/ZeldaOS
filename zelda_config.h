@@ -108,3 +108,7 @@
 #define MAX_TERMINALS 6
 #define PSEUDO_BUFFER_SIZE 64
 
+
+
+#define USERLAND_INIT_PATH "/usr/bin/userland_init"
+

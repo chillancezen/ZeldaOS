@@ -28,6 +28,7 @@
 #include <kernel/include/timer.h>
 #include <filesystem/include/devfs.h>
 #include <device/include/pseudo_terminal.h>
+#include <device/include/console.h>
 
 static struct multiboot_info * boot_info;
 static void
@@ -83,29 +84,9 @@ init4(void)
 static void
 post_init(void)
 {
-   /*
-    * switch stack to newly mapped stack top
-    * NOTE that the invalid ESP will not cause page fault exception.
-    * to work this around, we premap them before performing stack switching.
-    * here we do walk through the STACK area. let the page fault handler
-    * do it for us
-    * UPDATE Aug 6, 2018: do not use page fault handler, it's slow and need
-    * a lot of initial stack space, 2 MB is not far enough.
-    * UPDATE Oct 24, 2018: No need to switch to another stack area, since
-    * in multitask context, every task has its own PL0 stack.
-    */
-#if 0
-   uint32_t stack_ptr = KERNEL_STACK_BOTTOM;
-   LOG_INFO("Map kernel stack space:\n");
-   for (; stack_ptr < KERNEL_STACK_TOP; stack_ptr += PAGE_SIZE) {
-        kernel_map_page(stack_ptr, get_page(),
-            PAGE_PERMISSION_READ_WRITE,
-            PAGE_WRITEBACK,
-            PAGE_CACHE_ENABLED);
-   }
-#endif
    serial_post_init();
    ptty_post_init();
+   console_init();
    timer_init();
    task_init();
    schedule_enable();
@@ -119,35 +100,5 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init3();
     init4();
     post_init();
-#if defined(INLINE_TEST)
-    heap_sort_test();
-#endif
     sti();
-    /*
-     * perform stack switching with newly mapped stack area
-     * prepare the return address of last frame in new stack
-     * actually, this is not necessry, because we are going to run procedure
-     * in task unit context.
-     */
-#if 0
-    LOG_INFO("Switch stack to newly mapped space.\n");
-    asm volatile("movl 4(%%ebp), %%eax;"
-        "movl %0, %%ebx;"
-        //"sub $0x4, %%ebx;" //actually, it's not necessary
-        "movl %%ebx, %%esp;"
-        "push %%eax;"
-        "sti;"
-        "ret;"
-        :
-        :"i"(KERNEL_STACK_TOP - 0x100)
-        :"%eax", "%ebx");
-    /*
-     * do not put any code below this line
-     * because the stack layout is incomplete
-     *
-     */
-    asm volatile("jmpl %0, $0x0;"
-        :
-        :"i"(TSS0_SELECTOR));
-#endif
 }

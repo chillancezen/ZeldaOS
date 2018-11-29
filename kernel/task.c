@@ -12,7 +12,8 @@
 #include <kernel/include/system_call.h>
 #include <kernel/include/zelda_posix.h>
 #include <filesystem/include/vfs.h>
-
+#include <filesystem/include/zeldafs.h>
+#include <kernel/include/elf.h>
 /*
  * The task state transition diagram, any exceptional transition is not allowed
  *
@@ -676,17 +677,14 @@ task_init(void)
         (uint8_t *)"kernel_idle_task"));
     ASSERT(kernel_idle_task);
     LOG_INFO("registered kernel idle task:0x%x\n", kernel_idle_task);
-#if !defined(INLINE_TEST)
-    struct task * _task = malloc_task();
-    ASSERT(_task);
-    ASSERT(!mockup_load_task(_task, DPL_0, mockup_entry));
-    ASSERT(!mockup_spawn_task(_task));
-
-    _task = malloc_task();
-    ASSERT(_task);
-    ASSERT(!mockup_load_task(_task, DPL_0, mockup_entry1));
-    ASSERT(!mockup_spawn_task(_task));
-#endif
+    {
+        struct zelda_file * zfile = search_zelda_file(USERLAND_INIT_PATH);
+        ASSERT(zfile);
+        ASSERT(!validate_static_elf32_format(zfile->content, zfile->length));
+        ASSERT(!load_static_elf32(zfile->content,
+            (uint8_t *)"cwd=\"/\" tty=/dev/console "USERLAND_INIT_PATH"",
+            NULL));
+    }
     dump_tasks();
 }
 

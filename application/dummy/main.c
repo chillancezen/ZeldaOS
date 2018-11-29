@@ -28,9 +28,8 @@ int main(int argc, char *argv[])
     {
         uint8_t cwd[256];
         printf("cwd:%s\n", getcwd(cwd, 256));
-        FILE * fp = fopen("/dev/serial0", "r+");
-        printf("opened file:%x\n", fp);
-        fprintf(fp, "Hello serial0\n");
+        int fd = open("/dev/console", O_WRONLY);
+        write(fd, "Hello Console\n", 14);
     }
     {
         if (argc > 1 && !strcmp(argv[1], "execve")) {
@@ -42,7 +41,7 @@ int main(int argc, char *argv[])
             };
             extern uint8_t ** environ;
             uint8_t ** envp = environ;
-            printf("going to execute an program:%d\n", execve("/usr/bin/dummy", argv, envp));
+            //printf("going to execute an program:%d\n", execve("/usr/bin/dummy", argv, envp));
         }
     }
     while(0) {
@@ -54,7 +53,7 @@ int main(int argc, char *argv[])
             write(1, hint, strlen(hint));
         }
     }
-    while(0)
+    while(1)
         sleep(100);
     return 0;
 }

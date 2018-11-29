@@ -19,5 +19,9 @@ struct zelda_file {
 }__attribute__((packed));
 
 void zeldafs_init(void);
+
+struct zelda_file *
+search_zelda_file(char * name);
+
 #endif
 

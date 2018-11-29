@@ -268,37 +268,4 @@ zeldafs_init(void)
     dump_zedla_drives();
     //dump_zelda_filesystem();
     ASSERT(!register_file_system((uint8_t *)"/", &zeldafs));
-#if 1
-    {
-        int rc = 0, rc1;
-        struct zelda_file * _file = search_zelda_file("/usr/bin/dummy");
-        printk("found zelda file:%x\n", _file);
-        rc = validate_static_elf32_format(_file->content, _file->length);
-        rc1 = load_static_elf32(_file->content, (uint8_t *)"tty=/dev/ptm1 cwd='/home/Link' B=\"cute adorable\" \"/usr/bin/dummy\" execve 'foo' bar \"bar cute\" 34", NULL);
-
-        //rc = validate_static_elf32_format(_file->content, _file->length);
-        //rc1 = load_static_elf32(_file->content, (uint8_t *)" A=b  B=\"cute adorable\" /usr/bin/dummy000 212");
-
-        //rc1 = load_static_elf32(_file->content, (uint8_t *)" A=b /usr/bin/dummy11");
-        printk("load elf:%d %d\n", rc, rc1);
-
-        if(0){
-            struct list_elem * task_head = get_task_list_head();
-            struct list_elem * _list;
-            struct task * _task;
-            struct task * tasks[256];
-            int iptr = 0;
-            int idx = 0;
-            LIST_FOREACH_START(task_head, _list) {
-                _task = CONTAINER_OF(_list, struct task, list);
-                tasks[iptr++] = _task;
-            }
-            LIST_FOREACH_END();
-            for(idx = 0; idx < iptr; idx++) {
-                reclaim_task(tasks[idx]);
-            }
-        }
-        dump_tasks();
-    }
-#endif
 }

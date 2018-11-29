@@ -1,0 +1,6 @@
+/usr/bin/shell /dev/ptm0
+/usr/bin/shell /dev/ptm1
+/usr/bin/shell /dev/ptm2
+/usr/bin/shell /dev/ptm3
+/usr/bin/shell /dev/ptm4
+/usr/bin/shell /dev/ptm5

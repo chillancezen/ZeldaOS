@@ -11,7 +11,7 @@ extern void * _zelda_constructor_init_start;
 extern void * _zelda_constructor_init_end;
 #define PSEUDO_TERMINAL_KEY "tty"
 #define CWD_ENV_KEY         "cwd"
-#define DEFAULT_PTTY        "/dev/ptm0"
+#define DEFAULT_PTTY        "/dev/console"
 #define DEFAULT_CWD         "/home/zelda"
 
 extern int main(int argc, char ** argv);
