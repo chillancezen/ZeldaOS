@@ -124,3 +124,13 @@ chdir(const uint8_t * path)
     return do_system_call1(SYS_CHDIR_IDX, (uint32_t)path);
 }
 
+int32_t
+execve(const uint8_t * path,
+    uint8_t ** argv,
+    uint8_t ** envp)
+{
+    return do_system_call3(SYS_EXECVE_IDX,
+        (uint32_t)path,
+        (uint32_t)argv,
+        (uint32_t)envp);
+}

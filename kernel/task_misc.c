@@ -10,6 +10,8 @@
 #include <lib/include/string.h>
 #include <filesystem/include/vfs.h>
 #include <kernel/include/userspace_vma.h>
+#include <memory/include/malloc.h>
+#include <kernel/include/elf.h>
 
 #define CPU_YIELD_TRAP_VECTOR 0x88
 static void
@@ -346,6 +348,132 @@ call_sys_chdir(struct x86_cpustate * cpu, void * buffer)
     return OK;
 }
 
+static void *
+load_file_into_memory(uint8_t * path, int32_t * file_length)
+{
+    void * buffer = NULL;
+    struct stat _stat;
+    struct file * file = do_vfs_open(path, O_RDONLY, 0x0);
+    struct file_entry entry;
+    memset(&_stat, 0x0, sizeof(_stat));
+    memset(&entry, 0x0, sizeof(entry));
+    if (!file)
+        goto error_out;
+    if (do_vfs_stat(path, &_stat))
+        goto error_file;
+    if (_stat.st_size <= 0)
+        goto error_file;
+    buffer = malloc_mapped(_stat.st_size);
+    if (!buffer)
+        goto error_file;
+    entry.file = file;
+    entry.offset = 0x0;
+    {
+        uint32_t left = _stat.st_size;
+        uint32_t index = 0;
+        uint32_t rc = 0;
+        while(left > 0) {
+            rc = do_vfs_read(&entry, ((uint8_t *)buffer) + index, left);
+            if (rc <= 0)
+                break;
+            left -= rc;
+            index += rc;
+        }
+        if (left > 0)
+            goto error_buff;
+    }
+    *file_length = _stat.st_size;
+    return buffer;
+    error_buff:
+        if (buffer)
+            free(buffer);
+    error_file:
+        ASSERT(!do_vfs_close(file));
+    error_out:
+        return NULL;
+}
+static uint32_t
+call_sys_execve(struct x86_cpustate * cpu,
+    uint8_t * filename,
+    uint8_t ** argv,
+    uint8_t ** envp)
+{
+    uint32_t ret = -ERR_GENERIC;
+    void * file_memory = NULL;
+    int32_t file_length = 0x0;
+    int32_t task_id = -1;
+
+    uint8_t absolute_path[MAX_PATH];
+    uint8_t commands_line[MAX_PATH];
+    ASSERT(current);
+    memset(absolute_path, 0x0, sizeof(absolute_path));
+    memset(commands_line, 0x0, sizeof(commands_line));
+    {
+        // compose the absolute path.
+        uint8_t * ptr = filename;
+        for(; *ptr && *ptr == ' '; ptr++);
+        if (ptr[0] != '/') {
+            sprintf((char *)absolute_path, "%s/%s", current->cwd, filename);
+        } else {
+            strcpy_safe(absolute_path, filename, sizeof(absolute_path));
+        }
+        LOG_DEBUG("Elf32 loading:%s\n", absolute_path);
+    }
+
+    {
+        // compose the commands line again... Though this is not elegant.
+        // the unique interface to load a elf32 is to use command line.
+        int idx = 0;
+        uint8_t * ptr = commands_line;
+        uint8_t * penv = NULL;
+        uint8_t * parg = NULL;
+        for(idx = 0; (penv = envp[idx]); idx++) {
+            for (; *penv; penv++) {
+                if (*penv == '=') {
+                    *ptr++ = '=';
+                    *ptr++ = '\'';
+                } else {
+                    *ptr++ = *penv;
+                }
+            }
+            *ptr++ = '\'';
+            *ptr++ = ' ';
+        }
+
+        for (idx = 0; (parg = argv[idx]); idx++) {
+            *ptr++ = '\'';
+            for (; *parg; parg++) {
+                *ptr++ = *parg;
+            }
+            *ptr++ = '\'';
+            *ptr++ = ' ';
+        }
+        LOG_DEBUG("Elf32 command line:%s\n", commands_line); 
+    }
+    file_memory = load_file_into_memory(absolute_path, &file_length);
+    if (!file_memory) {
+        LOG_ERROR("Elf32 loading file:%s into memory fails\n", absolute_path);
+        goto error_out;
+    }
+    if (validate_static_elf32_format(file_memory, file_length)) {
+        LOG_ERROR("Elf32 error validating file format(length:%d)\n",
+            file_length);
+        goto error_out;
+    }
+    if (load_static_elf32(file_memory, commands_line, (uint32_t *)&task_id)) {
+        LOG_ERROR("Elf32 error loading program:%s\n", absolute_path);
+        goto error_out;
+    }
+    ASSERT(task_id >= 0);
+    ret = task_id;
+    free(file_memory);
+    return ret;
+
+    error_out:
+        if (file_memory)
+            free(file_memory);
+        return ret;
+}
 void
 task_misc_init(void)
 {
@@ -368,4 +496,5 @@ task_misc_init(void)
     register_system_call(SYS_IOCTL_IDX, 4, (call_ptr)call_sys_ioctl);
     register_system_call(SYS_GETCWD_IDX, 2, (call_ptr)call_sys_getcwd);
     register_system_call(SYS_CHDIR_IDX, 1, (call_ptr)call_sys_chdir);
+    register_system_call(SYS_EXECVE_IDX, 3, (call_ptr)call_sys_execve);
 }

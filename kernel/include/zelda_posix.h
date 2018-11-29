@@ -70,6 +70,7 @@ enum SYSCALL_INDEX {
     SYS_IOCTL_IDX,
     SYS_GETCWD_IDX,
     SYS_CHDIR_IDX,
+    SYS_EXECVE_IDX,
 };
 
 enum SIGNAL {

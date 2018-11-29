@@ -47,6 +47,8 @@ handle_kernel_page_fault(struct x86_cpustate * cpu,
                 phy_addr);
         } else {
             LOG_ERROR("no VMA found for addr:0x%x\n", linear_addr);
+            dump_x86_cpustate(cpu);
+            __not_reach();
         }
 
     } else {
@@ -59,10 +61,14 @@ handle_kernel_page_fault(struct x86_cpustate * cpu,
         if (linear_addr == (uint32_t)return_from_pl3_signal_context) {
             return return_from_pl3_signal_context(p_esp);
         }
-        LOG_ERROR("Paging permission issue, task:0x%x linear_addr:0x%x\n",
+        LOG_ERROR("Paging permission violation, task:0x%x linear_addr:0x%x\n",
             current, linear_addr);
         dump_x86_cpustate(cpu);
-        hlt();
+        if (current) {
+            signal_task(current, SIGKILL);
+        } else {
+            hlt();
+        }
     }
     return OK;
 }
@@ -102,6 +108,9 @@ paging_fault_handler(struct x86_cpustate * cpu)
      * Page Fault is not occuring as expected.
      */
     if (result != OK) {
+        LOG_DEBUG("linear address:0x%x error code:0x%x\n",
+            linear_addr, cpu->errorcode);
+        dump_x86_cpustate(cpu);
         __not_reach();
     }
     return esp;

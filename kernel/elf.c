@@ -176,8 +176,8 @@ resolve_commands(uint32_t pl3_stack_top, uint8_t * command, uint8_t ** program)
  * current.
  * XXX: maskable interrupt must be disabled in caller. 
  */
-int
-load_static_elf32(uint8_t * mem, uint8_t * command)
+int32_t
+load_static_elf32(uint8_t * mem, uint8_t * command, uint32_t * ptask_id)
 {
     int rc = 0;
     int idx = 0;
@@ -194,8 +194,10 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
     struct x86_cpustate * _cpu = NULL;
     uint8_t * program_name = NULL;
     prev_task = current;
-    if (!(_task = malloc_task()))
+    if (!(_task = malloc_task())){
+        LOG_DEBUG("Can not allocate a task\n");
         goto task_error;
+    }
     _task->privilege_level = DPL_3;
     _task->state = TASK_STATE_RUNNING;
     /*
@@ -463,6 +465,10 @@ load_static_elf32(uint8_t * mem, uint8_t * command)
         enable_kernel_paging();
     ASSERT(OK == register_task_in_task_table(_task));
     task_put(_task);
+    if (ptask_id)
+        *ptask_id = _task->task_id;
+    LOG_DEBUG("Finished loading:%s as task-%d:0x%x\n",
+        _task->name, _task->task_id, _task);
     return ret;
     page_error:
         enable_kernel_paging();

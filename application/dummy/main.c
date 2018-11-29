@@ -28,8 +28,24 @@ int main(int argc, char *argv[])
     {
         uint8_t cwd[256];
         printf("cwd:%s\n", getcwd(cwd, 256));
+        FILE * fp = fopen("/dev/serial0", "r+");
+        printf("opened file:%x\n", fp);
+        fprintf(fp, "Hello serial0\n");
     }
-    while(1) {
+    {
+        if (argc > 1 && !strcmp(argv[1], "execve")) {
+            uint8_t *argv[] = {
+                "/usr/bin/dummy",
+                "execve",
+                "sub program",
+                NULL,
+            };
+            extern uint8_t ** environ;
+            uint8_t ** envp = environ;
+            printf("going to execute an program:%d\n", execve("/usr/bin/dummy", argv, envp));
+        }
+    }
+    while(0) {
         memset(buffer, 0x0, sizeof(buffer));
         ret = read(0, buffer, 64);
         write(1, buffer, ret);
@@ -38,7 +54,7 @@ int main(int argc, char *argv[])
             write(1, hint, strlen(hint));
         }
     }
-    while(1)
+    while(0)
         sleep(100);
     return 0;
 }

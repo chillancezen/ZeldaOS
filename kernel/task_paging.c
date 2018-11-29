@@ -211,19 +211,19 @@ userspace_evict_page(struct task * task,
     ASSERT(task->page_directory);
     _vma = search_userspace_vma_by_addr(&task->vma_list, virt_addr);
     if (!_vma) {
-        LOG_DEBUG("find no vm area for task:0x%x's virt_addr:0x%x\n",
+        LOG_TRIVIA("find no vm area for task:0x%x's virt_addr:0x%x\n",
             task, virt_addr);
         return -ERR_NOT_PRESENT;
     }
     pde = PDE32_PTR(&task->page_directory[pd_index]);
     if (!pde->present) {
-        LOG_DEBUG("page directory entry:0x%x not present\n", pd_index);
+        LOG_TRIVIA("page directory entry:0x%x not present\n", pd_index);
         return -ERR_NOT_PRESENT;
     }
     page_table_ptr = (uint32_t *)(pde->pt_frame << 12);
     pte = PTE32_PTR(&page_table_ptr[pt_index]);
     if (!pte->present) {
-        LOG_DEBUG("page table entry:0x%x not present\n", pt_index);
+        LOG_TRIVIA("page table entry:0x%x not present\n", pt_index);
         return -ERR_NOT_PRESENT;   
     }
     phy_page = (((uint32_t)pte->pg_frame) << 12);

@@ -57,4 +57,9 @@ getcwd(uint8_t * buf, int32_t size);
 int32_t
 chdir(const uint8_t * path);
 
+int32_t
+execve(const uint8_t * path,
+    uint8_t ** argv,
+    uint8_t ** envp);
+
 #endif

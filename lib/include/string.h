@@ -5,7 +5,7 @@
 #ifndef _STRING_H
 #define _STRING_H
 #include <lib/include/types.h>
-
+// FIXME: make all string functions safe, and deprecate the unsafe functions
 void memset(void * dst, uint8_t target, int32_t size);
 void memcpy(void * dst, const void * src, int length);
 int strcmp(uint8_t * str1, uint8_t * str2);
