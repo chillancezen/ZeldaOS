@@ -298,6 +298,16 @@ switch_to_pseudo_terminal(void * arg)
     ring_reset(&current_ptty->ring);
 }
 
+static void
+interrupt_pseudo_terminal(void * arg)
+{
+    if (current_ptty && current_ptty->master_task_id) {
+        struct task * task = search_task_by_id(current_ptty->master_task_id);
+        if (task) {
+            signal_task(task, SIGINT);
+        }
+    }
+}
 void
 ptty_post_init(void)
 {
@@ -324,5 +334,9 @@ ptty_post_init(void)
             switch_to_pseudo_terminal,
             (void *)idx));
     }
+    ASSERT(!register_shortcut_entry(SCANCODE_C,
+        KEY_STATE_CONTROLL_PRESSED,
+        interrupt_pseudo_terminal,
+        NULL));
     disable_cursor();
 }

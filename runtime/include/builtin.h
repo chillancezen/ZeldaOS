@@ -62,4 +62,7 @@ execve(const uint8_t * path,
     uint8_t ** argv,
     uint8_t ** envp);
 
+int32_t
+uname(struct utsname * uts);
+
 #endif

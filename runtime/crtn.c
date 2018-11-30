@@ -31,3 +31,15 @@ pseudo_terminal_write_slave(void * buffer, int32_t size)
 {
     return ioctl(1, PTTY_IOCTL_SLAVE_WRITE, buffer, size);
 }
+
+void
+__assert_fail (const char *assertion,
+    const char *file,
+    unsigned int line,
+    const char *function)
+{
+    printf("crtn failure: %s: %u: %s%sAssertion `%s' failed!\n",
+            file, line, function ?: "", function ? ": " : "",
+            assertion);
+    exit(-1);
+}

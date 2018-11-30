@@ -9,6 +9,7 @@
 
 //#define KERNEL_LOGGING_LEVEL LOG_TRIVIA
 #define KERNEL_LOGGING_LEVEL LOG_DEBUG
+//#define KERNEL_LOGGING_LEVEL LOG_INFO
 /*
  *KERNEL_VMA_ARRAY_LENGTH is the length of kernel VMA array, this is
  *to be larger than 64

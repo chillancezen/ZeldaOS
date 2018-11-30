@@ -12,12 +12,13 @@ endif
 RUNTIME=$(wildcard $(ZELDA)/runtime/*.o)
 NEWLIBC=$(ZELDA)/runtime/libc/libc.a
 
+TOP_FLAGS= -O3 -Wall
 
 OBJS = $(patsubst %.c,%.o,$(SRCS))
 
 %.o:%.c
 	@echo "[CC] $(APP):$<"
-	@gcc -m32 $(CFLAGS) -nostdlib -fno-builtin -I$(ZELDA)/runtime/include \
+	@gcc -m32 $(CFLAGS) $(TOP_FLAGS) -nostdlib -fno-builtin -I$(ZELDA)/runtime/include \
 	-include $(ZELDA)/kernel/include/zelda_posix.h  -c -o $@ $<
 
 $(APP):$(OBJS)

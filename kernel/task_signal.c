@@ -312,7 +312,7 @@ call_sys_signal(struct x86_cpustate * cpu,
     out:
         return ret;
 }
-#if defined(INLINE_TEST)
+#if 0
 #include <device/include/keyboard.h>
 #include <device/include/keyboard_scancode.h>
 static struct task * current_pl3_task = NULL;
@@ -337,7 +337,7 @@ task_debug_handler(void * arg)
 void
 task_signal_sub_init(void)
 {
-#if defined(INLINE_TEST)
+#if 0
     register_shortcut_entry(SCANCODE_C,
         KEY_STATE_CONTROLL_PRESSED,
         task_debug_handler,

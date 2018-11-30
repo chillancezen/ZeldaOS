@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <zelda.h>
+
 static void
 interrupt_handler(int signal)
 {

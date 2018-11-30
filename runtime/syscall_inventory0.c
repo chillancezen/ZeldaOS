@@ -134,3 +134,8 @@ execve(const uint8_t * path,
         (uint32_t)argv,
         (uint32_t)envp);
 }
+int32_t
+uname(struct utsname * uts)
+{
+    return do_system_call1(SYS_UNAME_IDX, (uint32_t)uts);
+}

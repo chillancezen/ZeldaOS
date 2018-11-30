@@ -5,6 +5,18 @@
 #define _ZELDA_POSIX_H
 #include <stdint.h>
 
+// See /usr/include/sys/utsname.h
+
+#define UTSNAME_LENGTH 65
+struct utsname {
+    uint8_t sysname[UTSNAME_LENGTH];
+    uint8_t nodename[UTSNAME_LENGTH];
+    uint8_t release[UTSNAME_LENGTH];
+    uint8_t version[UTSNAME_LENGTH];
+    uint8_t machine[UTSNAME_LENGTH];
+    uint8_t domainname[UTSNAME_LENGTH];
+} __attribute__((packed));
+
 /*
  * https://github.com/freebsd/freebsd/blob/master/sys/sys/stat.h#L160
  */
@@ -71,6 +83,7 @@ enum SYSCALL_INDEX {
     SYS_GETCWD_IDX,
     SYS_CHDIR_IDX,
     SYS_EXECVE_IDX,
+    SYS_UNAME_IDX,
 };
 
 enum SIGNAL {

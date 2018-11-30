@@ -474,6 +474,22 @@ call_sys_execve(struct x86_cpustate * cpu,
             free(file_memory);
         return ret;
 }
+static struct utsname zelda_uts = {
+    .sysname = "ZeldaOS",
+    .nodename = "Hyrule",
+    .release = "botw",
+    .version = "-debug",
+    .machine = "i686",
+    .domainname = "kingdom",
+
+};
+
+static uint32_t
+call_sys_uname(struct x86_cpustate * cpu, struct utsname * uts)
+{
+    memcpy(uts, &zelda_uts, sizeof(struct utsname));
+    return OK;
+}
 void
 task_misc_init(void)
 {
@@ -497,4 +513,5 @@ task_misc_init(void)
     register_system_call(SYS_GETCWD_IDX, 2, (call_ptr)call_sys_getcwd);
     register_system_call(SYS_CHDIR_IDX, 1, (call_ptr)call_sys_chdir);
     register_system_call(SYS_EXECVE_IDX, 3, (call_ptr)call_sys_execve);
+    register_system_call(SYS_UNAME_IDX, 1, (call_ptr)call_sys_uname);
 }
