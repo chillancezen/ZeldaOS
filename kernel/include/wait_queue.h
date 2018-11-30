@@ -5,7 +5,8 @@
 #define _WAIT_QUEUE_H
 #include <lib/include/types.h>
 #include <lib/include/list.h>
-#include <kernel/include/task.h>
+
+struct task;
 
 struct wait_queue_head {
     struct list_elem pivot;

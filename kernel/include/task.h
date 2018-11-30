@@ -13,6 +13,7 @@
 #include <kernel/include/userspace_vma.h>
 #include <filesystem/include/file.h>
 #include <kernel/include/timer.h>
+#include <kernel/include/wait_queue.h>
 // this default disposition and description of Signals can be found here:
 // // https://www.linuxjournal.com/files/linuxjournal.com/linuxjournal/articles/039/3985/3985t1.html
 // // In my kernel, only part of them are taken care of.
@@ -47,6 +48,9 @@ struct task {
     uint32_t task_id;
     struct hash_node node;
     struct list_elem list;
+    // wait queue, when the task exits, it notifies all the tasks which are
+    // waiting for termmination of the task
+    struct wait_queue_head wq_termination; 
     // `state` is the current state of the task
     // `non_stop_state` is the state of the task before the task goes into 
     // TASK_STATE_UNINTERRUPTIBLE as STOPPED state, we first save the state in

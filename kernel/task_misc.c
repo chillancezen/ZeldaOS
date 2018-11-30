@@ -490,6 +490,32 @@ call_sys_uname(struct x86_cpustate * cpu, struct utsname * uts)
     memcpy(uts, &zelda_uts, sizeof(struct utsname));
     return OK;
 }
+static uint32_t
+call_sys_wait0(struct x86_cpustate * cpu, int32_t target_task_id)
+{
+    int32_t result = -ERR_GENERIC;
+    struct wait_queue wait;
+    struct task * task = search_task_by_id(target_task_id);
+    // The task has already been terminated. let it succeed.
+    if (!task)
+        return OK;
+    initialize_wait_queue_entry(&wait, current);
+    add_wait_queue_entry(&task->wq_termination, &wait);
+    transit_state(current, TASK_STATE_INTERRUPTIBLE);
+    yield_cpu();
+    if (signal_pending(current)) {
+        result = -ERR_INTERRUPTED;
+    } else {
+        result = OK;
+    }
+    // Must perform another search in any situation, if current is interrupted
+    // , the target task may be still alive......
+    task = search_task_by_id(target_task_id);
+    if (task) {
+        remove_wait_queue_entry(&task->wq_termination, &wait);
+    }
+    return result;
+}
 void
 task_misc_init(void)
 {
@@ -514,4 +540,5 @@ task_misc_init(void)
     register_system_call(SYS_CHDIR_IDX, 1, (call_ptr)call_sys_chdir);
     register_system_call(SYS_EXECVE_IDX, 3, (call_ptr)call_sys_execve);
     register_system_call(SYS_UNAME_IDX, 1, (call_ptr)call_sys_uname);
+    register_system_call(SYS_WAIT0_IDX, 1, (call_ptr)call_sys_wait0);
 }

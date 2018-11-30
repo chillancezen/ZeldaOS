@@ -84,6 +84,7 @@ enum SYSCALL_INDEX {
     SYS_CHDIR_IDX,
     SYS_EXECVE_IDX,
     SYS_UNAME_IDX,
+    SYS_WAIT0_IDX,
 };
 
 enum SIGNAL {

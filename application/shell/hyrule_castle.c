@@ -10,7 +10,8 @@
 static void
 shell_sigint_handler(int signal)
 {
-    printf("Hello world shell\n");
+    printf("Hello world shell, exit\n");
+    exit(0);
 }
 int main(int argc, char ** argv)
 {

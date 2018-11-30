@@ -152,6 +152,7 @@ main(int argc, char * argv[])
         *ptr_end = '\0';
         task_id = exec_command(ptr);
         printf("loadding;%s as task:%d\n", ptr, task_id);
+        wait0(task_id);
         ptr = ptr_end + 1;
     }
     while (1) {

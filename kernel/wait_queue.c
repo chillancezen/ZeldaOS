@@ -4,6 +4,7 @@
 
 #include <kernel/include/wait_queue.h>
 #include <kernel/include/printk.h>
+#include <kernel/include/task.h>
 
 void
 initialize_wait_queue_head(struct wait_queue_head * head)

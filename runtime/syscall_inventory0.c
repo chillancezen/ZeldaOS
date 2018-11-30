@@ -139,3 +139,9 @@ uname(struct utsname * uts)
 {
     return do_system_call1(SYS_UNAME_IDX, (uint32_t)uts);
 }
+
+int32_t
+wait0(int32_t target_task_id)
+{
+    return do_system_call1(SYS_WAIT0_IDX, target_task_id);
+}

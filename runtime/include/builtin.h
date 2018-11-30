@@ -65,4 +65,7 @@ execve(const uint8_t * path,
 int32_t
 uname(struct utsname * uts);
 
+int32_t
+wait0(int32_t target_task_id);
+
 #endif

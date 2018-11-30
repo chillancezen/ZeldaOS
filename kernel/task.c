@@ -218,6 +218,7 @@ malloc_task(void)
     if (_task) {
         memset(_task, 0x0, sizeof(struct task));
         _task->task_id = task_seed++;
+        initialize_wait_queue_head(&_task->wq_termination);
     }
     return _task;
 }
@@ -268,6 +269,7 @@ process_exit_task_list(void)
     while ((_list = list_fetch(&task_exit_list_head))) {
         _task = CONTAINER_OF(_list, struct task, list);
         ASSERT(_task->state == TASK_STATE_EXITING);
+        wake_up(&_task->wq_termination);
         reclaim_task(_task);
     }
 }
