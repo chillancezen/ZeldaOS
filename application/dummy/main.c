@@ -6,7 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <zelda.h>
-
+int main(void)
+{
+    printf("Hello World\n");
+    return 0;
+}
+#if 0
 static void
 interrupt_handler(int signal)
 {
@@ -58,3 +63,4 @@ int main(int argc, char *argv[])
         sleep(100);
     return 0;
 }
+#endif

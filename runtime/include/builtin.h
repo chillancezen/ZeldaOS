@@ -6,8 +6,10 @@
 
 #include <stdint.h>
 
+#if 0
 int32_t
 exit(int32_t exit_code);
+#endif
 
 int32_t
 sleep(int32_t milisecond);

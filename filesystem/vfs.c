@@ -306,7 +306,7 @@ do_vfs_open(const uint8_t * path, uint32_t flags, uint32_t mode)
             if (c_name[iptr] != mount_entry->mount_point[iptr])
                 break;
         }
-        ASSERT(!mount_entry->mount_point[iptr]);
+        //ASSERT(!mount_entry->mount_point[iptr]);
         for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
             sub_path[iptr_dst++] = c_name[iptr];
         }

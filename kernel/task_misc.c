@@ -359,6 +359,8 @@ load_file_into_memory(uint8_t * path, int32_t * file_length)
     memset(&entry, 0x0, sizeof(entry));
     if (!file)
         goto error_out;
+    if (file->type != FILE_TYPE_REGULAR)
+        goto error_file;
     if (do_vfs_stat(path, &_stat))
         goto error_file;
     if (_stat.st_size <= 0)
@@ -478,7 +480,7 @@ static struct utsname zelda_uts = {
     .sysname = "ZeldaOS",
     .nodename = "Hyrule",
     .release = "botw",
-    .version = "-debug",
+    .version = "0.1",
     .machine = "i686",
     .domainname = "kingdom",
 
@@ -497,7 +499,7 @@ call_sys_wait0(struct x86_cpustate * cpu, int32_t target_task_id)
     struct wait_queue wait;
     struct task * task = search_task_by_id(target_task_id);
     // The task has already been terminated. let it succeed.
-    if (!task)
+    if (!task || task->state == TASK_STATE_EXITING)
         return OK;
     initialize_wait_queue_entry(&wait, current);
     add_wait_queue_entry(&task->wq_termination, &wait);

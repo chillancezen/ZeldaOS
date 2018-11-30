@@ -121,4 +121,22 @@ enum SIGNAL {
 #define PTTY_IOCTL_FOREGROUND 0x3   // the slave task id must be given
 #define PTTY_IOCTL_SLAVE_WRITE 0x4  // write to slave ring buffer
 
+enum errorcode {
+    OK = 0,
+    ERR_GENERIC,
+    ERR_OUT_OF_MEMORY,
+    ERR_OUT_OF_RESOURCE,
+    ERR_INVALID_ARG,
+    ERR_DEVICE_FAULT,
+    ERR_PARTIAL,
+    ERR_NOT_PRESENT,
+    ERR_NOT_FOUND,
+    ERR_NOT_SUPPORTED,
+    ERR_BUSY,
+    ERR_EXIST,
+    ERR_IN_USE,
+    ERR_INTERRUPTED,
+    ERR_PROCESSED,
+};
+
 #endif

@@ -12,7 +12,7 @@ endif
 RUNTIME=$(wildcard $(ZELDA)/runtime/*.o)
 NEWLIBC=$(ZELDA)/runtime/libc/libc.a
 
-TOP_FLAGS= -O3 -Wall
+TOP_FLAGS= -O3 -Wall -Werror
 
 OBJS = $(patsubst %.c,%.o,$(SRCS))
 
