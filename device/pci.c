@@ -13,27 +13,49 @@
 #define PCI_CONFIG_DATA 0xcfc
 
 
-struct list_elem pci_device_list;
+static struct list_elem pci_device_list;
+static struct list_elem pci_driver_list;
 
 
-uint16_t
-read_pci_config_space(uint8_t bus,
+uint32_t
+pci_config_read_dword(uint8_t bus,
     uint8_t device,
     uint8_t function,
     uint8_t offset)
 {
     uint32_t addr = 0;
-    uint32_t data = 0;
     addr |= bus << 16;
-    addr |= (device & 0x0f) << 11;
+    addr |= (device & 0x1f) << 11;
     addr |= (function & 0x7) << 8;
     addr |= offset & 0xfc;
     addr |= 0x80000000;
     outl(PCI_OCNFIG_ADDRESS, addr);
-    data = inl(PCI_CONFIG_DATA);
-    return (data >> ((offset & 2) * 8)) & 0xffff;
+    return inl(PCI_CONFIG_DATA);
 }
-void write_pci_config_space(uint8_t bus,
+uint16_t
+pci_config_read_word(uint8_t bus,
+    uint8_t device,
+    uint8_t function,
+    uint8_t offset)
+{
+    uint32_t dword = pci_config_read_dword(bus, device, function, offset);
+    uint16_t word = (dword >> ((offset & 0x3) * 8)) & 0xffff;
+    return word;
+}
+
+uint8_t
+pci_config_read_byte(uint8_t bus,
+    uint8_t device,
+    uint8_t function,
+    uint8_t offset)
+{
+    uint32_t dword = pci_config_read_dword(bus, device, function, offset);
+    uint8_t byte = (dword >> ((offset & 0x3) * 8)) & 0xff;
+    return byte;
+}
+
+void
+pci_config_write_dword(uint8_t bus,
     uint8_t device,
     uint8_t function,
     uint8_t offset,
@@ -41,7 +63,7 @@ void write_pci_config_space(uint8_t bus,
 {
     uint32_t addr = 0;
     addr |= bus << 16;
-    addr |= (device & 0x0f) << 11;
+    addr |= (device & 0x1f) << 11;
     addr |= (function & 0x7) << 8;
     addr |= offset & 0xfc;
     addr |= 0x80000000;
@@ -49,104 +71,9 @@ void write_pci_config_space(uint8_t bus,
     outl(PCI_CONFIG_DATA, data);
 }
 
-uint32_t
-get_pci_bar(struct pci_device * _device, int32_t bar)
-{
-    uint8_t offset = 0x10 + bar * 4;
-    uint16_t hi;
-    uint16_t lo;
-    if(bar < 0 || bar >= 6)
-        return -1;
-    lo = read_pci_config_space(_device->bus,
-        _device->device,
-        _device->function,
-        offset);
-    hi = read_pci_config_space(_device->bus,
-        _device->device,
-        _device->function,
-        offset + 2);
-    return hi << 16 | lo; 
-}
-uint32_t
-get_pci_bar_size(struct pci_device * _device, uint32_t bar)
-{
-    uint8_t offset = 0x10 +bar * 4 ;
-    uint32_t bar_origin = get_pci_bar(_device, bar);
-    uint32_t size = 0;
-    if (bar < 0 || bar >= 6)
-        return -1;
-    write_pci_config_space(_device->bus,
-        _device->device,
-        _device->function,
-        offset,
-        0xffffffff);
-    size = get_pci_bar(_device, bar);
-    size = ~size;
-    size += 1;
-    write_pci_config_space(_device->bus,
-        _device->device,
-        _device->function,
-        offset,
-        bar_origin);
-    return size;
-}
-uint8_t
-get_pci_device_prog_if(uint8_t bus,
-    uint8_t device,
-    uint8_t function)
-{
-    uint16_t word = read_pci_config_space(bus, device, function, 0x8);
-    return (word >> 8) & 0xff;
-}
-uint16_t
-get_pci_device_vendor_id(uint8_t bus,
-    uint8_t device,
-    uint8_t function)
-{
-    return read_pci_config_space(bus, device, function, 0x0);
-}
-
-uint16_t
-get_pci_device_device_id(uint8_t bus,
-    uint8_t device,
-    uint8_t function)
-{
-    return read_pci_config_space(bus, device, function, 0x2);
-}
-
-uint8_t
-get_pci_device_class(uint8_t bus,
-    uint8_t device,
-    uint8_t function)
-{
-    uint16_t word =  read_pci_config_space(bus, device, function, 0xa);
-    return (word >> 8) & 0xff;
-}
-
-uint8_t
-get_pci_device_subclass(uint8_t bus,
-    uint8_t device,
-    uint8_t function)
-{
-    uint16_t word =  read_pci_config_space(bus, device, function, 0xa);
-    return word & 0xff;
-}
-
-uint8_t
-get_pci_device_header_type(uint8_t bus,
-    uint8_t device,
-    uint8_t function)
-{
-    uint16_t word =  read_pci_config_space(bus, device, function, 0xe);
-    return word & 0xff;
-}
-uint16_t
-get_pci_device_interrupt(uint8_t bus,
-    uint8_t device,
-    uint8_t function)
-{
-    return read_pci_config_space(bus, device, function, 0x3c);
-}
+/*
+ * all are deprecated below this line
+ */
 void
 enumerate_pci_devices(void)
 {
@@ -154,42 +81,25 @@ enumerate_pci_devices(void)
     int bus;
     int device;
     int function;
-    uint8_t class;
-    uint8_t subclass;
     uint16_t vendor_id;
-    uint16_t device_id;
-    uint8_t header_type;
-    uint8_t prog_if;
-    uint16_t interrupt;
     struct pci_device * _device;
     for(bus = 0; bus < 256; bus++) {
         for(device = 0; device < 32; device++) {
             for(function = 0; function < 8; function++) {
-                vendor_id = get_pci_device_vendor_id(bus, device, function);
+                vendor_id = pci_config_read_word(bus,
+                    device,
+                    function,
+                    PCI_DEVICE_VENDOR_ID_OFFSET);
                 if (vendor_id == 0xffff)
                     continue;
-                device_id = get_pci_device_device_id(bus, device, function);
-                class = get_pci_device_class(bus, device, function);
-                subclass = get_pci_device_subclass(bus, device, function);
-                header_type = get_pci_device_header_type(bus, device, function);
-                interrupt = get_pci_device_interrupt(bus, device, function);
-                prog_if = get_pci_device_prog_if(bus, device, function);
                 _device = malloc(sizeof(struct pci_device));
                 memset(_device, 0x0, sizeof(struct pci_device));
                 _device->bus = bus;
                 _device->device = device;
                 _device->function = function;
-                _device->vendor_id = vendor_id;
-                _device->device_id = device_id;
-                _device->class = class;
-                _device->subclass = subclass;
-                _device->header_type = header_type;
-                _device->prog_if = prog_if;
-                _device->irq_line = interrupt & 0xff;
-                _device->irq_pin = (interrupt >> 8) & 0xff;
-                for(bar = 0; bar < 6; bar++) {
-                    _device->bar[bar] = get_pci_bar(_device, bar);
-                    _device->bar_size[bar] = get_pci_bar_size(_device, bar); 
+                for (bar = 0; bar < 6; bar++) {
+                    _device->bar[bar] = pci_device_bar(_device, bar);
+                    _device->bar_size[bar] = pci_device_bar_size(_device, bar);
                 }
                 list_append(&pci_device_list, &_device->list);
             }
@@ -205,22 +115,23 @@ dump_pci_devices(void)
     struct pci_device * _device;
     LIST_FOREACH_START(&pci_device_list, _list) {
         _device = CONTAINER_OF(_list, struct pci_device, list);
-        LOG_INFO("%x:%x.%x vendor_id:%x device_id:%x class:%x "
+        LOG_INFO("%x:%x.%x vendor_id:%x device_id:%x status:%x class:%x "
             "subclass:%x\n       "
             "header_type:%x prog_if:%x irq_pin:%x irq_line:%x\n",
             _device->bus,
             _device->device,
             _device->function,
-            _device->vendor_id,
-            _device->device_id,
-            _device->class,
-            _device->subclass,
-            _device->header_type,
-            _device->prog_if,
-            _device->irq_pin,
-            _device->irq_line);
+            pci_device_vendor_id(_device),
+            pci_device_device_id(_device),
+            pci_device_status(_device),
+            pci_device_class(_device),
+            pci_device_subclass(_device),
+            pci_device_header_type(_device),
+            pci_device_prog_if(_device),
+            pci_device_interrupt_pin(_device),
+            pci_device_interrupt_line(_device));
         for(bar = 0; bar < 6; bar++) {
-            if (!_device->bar[bar])
+            if (!pci_device_bar(_device, bar))
                 continue;
             printk("       bar %d: base:0x%x, size:0x%x\n",
                 bar,
@@ -231,9 +142,71 @@ dump_pci_devices(void)
     LIST_FOREACH_END();
 }
 void
+register_pci_device_driver(struct pci_driver * driver)
+{
+    LOG_INFO("Register PCI device driver:%s 0x%x\n",
+        driver->name,
+        driver);
+    list_append(&pci_driver_list, &driver->list);
+}
+
+void
 pci_init(void)
 {
-    list_init(&pci_device_list);
     enumerate_pci_devices();
     dump_pci_devices();
+}
+
+__attribute__((constructor)) void
+pci_pre_init(void)
+{
+    list_init(&pci_device_list);
+    list_init(&pci_driver_list);
+}
+static struct pci_driver *
+pci_device_probe_driver(struct pci_device * pdev)
+{
+    struct list_elem * _list = NULL;
+    struct pci_driver * pdriver = NULL;
+    struct pci_driver * target_driver = NULL;
+    uint16_t vendor_id = pci_device_vendor_id(pdev);
+    uint16_t device_id = pci_device_device_id(pdev);
+    uint8_t class = pci_device_class(pdev);
+    uint8_t subclass = pci_device_subclass(pdev);
+    LIST_FOREACH_START(&pci_driver_list, _list) {
+        pdriver = CONTAINER_OF(_list, struct pci_driver, list);
+        if (pdriver->vendor_id == vendor_id &&
+            pdriver->device_id == device_id &&
+            pdriver->class == class &&
+            pdriver->subclass == subclass) {
+            target_driver = pdriver;
+            break;
+        }
+    }
+    LIST_FOREACH_END();
+    return target_driver;
+}
+void
+pci_post_init(void)
+{
+    struct list_elem * _list = NULL;
+    struct pci_device * pdev = NULL;
+    struct pci_driver * target_driver = NULL;
+    LIST_FOREACH_START(&pci_device_list, _list) {
+        pdev = CONTAINER_OF(_list, struct pci_device, list);
+        if (pdev->driver)
+            continue;
+        if (!(target_driver = pci_device_probe_driver(pdev)))
+            continue;
+        pdev->driver = target_driver;
+        LOG_INFO("associate pci device:%x:%x.%x with driver:%s(0x%x)\n",
+            pdev->bus,
+            pdev->device,
+            pdev->function,
+            target_driver->name,
+            target_driver);
+        if (target_driver->attach)
+            target_driver->attach(pdev);
+    }
+    LIST_FOREACH_END();
 }

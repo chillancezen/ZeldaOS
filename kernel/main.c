@@ -29,6 +29,7 @@
 #include <filesystem/include/devfs.h>
 #include <device/include/pseudo_terminal.h>
 #include <device/include/console.h>
+#include <network/include/virtio.h>
 
 static struct multiboot_info * boot_info;
 static void
@@ -82,12 +83,18 @@ init4(void)
     devfs_init();
 }
 static void
+init5(void)
+{
+    virtio_net_init();
+}
+static void
 post_init(void)
 {
    serial_post_init();
    ptty_post_init();
    console_init();
    timer_init();
+   pci_post_init();
    task_init();
    schedule_enable();
 }
@@ -99,6 +106,7 @@ void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
     init2();
     init3();
     init4();
+    init5();
     post_init();
     sti();
 }

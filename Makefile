@@ -1,3 +1,5 @@
+DIRS = x86 kernel lib device memory filesystem network
+
 include mk/Makefile.kernel
 
 app:
