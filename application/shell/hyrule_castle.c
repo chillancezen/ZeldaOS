@@ -38,12 +38,19 @@ shell_clear(const char * path, char ** argv, char ** envp)
     clear_screen();
     return -ERR_PROCESSED;
 }
-
+static int
+shell_exit(const char * path, char **argv, char ** envp)
+{
+    printf("shell is ready to exit...\n");
+    exit(0);
+    return -ERR_PROCESSED;
+}
 struct builtin_command_hander {
     char * command;
     int (*handler)(const char * path, char ** argv, char ** envp);
 } shell_builtin_command[] = {
     {"clear", shell_clear},
+    {"exit", shell_exit},
     {NULL, NULL},
 };
 

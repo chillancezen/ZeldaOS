@@ -31,6 +31,7 @@
 #include <device/include/console.h>
 #include <network/include/virtio.h>
 
+
 static struct multiboot_info * boot_info;
 static void
 pre_init(void)

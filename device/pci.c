@@ -100,6 +100,10 @@ enumerate_pci_devices(void)
                 for (bar = 0; bar < 6; bar++) {
                     _device->bar[bar] = pci_device_bar(_device, bar);
                     _device->bar_size[bar] = pci_device_bar_size(_device, bar);
+                    _device->bar_ioaddr[bar] = _device->bar[bar] & 1 ?
+                        _device->bar[bar] & 0xfffffffc :
+                        _device->bar[bar] & 0xfffffff0;
+                        
                 }
                 list_append(&pci_device_list, &_device->list);
             }
@@ -133,9 +137,10 @@ dump_pci_devices(void)
         for(bar = 0; bar < 6; bar++) {
             if (!pci_device_bar(_device, bar))
                 continue;
-            printk("       bar %d: base:0x%x, size:0x%x\n",
+            printk("       bar %d: base:0x%x(%s), size:0x%x\n",
                 bar,
-                _device->bar[bar],
+                _device->bar_ioaddr[bar],
+                _device->bar[bar] & 0x1 ? "io region" : "mem region",
                 _device->bar_size[bar]);
         }
     }

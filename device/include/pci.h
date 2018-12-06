@@ -39,10 +39,12 @@ struct pci_device {
     // here we cache all BARs
     uint32_t bar[6];
     uint32_t bar_size[6];
-
+    uint32_t bar_ioaddr[6];
     // if the driver is set, it should not be associated with a driver again
     // until it's detached. 
     struct pci_driver * driver;
+
+    void * priv;
 };
 
 #define FOREACH_CAPABILITY_START(pdev, pcap, cap_offset) {\
