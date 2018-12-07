@@ -29,8 +29,39 @@
 
 #define VIRTIO_NET_DEVICE_CONFIG_STATUS_OFFSET  (VIRTIO_PCI_DEVICE_CONFIG + 6)
 #define VIRTIO_NET_DEVICE_CONFIG_NR_VQ_OFFSET   (VIRTIO_PCI_DEVICE_CONFIG + 8)
-#define MAX_VIRTIO_NET_VQ_PAIRS     4
- 
+// I am  not supporting multiple virtqueues as of now.
+#define MAX_VIRTIO_NET_VQ_PAIRS     1
+
+struct virtq_desc {
+    uint32_t addr;
+    uint32_t ___unused;
+    uint32_t len;
+#define VIRTQ_DESC_F_NEXT       0x1
+#define VIRTQ_DESC_F_WRITE      0x2
+#define VIRTQ_DESC_F_INDIRECT   0x4
+    uint16_t flags;
+    uint16_t next; 
+}__attribute__((packed));
+
+struct virtq_avail {
+#define VIRTQ_AVAIL_F_NO_INTERRUPT  0x1
+    uint16_t flags;
+    uint16_t idx;
+    uint16_t ring[0];
+}__attribute__((packed));
+
+struct virt_used_elem {
+    uint32_t id;
+    uint32_t len;
+}__attribute__((packed));
+
+struct virtq_used {
+#define VIRTQ_AVAIL_F_NO_INTERRUPT  0x1
+    uint16_t flags;
+    uint16_t idx;
+    struct virt_used_elem ring[0];
+} __attribute__((packed));
+
 struct virtio_net {
     uint32_t feature;
     uint8_t mac[6];
@@ -43,11 +74,12 @@ struct virtio_net {
 
     struct {
         uint32_t queue_size;
-        // note this linear address `queue_vaddr` is not physical address 
         uint32_t queue_vaddr;
+        uint32_t queue_paddr;
         uint32_t nr_pages;
-    } virtqueues[MAX_VIRTIO_NET_VQ_PAIRS];
+    } virtqueues[MAX_VIRTIO_NET_VQ_PAIRS * 2 + 1];
 };
+
 void
 virtio_net_init(void);
 #endif

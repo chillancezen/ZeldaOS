@@ -6,6 +6,12 @@
 #include <x86/include/ioport.h>
 #include <kernel/include/printk.h>
 
+uint8_t
+virtio_dev_get_status(struct pci_device * pdev)
+{
+    return inb(pdev->bar_ioaddr[0] + VIRTIO_PCI_STATUS);
+}
+
 void
 virtio_dev_set_status(struct pci_device * pdev, uint8_t status)
 {

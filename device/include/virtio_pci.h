@@ -27,6 +27,10 @@
 
 #define VIRTIO_F_RING_INDIRECT_DESC         (1 << 28)
 #define VIRTIO_F_RING_EVENT_IDX             (1 << 29)
+
+uint8_t
+virtio_dev_get_status(struct pci_device * pdev);
+
 void
 virtio_dev_set_status(struct pci_device * pdev, uint8_t status);
 

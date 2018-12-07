@@ -99,6 +99,7 @@ post_init(void)
    task_init();
    schedule_enable();
 }
+
 void kernel_main(struct multiboot_info * _boot_info, void * magicnum __used)
 {
     boot_info = _boot_info;
