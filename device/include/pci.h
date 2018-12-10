@@ -118,6 +118,13 @@ pci_config_write_dword(uint8_t bus,
     uint8_t offset,
     uint32_t data);
 
+void
+pci_config_write_word(uint8_t bus,
+    uint8_t device,
+    uint8_t function,
+    uint8_t offset,
+    uint16_t data);
+
 static inline uint16_t
 pci_device_vendor_id(struct pci_device * pdev)
 {
@@ -280,5 +287,16 @@ pci_device_interrupt_line(struct pci_device * pdev)
         pdev->device,
         pdev->function,
         PCI_DEVICE_INTERRUPT_LINE_OFFSET);
+}
+static inline void
+pci_device_enable_interrupt_line(struct pci_device * pdev)
+{
+    uint16_t command = pci_device_command(pdev);
+    command |= 0x404;
+    pci_config_write_word(pdev->bus,
+        pdev->device,
+        pdev->function,
+        PCI_DEVICE_COMMAND_OFFSET,
+        command);
 }
 #endif

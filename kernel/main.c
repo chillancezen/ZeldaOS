@@ -29,7 +29,7 @@
 #include <filesystem/include/devfs.h>
 #include <device/include/pseudo_terminal.h>
 #include <device/include/console.h>
-#include <network/include/virtio.h>
+#include <network/include/virtio_net.h>
 
 
 static struct multiboot_info * boot_info;

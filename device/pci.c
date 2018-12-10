@@ -70,7 +70,22 @@ pci_config_write_dword(uint8_t bus,
     outl(PCI_OCNFIG_ADDRESS, addr);
     outl(PCI_CONFIG_DATA, data);
 }
-
+void
+pci_config_write_word(uint8_t bus,
+    uint8_t device,
+    uint8_t function,
+    uint8_t offset,
+    uint16_t data)
+{
+    uint32_t addr = 0;
+    addr |= bus << 16;
+    addr |= (device & 0x1f) << 11;
+    addr |= (function & 0x7) << 8;
+    addr |= offset & 0xfc;
+    addr |= 0x80000000;
+    outl(PCI_OCNFIG_ADDRESS, addr);
+    outw(PCI_CONFIG_DATA, data);
+}
 /*
  * all are deprecated below this line
  */

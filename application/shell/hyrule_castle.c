@@ -9,14 +9,13 @@
 #include <builtin.h>
 #include <zelda.h>
 #include <string.h>
-
-int exit(int);
+#include <stdlib.h>
+//int exit(int);
 
 static void
 shell_sigint_handler(int signal)
 {
-    printf("Shell exits\n");
-    exit(0);
+    printf("Shell interrupted\n");
 }
 
 static char cmd_hint[128];
@@ -83,6 +82,7 @@ process_shell_commands(const char * path,
 
 int main(int argc, char ** argv)
 {
+    int is_serial0 = 0;
     char command_line_buffer[MAX_COMMAND_LINE_BUFFER_LENGTH];
     char oneshot_buff[MAX_ONESHOT_BUFFER_LENGTH];
     int rc = 0;
@@ -91,6 +91,8 @@ int main(int argc, char ** argv)
     int left = 0;
     int terminate = 0;
     int sub_task;
+    char * tty = getenv("tty");
+    is_serial0 = tty && !strcmp(tty, "/dev/serial0");
     assert(!signal(SIGINT, shell_sigint_handler));
     pseudo_terminal_enable_master();
     update_cmd_hint();
@@ -129,13 +131,24 @@ int main(int argc, char ** argv)
                 }
             }
             iptr_inner = strlen(oneshot_buff);
-            if (iptr_inner)
+            if (iptr_inner && !is_serial0)
                 write(1, oneshot_buff, iptr_inner);
             if (terminate)
                 break;
         }
-        write(1, "\n", 1);
+        if (!is_serial0)
+            write(1, "\n", 1);
         // Got one command line, process the builtin commands first
+        // strip '\r' one more time, in /dev/serial0, an extra '\r' is put
+        // into the buffer
+        {
+            for (iptr = 0; iptr < MAX_COMMAND_LINE_BUFFER_LENGTH; iptr++) {
+                if (command_line_buffer[iptr] == '\r') {
+                    command_line_buffer[iptr] = '\x0';
+                    break;
+                }
+            }
+        }
         sub_task =
             exec_command_line(command_line_buffer, process_shell_commands);
         if (sub_task > 0) {

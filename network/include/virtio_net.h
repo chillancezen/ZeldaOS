@@ -2,9 +2,10 @@
  * Copyright (c) 2018 Jie Zheng
  */
 
-#ifndef _VIRTIO_H
-#define _VIRTIO_H
+#ifndef _VIRTIO_NET_H
+#define _VIRTIO_NET_H
 #include <device/include/virtio_pci.h>
+#include <lib/include/ring.h>
 
 #define VIRTIO_NET_F_CSUM           (1 << 0) // Device is able to check partial sum
 #define VIRTIO_NET_F_GUEST_CSUM     (1 << 1) // DRIVER negotiates to use CSUM
@@ -29,16 +30,19 @@
 
 #define VIRTIO_NET_DEVICE_CONFIG_STATUS_OFFSET  (VIRTIO_PCI_DEVICE_CONFIG + 6)
 #define VIRTIO_NET_DEVICE_CONFIG_NR_VQ_OFFSET   (VIRTIO_PCI_DEVICE_CONFIG + 8)
-// I am  not supporting multiple virtqueues as of now.
+// I am not supporting multiple virtqueues as of now.
 #define MAX_VIRTIO_NET_VQ_PAIRS     1
-
+// these data structures below are supposed to be within the scope of
+// common transport layer, I put them here due to the fact I will implement
+// no other device driver than virtnet 
 struct virtq_desc {
-    uint32_t addr;
-    uint32_t ___unused;
+    uint64_t addr;
+    //uint32_t ___unused;
     uint32_t len;
 #define VIRTQ_DESC_F_NEXT       0x1
 #define VIRTQ_DESC_F_WRITE      0x2
 #define VIRTQ_DESC_F_INDIRECT   0x4
+//WE do not descriptor chaining and indirect buffer list
     uint16_t flags;
     uint16_t next; 
 }__attribute__((packed));
@@ -56,7 +60,7 @@ struct virt_used_elem {
 }__attribute__((packed));
 
 struct virtq_used {
-#define VIRTQ_AVAIL_F_NO_INTERRUPT  0x1
+#define VIRTQ_USED_F_NO_NOTIFY  0x1
     uint16_t flags;
     uint16_t idx;
     struct virt_used_elem ring[0];
@@ -73,10 +77,19 @@ struct virtio_net {
     uint16_t max_vq_pairs;
 
     struct {
+        // Basic information about the virtqueue
         uint32_t queue_size;
         uint32_t queue_vaddr;
         uint32_t queue_paddr;
         uint32_t nr_pages;
+        // helper pointer
+        struct virtq_desc  * vq_desc;
+        struct virtq_avail * vq_avail;
+        struct virtq_used  * vq_used;
+        // The seperal ring buffer of free descriptors.
+        // the ring buffer has nothing to do with virtqueue in spec, but it
+        // enable us to do fast lookup for free descriptors.
+        struct ring * free_desc_ring;
     } virtqueues[MAX_VIRTIO_NET_VQ_PAIRS * 2 + 1];
 };
 

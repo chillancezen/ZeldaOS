@@ -45,4 +45,12 @@ page_round_addr(uint32_t addr)
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
+#define HIGH_BYTE(word) ((uint8_t)(((word) >> 8) & 0xff))
+#define LOW_BYTE(word) ((uint8_t)((word) & 0xff))
+#define MAKE_WORD(high_byte, low_byte) \
+    ((uint16_t)(((low_byte) & 0xff) | (((high_byte) << 8) & 0xff00)))
+
+#define mfence() {__asm__ __volatile__("mfence;":::"memory");}
+#define sfence() {__asm__ __volatile__("sfence;":::"memory");}
+#define lfence() {__asm__ __volatile__("lfence;":::"memory");}
 #endif

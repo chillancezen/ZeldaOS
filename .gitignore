@@ -57,3 +57,4 @@ dkms.conf
 *.qcow2
 Zelda.drive
 !runtime/libc/*
+qemu.log

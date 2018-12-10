@@ -22,6 +22,7 @@
 #define VIRTIO_PCI_STATUS_ACK           0x1
 #define VIRTIO_PCI_STATUS_DRIVER        0x2
 #define VIRTIO_PCI_STATUS_DRIVER_OK     0x4
+#define VIRTIO_PCI_STATUS_FEATURE_OK    0x8
 #define VIRTIO_PCI_STATUS_FAIL          0x80 
 
 

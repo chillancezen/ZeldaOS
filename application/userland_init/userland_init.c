@@ -63,7 +63,7 @@ main(int argc, char * argv[])
         for (ptr_end = ptr + 1; *ptr_end && *ptr_end != '\n'; ptr_end++);
         *ptr_end = '\0';
         task_id = exec_command_line(ptr, NULL);
-        printf("loadding;%s as task:%d\n", ptr, task_id);
+        printf("loading:%s as task:%d\n", ptr, task_id);
         //while(wait0(task_id));
         ptr = ptr_end + 1;
     }
