@@ -479,7 +479,7 @@ call_sys_execve(struct x86_cpustate * cpu,
 static struct utsname zelda_uts = {
     .sysname = "ZeldaOS",
     .nodename = "Hyrule",
-    .release = "botw",
+    .release = "The Brave",
     .version = "0.1",
     .machine = "i686",
     .domainname = "kingdom",

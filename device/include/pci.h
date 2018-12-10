@@ -291,8 +291,10 @@ pci_device_interrupt_line(struct pci_device * pdev)
 static inline void
 pci_device_enable_interrupt_line(struct pci_device * pdev)
 {
+    #define PCI_COMMAND_INTERRUPT_ENABLE_BIT   0x400
     uint16_t command = pci_device_command(pdev);
-    command |= 0x404;
+    //command |= 0x404;
+    command &= ~PCI_COMMAND_INTERRUPT_ENABLE_BIT;
     pci_config_write_word(pdev->bus,
         pdev->device,
         pdev->function,

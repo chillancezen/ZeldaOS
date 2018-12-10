@@ -283,6 +283,8 @@ virtio_device_attach(struct pci_device * pdev)
     }
     virtio_dev_set_status(pdev, VIRTIO_PCI_STATUS_DRIVER_OK);
     pci_device_enable_interrupt_line(pdev);
+    virtio_net_device_virtqueue_enable_interrupt(pdev, 0);
+#if 0
     {
         int idx = 0;
         uint32_t kernel_page_directory = get_kernel_page_directory();
@@ -297,6 +299,7 @@ virtio_device_attach(struct pci_device * pdev)
         }
         ASSERT(virtio_net_device_raw_send(pdev, 0, shadow_descs, 8) == 8);
     }
+#endif
     return OK;
 }
 

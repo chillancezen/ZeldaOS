@@ -8,9 +8,8 @@
  */
 
 //#define KERNEL_LOGGING_LEVEL LOG_TRIVIA
-//#define KERNEL_LOGGING_LEVEL LOG_DEBUG
+#define KERNEL_LOGGING_LEVEL LOG_DEBUG
 //#define KERNEL_LOGGING_LEVEL LOG_INFO
-#define KERNEL_LOGGING_LEVEL LOG_INFO
 /*
  *KERNEL_VMA_ARRAY_LENGTH is the length of kernel VMA array, this is
  *to be larger than 64
@@ -111,6 +110,10 @@
 #define PSEUDO_BUFFER_SIZE 64
 
 
-
+// the path to initialize Userland applications
+// this path is to initiate the first PL3 task 
 #define USERLAND_INIT_PATH "/usr/bin/userland_init"
 
+// default network packet amount.
+// the actual memory needed is `DEFAULT_NET_PACKET_AMOUNT` * 2048
+#define DEFAULT_NET_PACKET_AMOUNT   (1024 * 8)

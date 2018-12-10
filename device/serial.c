@@ -113,10 +113,13 @@ static uint32_t
 serial_port_interrupt_hadnler(struct x86_cpustate * cpu)
 {
     uint32_t esp = (uint32_t)cpu;
+    uint32_t nr_recv = 0;
     while(serial_data_available()) {
         ring_enqueue(serial_local_buff, serial_read());
+        nr_recv++;
     }
-    wake_up(&wq_head);
+    if (nr_recv)
+        wake_up(&wq_head);
     return esp;
 }
 

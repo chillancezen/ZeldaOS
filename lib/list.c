@@ -110,6 +110,16 @@ element_in_list(struct list_elem * head, struct list_elem * elem)
 {
     int32_t found = 0;
     struct list_elem * _list =NULL;
+    {
+        // Do fast check as an improvment in most cases where an element is
+        // always detached.
+        if (!elem->next &&
+            !elem->prev &&
+            head->next != elem &&
+            head->prev != elem)
+            return 0;
+
+    }
     LIST_FOREACH_START(head, _list) {
         if (_list == elem) {
             found = 1;

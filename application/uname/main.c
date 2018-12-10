@@ -11,11 +11,11 @@ main(int argc, char * argv[])
     struct utsname uts;
     
     assert(!uname(&uts));
-    printf("sysname(-s)  : %s\n", uts.sysname);
-    printf("nodename(-n) : %s\n", uts.nodename);
-    printf("release(-r)  : %s\n", uts.release);
-    printf("version(-v)  : %s\n", uts.version);
-    printf("machin(-m)   : %s\n", uts.machine);
-    printf("domain(-d)   : %s\n", uts.domainname);
+    printf("sysname  : %s\n", uts.sysname);
+    printf("nodename : %s\n", uts.nodename);
+    printf("release  : %s\n", uts.release);
+    printf("version  : %s\n", uts.version);
+    printf("machine  : %s\n", uts.machine);
+    printf("domain   : %s\n", uts.domainname);
     return 0;
 }

@@ -30,6 +30,7 @@
 #include <device/include/pseudo_terminal.h>
 #include <device/include/console.h>
 #include <network/include/virtio_net.h>
+#include <network/include/net_packet.h>
 
 
 static struct multiboot_info * boot_info;
@@ -86,6 +87,7 @@ init4(void)
 static void
 init5(void)
 {
+    net_packet_init();
     virtio_net_init();
 }
 static void
