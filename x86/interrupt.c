@@ -7,11 +7,18 @@
 #include <x86/include/gdt.h>
 #include <x86/include/ioport.h>
 #include <kernel/include/printk.h>
+#include <lib/include/list.h>
 
-struct interrupt_gate_entry IDT[IDT_SIZE] __attribute__((aligned(8)));
-//one vector can not map to more than one device
-//I.E. one device exclusively take one vector number.
-int_handler *  handlers[IDT_SIZE];
+static struct interrupt_gate_entry IDT[IDT_SIZE] __attribute__((aligned(8)));
+// one vector can not map to more than one device
+// I.E. one device exclusively take one vector number.
+// XXX: as a fix, one vector can be shared by more than one device, once the
+// interrupt is happening, every device associated handler will be called,
+// the handler itself should examine whether the devcie triggered interrupt
+// and do something...
+static int_handler * handlers[IDT_SIZE];
+static struct list_elem component_handler_head[IDT_SIZE];
+static uint8_t compound_vectors[] = {0xa, 0xb};
 
 void
 dump_x86_cpustate(struct x86_cpustate *cpu)
@@ -27,6 +34,23 @@ dump_x86_cpustate(struct x86_cpustate *cpu)
     printk("   eflags:%x esp:%x ss:%x\n",
         cpu->eflags, cpu->esp, cpu->ss);
 }
+static uint32_t
+compound_interrupt_handler(struct x86_cpustate * cpu);
+
+void
+register_linked_interrupt_handler(int vector_number,
+    struct linked_handler * lhandler,
+    char * description)
+{
+    LOG_INFO("register linked interrupt handler:(%d, %s[0x%x])\n",
+        vector_number,
+        description,
+        lhandler);
+    ASSERT(vector_number < IDT_SIZE && vector_number >= 0);
+    ASSERT(handlers[vector_number] == compound_interrupt_handler);
+    list_append(&component_handler_head[vector_number], &lhandler->list);
+}
+
 void
 register_interrupt_handler(
     int vector_number,
@@ -37,6 +61,8 @@ register_interrupt_handler(
         vector_number,
         description,
         handler);
+    ASSERT(vector_number < IDT_SIZE && vector_number >= 0);
+    ASSERT(!handlers[vector_number]);
     handlers[vector_number] =  handler;
 }
 static void
@@ -50,7 +76,41 @@ set_interrupt_gate(int vector_number, void (*entry)(void))
     IDT[vector_number].present = 1;
     IDT[vector_number].offset_high = (((uint32_t)entry) >> 16) & 0xffff;
 }
+static uint32_t
+compound_interrupt_handler(struct x86_cpustate * cpu)
+{
+    uint32_t ESP = (uint32_t)cpu;
+    struct list_elem * _list = NULL;
+    struct linked_handler * lhandler = NULL;
+    uint32_t interrupt_vector = cpu->vector;
+    LIST_FOREACH_START(&component_handler_head[interrupt_vector], _list) {
+        lhandler = CONTAINER_OF(_list, struct linked_handler, list);
+        ASSERT(lhandler->handler);
+        // FIXME: currently, all linked handler will be invoked, it will take
+        // a lot of time to iterate the list and handlers, to supress the time
+        // to react with the interrupt, the individual handler must quickly
+        // enough to detect whether its devcie caused the interrupt.
+        // To improve the overall time, we may give up iteration once a device
+        // handler has confirmed that the interrupt has been consumed.
+        lhandler->handler(cpu, lhandler->blob);
+    }
+    LIST_FOREACH_END();
+    return ESP;
+}
 
+void
+setup_compound_interrupt_handler(int vector_number)
+{
+    ASSERT(vector_number < IDT_SIZE && vector_number >= 0);
+    ASSERT(!handlers[vector_number] ||
+        handlers[vector_number] == compound_interrupt_handler);
+    if (!handlers[vector_number]) {
+        register_interrupt_handler(vector_number,
+            compound_interrupt_handler,
+            "compound interrupt handler");
+        list_init(&component_handler_head[vector_number]);
+    }
+}
 static void
 set_dpl3_interrupt_gate(int vector_number, void (*entry)(void))
 {
@@ -91,14 +151,22 @@ uint32_t interrupt_handler(struct x86_cpustate * cpu)
     return ESP;
 }
 
+
 void idt_init(void)
 {
     struct idt_pointer idtp;
     idtp.limit = sizeof(IDT) - 1;
     idtp.base = (uint32_t)(void*)IDT;
-
     memset(IDT, 0x0, sizeof(IDT));
     memset(handlers, 0x0, sizeof(handlers));
+    memset(component_handler_head, 0x0, sizeof(component_handler_head));
+    {
+        // Do registration for compound interrupt vectors
+        int idx = 0;
+        for (idx = 0; idx < sizeof(compound_vectors); idx++) {
+            setup_compound_interrupt_handler(compound_vectors[idx] + 0x20);
+        }
+    }
     set_interrupt_gate(0, int0);
     set_interrupt_gate(1, int1);
     set_interrupt_gate(2, int2);

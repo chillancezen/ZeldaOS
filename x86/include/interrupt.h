@@ -4,6 +4,7 @@
 #ifndef _INTERRUPT_H
 #define _INTERRUPT_H
 #include <lib/include/types.h>
+#include <lib/include/list.h>
 
 #define EFLAGS_CF 0x0001
 #define EFLAGS_ONE 0x0002
@@ -83,11 +84,27 @@ struct idt_pointer {
     uint32_t base;
 }__attribute__((packed));
 
+
 void dump_x86_cpustate(struct x86_cpustate *cpu);
 typedef uint32_t int_handler(struct x86_cpustate *);
 
+// This is to support shared interrupt bundling.
+struct linked_handler {
+    struct list_elem list;
+    uint32_t (*handler)(struct x86_cpustate * cpu, void * blob);
+    void * blob;
+};
+
 void register_interrupt_handler(int vector_number,
     int_handler * handler,
+    char * description);
+
+void
+setup_compound_interrupt_handler(int vector_number);
+
+void
+register_linked_interrupt_handler(int vector_number,
+    struct linked_handler * lhandler,
     char * description);
 
 static inline void
