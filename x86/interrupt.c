@@ -86,7 +86,7 @@ compound_interrupt_handler(struct x86_cpustate * cpu)
     LIST_FOREACH_START(&component_handler_head[interrupt_vector], _list) {
         lhandler = CONTAINER_OF(_list, struct linked_handler, list);
         ASSERT(lhandler->handler);
-        // FIXME: currently, all linked handler will be invoked, it will take
+        // TODO: currently, all linked handler will be invoked, it will take
         // a lot of time to iterate the list and handlers, to supress the time
         // to react with the interrupt, the individual handler must quickly
         // enough to detect whether its devcie caused the interrupt.

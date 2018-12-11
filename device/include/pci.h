@@ -7,6 +7,7 @@
 
 #include <lib/include/types.h>
 #include <lib/include/list.h>
+#include <x86/include/interrupt.h>
 
 struct pci_device_capability_space {
     uint8_t cap_id;
@@ -301,4 +302,8 @@ pci_device_enable_interrupt_line(struct pci_device * pdev)
         PCI_DEVICE_COMMAND_OFFSET,
         command);
 }
+void
+register_pci_interrupt_linked_interrupt_handler(struct pci_device * pdev,
+    uint32_t (*handler)(struct x86_cpustate * cpu, void * blob),
+    void * blob);
 #endif

@@ -170,6 +170,32 @@ register_pci_device_driver(struct pci_driver * driver)
     list_append(&pci_driver_list, &driver->list);
 }
 
+// Note this involves memory allocation, it do not want to see any failure at
+// all, as a matter of fact, it will not fail.
+void
+register_pci_interrupt_linked_interrupt_handler(struct pci_device * pdev,
+    uint32_t (*handler)(struct x86_cpustate * cpu, void * blob),
+    void * blob)
+{
+    char description[64];
+    int32_t interrupt_line = pci_device_interrupt_line(pdev);
+    struct linked_handler * lhandler = NULL; 
+    lhandler = malloc_mapped(sizeof(struct linked_handler));
+    ASSERT(lhandler);
+    memset(lhandler, 0x0, sizeof(struct linked_handler));
+    setup_compound_interrupt_handler(interrupt_line + 0x20);
+    list_init(&lhandler->list);
+    lhandler->handler = handler;
+    lhandler->blob = blob;
+    sprintf(description, "PCI device %x:%x.%x interrupt handler",
+        pdev->bus,
+        pdev->device,
+        pdev->function,
+        interrupt_line + 0x20);
+    register_linked_interrupt_handler(interrupt_line + 0x20,
+        lhandler,
+        description);
+}
 void
 pci_init(void)
 {

@@ -70,6 +70,7 @@ struct virtio_net {
     uint32_t feature;
     uint8_t mac[6];
 
+    uint16_t ifaceid;
     // cache of status and max_vq_pairs
     #define VIRTIO_NET_S_LINK_UP    0x1
     #define VIRTIO_NET_S_ANNOUNCE   0x2

@@ -8,6 +8,7 @@
 #include <memory/include/paging.h>
 #include <memory/include/kernel_vma.h>
 #include <lib/include/string.h>
+#include <network/include/ethernet.h>
 #define VIRTIO_SIZE_ROUND(a) (((a) + PAGE_MASK) & ~PAGE_MASK)
 
 void
@@ -240,6 +241,26 @@ virtio_net_device_raw_send(struct pci_device * pdev,
     }
     return nr_added;
 }
+static uint32_t
+virtio_device_interrupt_handler(struct x86_cpustate * cpu, void * blob)
+{
+    struct pci_device * pdev = blob;
+    printk("interrupt:%x\n", virtio_dev_get_isr(pdev));
+    return OK;
+}
+
+
+
+static uint8_t *
+virtio_net_dev_get_mac(struct ethernet_device * eth_dev)
+{
+    struct pci_device * pdev = eth_dev->priv;
+    struct virtio_net * virt_netdev = (struct virtio_net *)pdev->priv;
+    return virt_netdev->mac;
+}
+static struct  ethernet_device_operation virtio_net_dev_ops = {
+    .get_mac = virtio_net_dev_get_mac,
+};
 
 static int
 virtio_device_attach(struct pci_device * pdev)
@@ -282,8 +303,25 @@ virtio_device_attach(struct pci_device * pdev)
         }
     }
     virtio_dev_set_status(pdev, VIRTIO_PCI_STATUS_DRIVER_OK);
+    // here we enable interrupt line, and do not use MSI-X signal
+    // also register the linked interrupt handler
     pci_device_enable_interrupt_line(pdev);
-    virtio_net_device_virtqueue_enable_interrupt(pdev, 0);
+    register_pci_interrupt_linked_interrupt_handler(pdev,
+        virtio_device_interrupt_handler,
+        pdev);
+    // register ethernet device then.
+    {
+        uint8_t dev_name[128];
+        sprintf((char *)dev_name, "Ethernet:%x:%x.%x",
+            pdev->bus,
+            pdev->device,
+            pdev->function);
+        netdev->ifaceid = register_ethernet_device(dev_name,
+            &virtio_net_dev_ops,
+            pdev);
+        ASSERT(netdev->ifaceid >= 0);
+        
+    }
 #if 0
     {
         int idx = 0;

@@ -117,3 +117,9 @@
 // default network packet amount.
 // the actual memory needed is `DEFAULT_NET_PACKET_AMOUNT` * 2048
 #define DEFAULT_NET_PACKET_AMOUNT   (1024 * 8)
+
+
+// Maximum number of Ethernet devices
+// FIXME: for scale reason, given a port index,
+// I should use a hash table to store and search the ethernet device.
+#define MAX_NR_ETHERNET_DEVCIES     256

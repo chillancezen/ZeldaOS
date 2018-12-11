@@ -32,6 +32,9 @@
 uint8_t
 virtio_dev_get_status(struct pci_device * pdev);
 
+uint8_t
+virtio_dev_get_isr(struct pci_device * pdev);
+
 void
 virtio_dev_set_status(struct pci_device * pdev, uint8_t status);
 
