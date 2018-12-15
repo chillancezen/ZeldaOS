@@ -1,2 +1,39 @@
-Zelda OS by Link the meow.
+#  ZeldaOS 
+
+`Written in C&inline assembly from scratch, ZeldaOS is an unix-like 32bit monolithic kernel which is designed to comform to POSIX.1 interface. At present, it's only able to run on any x86 and x86_64 processors. The name Zelda is from Nintendo video game: The Legend of Zelda`
+
+#### How to Build The Project ?
+To build the project, we need a 64bit Linux host (I used a CentOS 7.3) and GCC suite(my GCC version is 4.8.5, other versioned gcc are supposed to work), in order to  package a bootable ISO image, I also install rpm package: `#yum install -y xorriso`. the compilation tools will automatically generate 32bit elf objects with [Makefile and Linker script](https://github.com/chillancezen/ZeldaOS/tree/master/mk)
+
+
+To build the image and ISO image(imagine the project top directory is `/root/ZeldaOS/`):
+```
+#ZELDA=/root/ZeldaOS/ make runtime_install
+#ZELDA=/root/ZeldaOS/ make app_install
+#ZELDA=/root/ZeldaOS/ make drive
+#ZELDA=/root/ZeldaOS/ make
+```
+To clean the built objects:
+```
+#ZELDA=/root/ZeldaOS/ make runtime_clean
+#ZELDA=/root/ZeldaOS/ make app_clean
+#ZELDA=/root/ZeldaOS/ make clean
+```
+
+#### How to Launch the OS/kernel ?
+There are two ways to launch the ZeldaOS: 
+##### (a) Launch ZeldaOS via the Zelda.bin raw kernel image.
+this is the most usual way I did when I was debuging the code. you need to install qemu software beforehand, a typical command is given like:
+```
+#/usr/bin/qemu-system-x86_64 -serial tcp::4444,server -m 3024 -kernel Zelda.bin \
+-monitor null -nographic -vnc :100 -netdev tap,id=demonet0,ifname=demotap0,script=no,downscript=no \
+-device virtio-net-pci,netdev=demonet0,mac=52:53:54:55:56:00 \
+-netdev tap,id=demonet1,ifname=demotap1,script=no,downscript=no \
+-device virtio-net-pci,netdev=demonet1 -gdb tcp::5070
+```
+you can specify more different `-serial` parameter([qemu mannual](https://manpages.debian.org/testing/qemu-system-x86/qemu-system-x86_64.1.en.html)) to observe the output or input. right here you can use the shell by telnet to local qemu serial endpoint:
+```
+#telnet localhost 4444
+```
+
 
