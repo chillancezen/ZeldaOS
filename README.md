@@ -55,3 +55,57 @@ we have the splash window when the kernel boots(grub draws it):
 When the kernel is fully ready, the `default console` (which you can navigate to by `Alt+F1`) is displayed, there are other 6  consoles initiated by [`/usr/bin/userland_init`](https://github.com/chillancezen/ZeldaOS/blob/master/application/userland_init/etc/userland.init), you can switch the console by `Alt+F2 ... Alt+F7`, you will observe console as below:
 
 ![image_of_console0](https://raw.githubusercontent.com/chillancezen/misc/master/image/zelda_os_console0.png)
+
+### Feature inventory
+
+##### Archeticture Features:
+- [X] x86
+- [X] PIC, APIC will be supported in ZeldaOS.x86_64.
+- [X] interrupt management.
+- [ ] x86_64 will support in [ZeldaOS.x86_64](https://github.com/chillancezen/ZeldaOS.x86_64).
+- [ ] Symmetric multiprocessing (SMP).
+##### memory Features:
+- [X] physical memory management.
+- [X] 4K paging(No 3G barrier break) for both kernel and PL3 tasks.
+- [X] Virtual Memory Area(VMA) management(per-task VMAs and kernel VMAs).
+- [X] paging fault handling, including page non-presence and page permission fault.
+- [X] kernel memory allocator.
+##### Kernel Features:
+- [X] multitasking (PL0 tasks and PL3 tasks).
+- [X] task signal framework.
+- [X] Elf32 executable loading.
+- [X] task exception detection(e.g. illegal instruction, #GP, paging permission violation).
+- [X] Elf32 executable loading.
+- [X] Wait queue.
+- [X] Timer.
+- [ ] bottom half schedule.
+- [X] kernel panic.
+- [X] various logging options.
+##### Filesystem Features:
+- [X] Virtual File System (VFS).
+- [X] `zeldafs` as initramfs in Linux.
+- [X] `memfs` as tmpfs in Linux.
+- [X] `devfs` to expose kernel runtime data to userland.
+##### Network Features:
+- [X] net packets management.
+- [X] Ethernet device interface.
+- [ ] L2 multi-bridging(VLAN+MAC learning).
+- [ ] L3 multi-routing(ARP, ICMP).
+- [ ] overlay support(vxlan).
+- [ ] userland networking extension(LWIP).
+##### Device Features:
+- [X] Legacy virtio-net ethernet device driver(with revisionid == 0).
+- [ ] vmxnet3 ethernet device support.
+- [X] PS/2 keyboard management.
+- [X] Programmable Interval Timer(PIT) management.
+- [X] serial port input/output management and `serial console`.
+- [x] ~~ATA/IDE drive management~~.
+- [x] Lower level Text mode video buffer management.
+- [x] `pseudo terminal console` management.
+##### Miscellaneous Features:
+- [X] ZeldaOS [runtime](https://github.com/chillancezen/ZeldaOS/tree/master/runtime).
+- [X] `newlib` libc and libm port
+- [ ] dynamic programming language support
+- [X] [`system call list`](https://github.com/chillancezen/ZeldaOS/blob/master/runtime/syscall_inventory0.c)
+- [X] [`signal list`](https://github.com/chillancezen/ZeldaOS/blob/master/kernel/include/zelda_posix.h)
+- [X] multiple [Applications](https://github.com/chillancezen/ZeldaOS/tree/master/application) running at Privilege Level 3
