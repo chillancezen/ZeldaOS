@@ -75,12 +75,10 @@ When the kernel is fully ready, the `default console` (which you can navigate to
 - [X] task signal framework.
 - [X] Elf32 executable loading.
 - [X] task exception detection(e.g. illegal instruction, #GP, paging permission violation).
-- [X] Elf32 executable loading.
 - [X] Wait queue.
 - [X] Timer.
 - [ ] bottom half schedule.
 - [X] kernel panic.
-- [X] various logging options.
 ##### Filesystem Features:
 - [X] Virtual File System (VFS).
 - [X] `zeldafs` as initramfs in Linux.
