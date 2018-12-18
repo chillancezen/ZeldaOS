@@ -69,7 +69,7 @@ struct virtq_used {
 struct virtio_net {
     uint32_t feature;
     uint8_t mac[6];
-
+    uint16_t mtu;
     uint16_t ifaceid;
     // cache of status and max_vq_pairs
     #define VIRTIO_NET_S_LINK_UP    0x1
@@ -84,6 +84,7 @@ struct virtio_net {
         uint32_t queue_paddr;
         uint32_t nr_pages;
         // helper pointer
+        uint16_t last_used_idx;
         struct virtq_desc  * vq_desc;
         struct virtq_avail * vq_avail;
         struct virtq_used  * vq_used;
@@ -91,8 +92,25 @@ struct virtio_net {
         // the ring buffer has nothing to do with virtqueue in spec, but it
         // enable us to do fast lookup for free descriptors.
         struct ring * free_desc_ring;
+        //descriptor vaddr array
+        void ** opaque;
     } virtqueues[MAX_VIRTIO_NET_VQ_PAIRS * 2 + 1];
 };
+
+// This is the header which precedes the actual packet payload
+struct virtio_net_hdr {
+#define VIRTIO_NET_HDR_F_NEEDS_CSUM     0x1
+    uint8_t flags;
+// We are not going to support GSO at all
+#define VIRTIO_NET_HDR_GSO_NONE         0x0
+    uint8_t gso_type;
+    uint16_t hdr_len;
+    uint16_t gso_size;
+    uint16_t csum_start;
+    uint16_t csum_offset;
+    uint16_t num_buffers;
+}__attribute__((packed));
+
 
 void
 virtio_net_init(void);

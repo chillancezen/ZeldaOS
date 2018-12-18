@@ -8,6 +8,7 @@
 #include <memory/include/paging.h>
 #include <memory/include/kernel_vma.h>
 #include <lib/include/string.h>
+#include <network/include/net_packet.h>
 #include <network/include/ethernet.h>
 #define VIRTIO_SIZE_ROUND(a) (((a) + PAGE_MASK) & ~PAGE_MASK)
 
@@ -121,6 +122,7 @@ virtio_net_device_virt_queue_setup(struct pci_device * pdev, int vq_index)
         netdev->virtqueues[vq_index].queue_vaddr = virt_queue_base;
         netdev->virtqueues[vq_index].queue_paddr = phy_queue_base;
         netdev->virtqueues[vq_index].nr_pages = size_virtq >> 12;
+        netdev->virtqueues[vq_index].last_used_idx = 0;
         netdev->virtqueues[vq_index].vq_desc =
             (struct virtq_desc *)virt_queue_base;
         netdev->virtqueues[vq_index].vq_avail =
@@ -172,6 +174,16 @@ virtio_net_device_virt_queue_setup(struct pci_device * pdev, int vq_index)
                 idx_high));
         }
     }
+
+    {
+        // Allocate separate descriptor array to store the
+        // virtual addresses of a descriptor
+        ASSERT((netdev->virtqueues[vq_index].opaque =
+            (void **)malloc_mapped(sizeof(uint32_t) * queue_size)));
+        memset(netdev->virtqueues[vq_index].opaque,
+            0x0,
+            sizeof(uint32_t) * queue_size);
+    }
 }
 
 void
@@ -201,6 +213,7 @@ int32_t
 virtio_net_device_raw_send(struct pci_device * pdev,
     int vq_index,
     struct virtq_desc * descs,
+    void ** opaque,
     int nr_buffer)
 {
     int idx = 0;
@@ -223,12 +236,13 @@ virtio_net_device_raw_send(struct pci_device * pdev,
         ASSERT(read_ring(netdev->virtqueues[vq_index].free_desc_ring,
             &free_desc_index,
             2) == 2);
-        ASSERT(free_desc_index < netdev->virtqueues[vq_index].queue_size);
+        ASSERT(free_desc_index < netdev->virtqueues[vq_index].queue_size &&
+            free_desc_index >= 0);
         // Until now, we have a free descriptor, next we place the buffer into
         // the descriptor
+        netdev->virtqueues[vq_index].opaque[free_desc_index] = opaque[idx];
         desc = &netdev->virtqueues[vq_index].vq_desc[free_desc_index];
         desc->addr = descs[idx].addr;
-        //desc->___unused = 0x0;
         desc->len = descs[idx].len;
         desc->flags = descs[idx].flags;
         desc->next = 0x0;
@@ -241,15 +255,104 @@ virtio_net_device_raw_send(struct pci_device * pdev,
     }
     return nr_added;
 }
+
+int32_t
+virtio_net_device_raw_receive(struct pci_device * pdev,
+    int vq_index,
+    void ** opaque,
+    int32_t * pnr_buffer)
+{
+    int iptr = 0;
+    int  nr_left = (int)*pnr_buffer;
+    struct virtio_net * netdev = (struct virtio_net *)pdev->priv;
+    //struct virtq_desc * desc = NULL;
+    struct virtq_used * used = NULL;
+    uint16_t latest_used_index = netdev->virtqueues[vq_index].last_used_idx;
+    uint16_t used_elem_index = 0;
+    used = netdev->virtqueues[vq_index].vq_used;
+    while (nr_left > 0 && latest_used_index != used->idx) {
+        used_elem_index =
+            latest_used_index % netdev->virtqueues[vq_index].queue_size;
+        ASSERT(used->ring[used_elem_index].id <
+            netdev->virtqueues[vq_index].queue_size);
+        opaque[iptr] =
+            netdev->virtqueues[vq_index].opaque[used->ring[used_elem_index].id];
+        printk("idx:%d len:%d 0x%x\n", used->ring[used_elem_index].id,
+            used->ring[used_elem_index].len,
+            opaque[iptr]);
+
+        latest_used_index++;
+        iptr += 1; 
+        nr_left -= 1;
+    }
+    netdev->virtqueues[vq_index].last_used_idx = latest_used_index;
+    return 0;
+}
 static uint32_t
 virtio_device_interrupt_handler(struct x86_cpustate * cpu, void * blob)
 {
     struct pci_device * pdev = blob;
-    printk("interrupt:%x\n", virtio_dev_get_isr(pdev));
+    uint8_t isr = virtio_dev_get_isr(pdev);
+    void * packet[64];
+    int32_t nr_buff = 64;
+    printk("interrupt:%x\n", isr);
+    if (isr) {
+        virtio_net_device_raw_receive(pdev, 0, packet, &nr_buff);
+    }
     return OK;
 }
+/*
+ * This is to supply buffer to virtqueue 0 of virtio-net pci device
+ * return actual number of packets which are put into that queue, aka
+ * receive buffers.
+ */
+static uint32_t
+virtio_net_dev_supply_packet(struct pci_device * pdev)
+{
+#define ONESHORT_PACKET_LENGTH  64
+    int idx = 0;
+    struct packet * pkts[ONESHORT_PACKET_LENGTH];
+    struct virtq_desc tmp_descs[ONESHORT_PACKET_LENGTH];
+    void * opaque[ONESHORT_PACKET_LENGTH];
 
-
+    struct virtio_net * virt_netdev = (struct virtio_net *)pdev->priv;
+    int nr_packets_to_supply;
+    int free_descriptor_num =
+        ring_length(virt_netdev->virtqueues[0].free_desc_ring);
+    ASSERT(!(free_descriptor_num & 0x1));
+    free_descriptor_num = free_descriptor_num >> 1;
+    nr_packets_to_supply = MIN(ONESHORT_PACKET_LENGTH, free_descriptor_num);
+    ASSERT(nr_packets_to_supply >= 0);
+    // No room for new packets
+    if (!nr_packets_to_supply)
+        return 0;
+    for (idx = 0; idx < nr_packets_to_supply; idx++) {
+        pkts[idx] = get_packet();
+        if (!pkts[idx])
+            break;
+    }
+    nr_packets_to_supply = idx;
+    // Not even one packet is available to be allocated, we should not proceed
+    if (!nr_packets_to_supply)
+        return 0;
+    for (idx = 0; idx < nr_packets_to_supply; idx++) {
+        ASSERT(!packet_extend_right(pkts[idx],
+            virt_netdev->mtu + sizeof(struct virtio_net_hdr)));
+        opaque[idx] = pkts[idx];
+        tmp_descs[idx].addr =
+            pkts[idx]->packet_paddr + pkts[idx]->payload_offset;
+        tmp_descs[idx].len = pkts[idx]->payload_length;
+        tmp_descs[idx].flags = VIRTQ_DESC_F_WRITE;
+        tmp_descs[idx].next = 0;
+    }
+    ASSERT(nr_packets_to_supply ==
+        virtio_net_device_raw_send(pdev,
+            0,
+            tmp_descs,
+            opaque,
+            nr_packets_to_supply));
+    return nr_packets_to_supply;
+}
 
 static uint8_t *
 virtio_net_dev_get_mac(struct ethernet_device * eth_dev)
@@ -258,8 +361,32 @@ virtio_net_dev_get_mac(struct ethernet_device * eth_dev)
     struct virtio_net * virt_netdev = (struct virtio_net *)pdev->priv;
     return virt_netdev->mac;
 }
+
+static uint32_t
+virtio_net_dev_start(struct ethernet_device * eth_dev)
+{
+    struct pci_device * pdev = eth_dev->priv;
+    while(virtio_net_dev_supply_packet(pdev));
+    virtio_net_device_virtqueue_enable_interrupt(pdev, 0);
+    virtio_net_device_virtqueue_enable_interrupt(pdev, 1);
+    virtio_net_device_virtqueue_enable_interrupt(pdev, 2);
+    return OK;
+}
+
+static uint32_t
+virtio_net_dev_stop(struct ethernet_device * eth_dev)
+{
+    struct pci_device * pdev = eth_dev->priv;
+    virtio_net_device_virtqueue_disable_interrupt(pdev, 0);
+    virtio_net_device_virtqueue_disable_interrupt(pdev, 1);
+    virtio_net_device_virtqueue_disable_interrupt(pdev, 2);
+    return OK;
+}
+
 static struct  ethernet_device_operation virtio_net_dev_ops = {
     .get_mac = virtio_net_dev_get_mac,
+    .start = virtio_net_dev_start,
+    .stop = virtio_net_dev_stop,
 };
 
 static int
@@ -300,6 +427,7 @@ virtio_device_attach(struct pci_device * pdev)
         int queue_index = 0;
         for (; queue_index < ((netdev->max_vq_pairs * 2) + 1); queue_index++) {
             virtio_net_device_virt_queue_setup(pdev, queue_index);
+            //virtio_net_device_virtqueue_disable_interrupt(pdev, queue_index);
         }
     }
     virtio_dev_set_status(pdev, VIRTIO_PCI_STATUS_DRIVER_OK);
@@ -322,22 +450,9 @@ virtio_device_attach(struct pci_device * pdev)
         ASSERT(netdev->ifaceid >= 0);
         
     }
-#if 0
-    {
-        int idx = 0;
-        uint32_t kernel_page_directory = get_kernel_page_directory();
-        struct virtq_desc shadow_descs[8];
-        memset(shadow_descs, 0x0, sizeof(shadow_descs));
-        uint32_t free_space = (uint32_t)malloc_align_mapped(PAGE_SIZE * 8, PAGE_SIZE);
-        for (idx = 0; idx < 8; idx++) {
-            shadow_descs[idx].addr = virt2phy((uint32_t *)kernel_page_directory, free_space + idx * PAGE_SIZE);
-            shadow_descs[idx].len = PAGE_SIZE;
-            shadow_descs[idx].flags = VIRTQ_DESC_F_WRITE;
-            shadow_descs[idx].next = 0;
-        }
-        ASSERT(virtio_net_device_raw_send(pdev, 0, shadow_descs, 8) == 8);
-    }
-#endif
+    // determine the MTU of the device initially
+    netdev->mtu = 1514;
+    while(virtio_net_dev_supply_packet(pdev));
     return OK;
 }
 

@@ -23,6 +23,9 @@ struct packet {
     // the payload_offset is the offset to the packet itself
     uint32_t payload_offset;
     uint32_t payload_length;
+    //common data structure, first two fields are to validate the packets
+    uint32_t pkt_paddr;
+    uint16_t pkt_len;
 }__attribute__((aligned(4)));
 
 #define PACKET_HEADER_SIZE          ((int32_t)(sizeof(struct packet)))
@@ -48,6 +51,7 @@ packet_shrink_left(struct packet * pkt, int32_t nr_room);
 int32_t
 packet_shrink_right(struct packet * pkt, int32_t nr_room);
 
+// when a packet is retrieved from the pool, the packet is already been reset
 struct packet *
 get_packet(void);
 

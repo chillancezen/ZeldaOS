@@ -16,6 +16,9 @@ struct ethernet_device_operation {
     uint32_t  (*transmit)(struct ethernet_device * eth_dev,
         struct packet ** pkts,
         int32_t nr_pkt);
+    uint32_t (*receive)(struct ethernet_device * eth_dev,
+        struct packet ** pkts,
+        int32_t * pnr_pkt);
 };
 
 struct ethernet_device {

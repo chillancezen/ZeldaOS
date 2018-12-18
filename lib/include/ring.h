@@ -31,6 +31,12 @@ struct ring {
 })
 
 __attribute__((always_inline)) static inline int32_t
+ring_length(struct ring * ring)
+{
+    return (ring->rear + ring->ring_size - ring->front) % ring->ring_size;
+}
+
+__attribute__((always_inline)) static inline int32_t
 write_ring(struct ring * ring, void * buffer, int32_t size)
 {
     int32_t left = size;
