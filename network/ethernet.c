@@ -61,6 +61,7 @@ uint32_t register_ethernet_device(uint8_t * name,
     ASSERT(ethdev->net_dev_file);
     LOG_INFO("Register ethernet device: %s [ops:0x%x] as port %d\n",
         name, net_ops, device_index);
+    ether_devs[device_index] = ethdev;
     return device_index;
 }
 

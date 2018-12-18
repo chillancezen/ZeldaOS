@@ -260,45 +260,68 @@ int32_t
 virtio_net_device_raw_receive(struct pci_device * pdev,
     int vq_index,
     void ** opaque,
-    int32_t * pnr_buffer)
+    int32_t nr_buffer,
+    void (*packet_setup)(struct pci_device * pdev,
+        void * opaque,
+        struct virtq_desc * desc,
+        struct virt_used_elem * used_item))
 {
     int iptr = 0;
-    int  nr_left = (int)*pnr_buffer;
+    int  nr_left = nr_buffer;
     struct virtio_net * netdev = (struct virtio_net *)pdev->priv;
-    //struct virtq_desc * desc = NULL;
+    struct virtq_desc * desc = NULL;
     struct virtq_used * used = NULL;
+    struct virt_used_elem * used_item = NULL;
     uint16_t latest_used_index = netdev->virtqueues[vq_index].last_used_idx;
     uint16_t used_elem_index = 0;
     used = netdev->virtqueues[vq_index].vq_used;
     while (nr_left > 0 && latest_used_index != used->idx) {
         used_elem_index =
             latest_used_index % netdev->virtqueues[vq_index].queue_size;
-        ASSERT(used->ring[used_elem_index].id <
-            netdev->virtqueues[vq_index].queue_size);
-        opaque[iptr] =
-            netdev->virtqueues[vq_index].opaque[used->ring[used_elem_index].id];
-        printk("idx:%d len:%d 0x%x\n", used->ring[used_elem_index].id,
-            used->ring[used_elem_index].len,
-            opaque[iptr]);
-
+        used_item = &used->ring[used_elem_index];
+        ASSERT(used_item->id < netdev->virtqueues[vq_index].queue_size);
+        desc = &netdev->virtqueues[vq_index].vq_desc[used_item->id];
+        opaque[iptr] = netdev->virtqueues[vq_index].opaque[used_item->id];
+        
+        if (packet_setup) {
+            packet_setup(pdev, opaque[iptr], desc, used_item);
+        }
+        // we must reclaim the descriptors into `free_desc_ring`
+        ASSERT(write_ring(netdev->virtqueues[vq_index].free_desc_ring,
+            &used_item->id,
+            2) == 2);
         latest_used_index++;
         iptr += 1; 
         nr_left -= 1;
     }
     netdev->virtqueues[vq_index].last_used_idx = latest_used_index;
-    return 0;
+    return iptr;
 }
 static uint32_t
 virtio_device_interrupt_handler(struct x86_cpustate * cpu, void * blob)
 {
     struct pci_device * pdev = blob;
     uint8_t isr = virtio_dev_get_isr(pdev);
-    void * packet[64];
-    int32_t nr_buff = 64;
-    printk("interrupt:%x\n", isr);
     if (isr) {
-        virtio_net_device_raw_receive(pdev, 0, packet, &nr_buff);
+        struct packet * pkts[64];
+        struct ethernet_device * eth_dev = search_ethernet_device_by_id(0);
+        int32_t nr_recv = eth_dev->net_ops->receive(eth_dev, pkts, 64);
+        {
+            int idx = 0;
+            int32_t nr_sent = eth_dev->net_ops->transmit(eth_dev, pkts, nr_recv);
+            for (idx = nr_sent; idx < nr_recv; idx++) {
+                put_packet(pkts[idx]);
+            }
+            printk("sent:%d recv:%d\n", nr_sent, nr_recv);
+        }
     }
+    return OK;
+}
+
+uint32_t
+virtio_net_dev_reclaim_sent_packet(struct pci_device * pdev)
+{
+
     return OK;
 }
 /*
@@ -382,11 +405,69 @@ virtio_net_dev_stop(struct ethernet_device * eth_dev)
     virtio_net_device_virtqueue_disable_interrupt(pdev, 2);
     return OK;
 }
+static void
+__virtio_net_device_packet_setup(struct pci_device * pdev,
+    void * opaque,
+    struct virtq_desc * desc,
+    struct virt_used_elem * used_item)
+{
+    struct packet * pkt = opaque;
+    pkt->pkt_paddr = (uint32_t)desc->addr;
+    pkt->pkt_len = used_item->len;
+    // This is to validate the packet by comparing physical address
+    ASSERT(pkt->pkt_paddr == (pkt->packet_paddr + pkt->payload_offset));
+    ASSERT(pkt->pkt_len <= pkt->payload_length);
+}
+static uint32_t
+virtio_net_dev_receive(struct ethernet_device * eth_dev,
+    struct packet ** pkts,
+    int32_t nr_pkt)
+{
+    struct pci_device * pdev = eth_dev->priv;
+    int32_t nr_recv = 0x0;
+    nr_recv = virtio_net_device_raw_receive(pdev,
+        0/*Specify the receive queue 0*/,
+        (void **)pkts,
+        nr_pkt,
+        __virtio_net_device_packet_setup);
+    // Re-supply the receive virtqueue, The best way to make the receive is
+    // always re-supply the receive virtqueue with the same amount of 
+    // packets that are received. this is to indicate we'd better not reveive
+    // more packet than `ONESHORT_PACKET_LENGTH` at one time
+    virtio_net_dev_supply_packet(pdev);
+    return nr_recv;
+}
+static uint32_t
+virtio_net_dev_transmit(struct ethernet_device * eth_dev,
+    struct packet ** pkts,
+    int32_t nr_pkt)
+{
+#define MAXIMUM_PACKETS_TO_SEND     64
+    struct pci_device * pdev = eth_dev->priv;
+    struct virtq_desc descs[MAXIMUM_PACKETS_TO_SEND];
+    int32_t nr_to_send = MIN(nr_pkt, MAXIMUM_PACKETS_TO_SEND);
+    int32_t nr_sent = 0x0;
+    int idx = 0;
+    for (idx = 0; idx < nr_to_send; idx++) {
+        descs[idx].addr = pkts[idx]->packet_paddr + pkts[idx]->payload_offset;
+        descs[idx].len = pkts[idx]->payload_length;
+        descs[idx].flags = 0x0; // Do not set VIRTQ_DESC_F_WRITE
+        descs[idx].next = 0x0;
+    }
+    nr_sent = virtio_net_device_raw_send(pdev,
+        1/*Specify the transmission queue 1*/,
+        descs,
+        (void **)pkts,
+        nr_to_send);
+    return nr_sent;
+}
 
 static struct  ethernet_device_operation virtio_net_dev_ops = {
     .get_mac = virtio_net_dev_get_mac,
     .start = virtio_net_dev_start,
     .stop = virtio_net_dev_stop,
+    .transmit = virtio_net_dev_transmit,
+    .receive = virtio_net_dev_receive,
 };
 
 static int
@@ -427,7 +508,7 @@ virtio_device_attach(struct pci_device * pdev)
         int queue_index = 0;
         for (; queue_index < ((netdev->max_vq_pairs * 2) + 1); queue_index++) {
             virtio_net_device_virt_queue_setup(pdev, queue_index);
-            //virtio_net_device_virtqueue_disable_interrupt(pdev, queue_index);
+            //FIXME: enable:virtio_net_device_virtqueue_disable_interrupt(pdev, queue_index);
         }
     }
     virtio_dev_set_status(pdev, VIRTIO_PCI_STATUS_DRIVER_OK);

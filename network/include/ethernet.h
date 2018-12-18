@@ -18,7 +18,7 @@ struct ethernet_device_operation {
         int32_t nr_pkt);
     uint32_t (*receive)(struct ethernet_device * eth_dev,
         struct packet ** pkts,
-        int32_t * pnr_pkt);
+        int32_t nr_pkt);
 };
 
 struct ethernet_device {
@@ -29,6 +29,7 @@ struct ethernet_device {
     // ethernet device operation
     struct ethernet_device_operation * net_ops;
     // the private data which depends on the ethernet backing
+    // in Virtio-Net, the priv is `struct pci_device`
     void * priv;
 };
 
