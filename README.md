@@ -60,10 +60,12 @@ When the kernel is fully ready, the `default console` (which you can navigate to
 
 ##### Archeticture Features:
 - [X] x86
-- [X] PIC, APIC will be supported in ZeldaOS.x86_64.
+- [X] PIC, APIC will be supported in [ZeldaOS.x86_64](https://github.com/chillancezen/ZeldaOS.x86_64).
 - [X] interrupt management.
-- [ ] x86_64 will support in [ZeldaOS.x86_64](https://github.com/chillancezen/ZeldaOS.x86_64).
+- [ ] x86_64 64bit support.
 - [ ] Symmetric multiprocessing (SMP).
+- [ ] SSE/AVX context save and restore
+- [ ] hypervisor to lauch a VM with Intel VT-x(VMX)
 ##### memory Features:
 - [X] physical memory management.
 - [X] 4K paging(No 3G barrier break) for both kernel and PL3 tasks.
