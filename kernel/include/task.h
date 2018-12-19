@@ -117,6 +117,10 @@ struct task {
     uint8_t name[MAX_PATH];
     // the current working directory, it can be inherited
     uint8_t cwd[MAX_PATH];
+
+    // XXX:the PL0 per-task private data, the caller which creates the kernel
+    // must set it explicitly.
+    void * priv;
 };
 
 extern struct task * current;
@@ -216,6 +220,8 @@ handle_userspace_page_fault(struct task * task,
 void
 yield_cpu(void);
 
+// XXX: note a kernel task will not be scheduled until you call `task_put` to
+// put the task into the running queue
 uint32_t
 create_kernel_task(void (*entry)(void),
     struct task ** task_ptr,

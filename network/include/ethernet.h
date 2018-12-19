@@ -41,4 +41,9 @@ uint32_t register_ethernet_device(uint8_t * name,
 struct ethernet_device *
 search_ethernet_device_by_id(int device_id);
 
+void
+netdev_rx(int32_t device_index);
+
+void
+ethernet_rx_post_init(void);
 #endif

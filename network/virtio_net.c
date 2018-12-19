@@ -297,33 +297,50 @@ virtio_net_device_raw_receive(struct pci_device * pdev,
     netdev->virtqueues[vq_index].last_used_idx = latest_used_index;
     return iptr;
 }
+ uint32_t
+virtio_net_dev_reclaim_sent_packet(struct pci_device * pdev);
 static uint32_t
 virtio_device_interrupt_handler(struct x86_cpustate * cpu, void * blob)
 {
     struct pci_device * pdev = blob;
+    struct virtio_net * netdev = (struct virtio_net *)pdev->priv;
     uint8_t isr = virtio_dev_get_isr(pdev);
     if (isr) {
-        struct packet * pkts[64];
-        struct ethernet_device * eth_dev = search_ethernet_device_by_id(0);
-        int32_t nr_recv = eth_dev->net_ops->receive(eth_dev, pkts, 64);
-        {
-            int idx = 0;
-            int32_t nr_sent = eth_dev->net_ops->transmit(eth_dev, pkts, nr_recv);
-            for (idx = nr_sent; idx < nr_recv; idx++) {
-                put_packet(pkts[idx]);
-            }
-            printk("sent:%d recv:%d\n", nr_sent, nr_recv);
+        // Process receive virtqueue:0
+        if (netdev->virtqueues[0].last_used_idx !=
+            netdev->virtqueues[0].vq_used->idx) {
+            netdev_rx(netdev->ifaceid);
+        }
+        // Process transmission virtqueue:1
+        if (netdev->virtqueues[1].last_used_idx !=
+            netdev->virtqueues[1].vq_used->idx) {
+            virtio_net_dev_reclaim_sent_packet(pdev);
         }
     }
     return OK;
 }
-
+/*
+ * This is to recycle the sent packets from transmission virtqueue.
+ * without doing so, the transmission virtqueue will not be filled as the
+ * sent descriptor will never be claimed free.
+ */
 uint32_t
 virtio_net_dev_reclaim_sent_packet(struct pci_device * pdev)
 {
-
-    return OK;
+#define ONESHOT_RECLAIM_SENT_PACKET_LENGTH  64
+    struct packet *pkts[ONESHOT_RECLAIM_SENT_PACKET_LENGTH];
+    int idx = 0;
+    int32_t nr_received = virtio_net_device_raw_receive(pdev,
+        1,
+        (void **)pkts,
+        ONESHOT_RECLAIM_SENT_PACKET_LENGTH,
+        NULL);
+    for (idx = 0; idx < nr_received; idx++) {
+        put_packet(pkts[idx]);
+    }
+    return nr_received;
 }
+
 /*
  * This is to supply buffer to virtqueue 0 of virtio-net pci device
  * return actual number of packets which are put into that queue, aka

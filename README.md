@@ -79,7 +79,7 @@ When the kernel is fully ready, the `default console` (which you can navigate to
 - [X] task exception detection(e.g. illegal instruction, #GP, paging permission violation).
 - [X] Wait queue.
 - [X] Timer.
-- [ ] bottom half schedule.
+- [X] bottom half schedule.
 - [X] kernel panic.
 ##### Filesystem Features:
 - [X] Virtual File System (VFS).

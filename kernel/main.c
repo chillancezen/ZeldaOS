@@ -31,6 +31,7 @@
 #include <device/include/console.h>
 #include <network/include/virtio_net.h>
 #include <network/include/net_packet.h>
+#include <network/include/ethernet.h>
 
 
 static struct multiboot_info * boot_info;
@@ -99,6 +100,7 @@ post_init(void)
    timer_init();
    pci_post_init();
    task_init();
+   ethernet_rx_post_init();
    schedule_enable();
 }
 
