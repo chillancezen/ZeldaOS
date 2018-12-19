@@ -26,6 +26,8 @@ struct packet {
     //common data structure, first two fields are to validate the packets
     uint32_t pkt_paddr;
     uint16_t pkt_len;
+    
+    uint16_t device_index;
 }__attribute__((aligned(4)));
 
 #define PACKET_HEADER_SIZE          ((int32_t)(sizeof(struct packet)))

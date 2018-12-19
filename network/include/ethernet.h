@@ -21,9 +21,22 @@ struct ethernet_device_operation {
         int32_t nr_pkt);
 };
 
+#define KERNEL_STACK_PATH_UNDEFINED  0x0
+#define KERNEL_STACK_PATH_BRIDGING  0x1
+#define KERNEL_STACK_PATH_ROUTING   0x2
+#define KERNEL_STACK_PATH_USERLAND  0x3
+
 struct ethernet_device {
     uint16_t device_index;
     uint8_t name[64];
+    // the stack path when a packet is received
+    uint8_t kernel_path;
+    // L2 bridging related fields
+    uint8_t bridge_domain;
+
+    // L3 routing related fields
+    uint8_t route_domain;
+
     // This is the file export to userland
     struct file * net_dev_file;
     // ethernet device operation
