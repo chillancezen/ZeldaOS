@@ -1,7 +1,7 @@
-tty=/dev/ptm0 cwd=/home/zelda /usr/bin/shelld
-tty=/dev/ptm1 cwd=/home/zelda /usr/bin/shelld
-tty=/dev/ptm2 cwd=/home/zelda /usr/bin/shelld
-tty=/dev/ptm3 cwd=/home/zelda /usr/bin/shelld
-tty=/dev/ptm4 cwd=/home/zelda /usr/bin/shelld
-tty=/dev/ptm5 cwd=/home/zelda /usr/bin/shelld
-tty=/dev/serial0 cwd=/home/zelda /usr/bin/shelld
+PATH=/usr/bin/ tty=/dev/ptm0 cwd=/home/zelda /usr/bin/shelld
+PATH=/usr/bin/ tty=/dev/ptm1 cwd=/home/zelda /usr/bin/shelld
+PATH=/usr/bin/ tty=/dev/ptm2 cwd=/home/zelda /usr/bin/shelld
+PATH=/usr/bin/ tty=/dev/ptm3 cwd=/home/zelda /usr/bin/shelld
+PATH=/usr/bin/ tty=/dev/ptm4 cwd=/home/zelda /usr/bin/shelld
+PATH=/usr/bin/ tty=/dev/ptm5 cwd=/home/zelda /usr/bin/shelld
+PATH=/usr/bin/ tty=/dev/serial0 cwd=/home/zelda /usr/bin/shelld

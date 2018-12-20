@@ -31,6 +31,18 @@ struct stat {
     uint32_t st_size;
 }__attribute__((packed));
 
+enum FILE_TYPE{
+    FILE_TYPE_NONE = 0,
+    FILE_TYPE_MARK,
+    FILE_TYPE_REGULAR,
+    FILE_TYPE_DIR
+};
+struct dirent {
+    uint32_t size;
+    uint32_t type;
+    uint8_t name[256];
+} __attribute__((packed));
+
 // The File SEEK macro from: Linux/fs.h
 
 #define SEEK_SET 0 /* seek relative to beginning of file */
@@ -85,6 +97,9 @@ enum SYSCALL_INDEX {
     SYS_EXECVE_IDX,
     SYS_UNAME_IDX,
     SYS_WAIT0_IDX,
+    // We are not going to realize POSIX conforming interface such as opendir
+    // instead, we realize Linux interface:getdents
+    SYS_GETDENTS_IDX,
 };
 
 enum SIGNAL {

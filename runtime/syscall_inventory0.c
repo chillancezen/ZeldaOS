@@ -145,3 +145,14 @@ wait0(int32_t target_task_id)
 {
     return do_system_call1(SYS_WAIT0_IDX, target_task_id);
 }
+
+int32_t
+getdents(uint8_t * path,
+    struct dirent * dirp,
+    int32_t count)
+{
+    return do_system_call3(SYS_GETDENTS_IDX,
+        (uint32_t)path,
+        (uint32_t)dirp,
+        count);
+}

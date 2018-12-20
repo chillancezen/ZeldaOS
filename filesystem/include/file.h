@@ -12,12 +12,6 @@
 
 struct file_operation;
 
-enum FILE_TYPE{
-    FILE_TYPE_NONE = 0,
-    FILE_TYPE_MARK,
-    FILE_TYPE_REGULAR,
-    FILE_TYPE_DIR
-};
 // The definition of file descriptor
 struct file {
     uint8_t name[MAX_PATH];

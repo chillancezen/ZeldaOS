@@ -6,7 +6,7 @@
 #include <kernel/include/printk.h>
 #include <lib/include/string.h>
 
-
+static struct file devfs_root_file;
 /*
  * This API is exported for other kernel components, do not give the interface
  * directly to user land application.
@@ -63,6 +63,9 @@ devfs_open_file(struct file_system * fs, const uint8_t * path)
     struct file * root_file = (struct file *)fs->priv;
     ASSERT(root_file);
     ASSERT(root_file->type == FILE_TYPE_MARK);
+    if (!strcmp((uint8_t *)path, (uint8_t *)"/")) {
+        return &devfs_root_file;
+    }
     memset(c_name, 0x0, sizeof(c_name));
     canonicalize_path_name(c_name, path);
     split_path(c_name, splitted_path, &splitted_length);
@@ -77,7 +80,6 @@ static struct filesystem_operation devfs_ops = {
     .fs_delete = NULL,
     .fs_open = devfs_open_file,
 };
-static struct file devfs_root_file;
 static struct file_system dev_fs = {
     .filesystem_type = DEV_FS,
     .priv = &devfs_root_file,

@@ -137,6 +137,9 @@ tmpfs_open_file(struct file_system * fs, const uint8_t * path)
     struct file * root_file = (struct file *)fs->priv;
     ASSERT(root_file);
     ASSERT(root_file->type == FILE_TYPE_MARK);
+    if (!strcmp((uint8_t *)path, (uint8_t *)"/")) {
+        return root_file;
+    }
     memset(c_name, 0x0, sizeof(c_name));
     canonicalize_path_name(c_name, path);
     split_path(c_name, splitted_path, &splitted_length);
@@ -234,7 +237,7 @@ memfs_init(void)
     memset(&tmpfs_tmp_root_file, 0x0, sizeof(tmpfs_tmp_root_file));
     tmpfs_home_root_file.type = FILE_TYPE_MARK;
     tmpfs_tmp_root_file.type = FILE_TYPE_MARK;
-    ASSERT(!register_file_system((uint8_t *)"/home/", &tmpfs_home));
+    ASSERT(!register_file_system((uint8_t *)"/home/zelda/", &tmpfs_home));
     ASSERT(!register_file_system((uint8_t *)"/tmp/", &tmpfs_tmp));
 #if !defined(INLINE_TEST)
     {

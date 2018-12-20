@@ -65,4 +65,10 @@ do_vfs_directory_create(const uint8_t * path);
 
 int32_t
 do_vfs_path_delete(const uint8_t * path);
+
+int32_t
+do_vfs_getdents(const uint8_t * path,
+    struct dirent * dirp,
+    int32_t count);
+
 #endif

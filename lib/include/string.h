@@ -14,6 +14,7 @@ int strcmp(uint8_t * str1, uint8_t * str2);
 __attribute__((deprecated)) void
 strcpy(uint8_t * dst, const uint8_t * src);
 
+
 void
 strcpy_safe(uint8_t * dst, const uint8_t * src, int32_t max_size);
 

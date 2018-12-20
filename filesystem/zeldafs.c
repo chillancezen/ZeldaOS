@@ -242,6 +242,9 @@ zelda_fs_open(struct file_system * fs, const uint8_t * path)
     uint8_t c_name[MAX_PATH];
     uint8_t * splitted_path[MAX_PATH];
     int32_t iptr = 0;
+    if (!strcmp((uint8_t *)path, (uint8_t *)"/")) {
+        return &zelda_root_node;
+    }
     memset(c_name, 0x0, sizeof(c_name));
     strcpy_safe(c_name, path, sizeof(c_name));
     split_path(c_name, splitted_path, &iptr);

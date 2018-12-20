@@ -7,6 +7,7 @@
 #include <lib/include/errorcode.h>
 #include <kernel/include/printk.h>
 #include <lib/include/string.h>
+#include <kernel/include/zelda_posix.h>
 
 static struct mount_entry mount_entries[MOUNT_ENTRY_SIZE];
 
@@ -277,6 +278,29 @@ vfs_pre_init(void)
     memset(mount_entries, 0x0, sizeof(mount_entries));
 }
 
+static void
+resolve_subpath(uint8_t * sub_path,
+    const uint8_t * full_path,
+    struct mount_entry * mount_entry)
+{
+    uint8_t c_name[MAX_PATH];
+    int iptr = 0;
+    int iptr_dst = 0;
+    memset(c_name, 0x0, sizeof(c_name));
+    canonicalize_path_name(c_name, full_path);
+    for (iptr = 0; iptr < MAX_PATH; iptr++) {
+        if (c_name[iptr] != mount_entry->mount_point[iptr])
+            break;
+    }
+    for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
+        sub_path[iptr_dst++] = c_name[iptr];
+    }
+    if (!sub_path[0]) {
+         sub_path[0] = '/';
+         sub_path[1] = '\x0';
+    }
+}
+
 /*
  * the VFS layer raw interface to open a file.
  * XXX: the `flags` and `mode` is unused
@@ -284,7 +308,6 @@ vfs_pre_init(void)
 struct file *
 do_vfs_open(const uint8_t * path, uint32_t flags, uint32_t mode)
 {
-    uint8_t c_name[MAX_PATH];
     uint8_t sub_path[MAX_PATH];
     struct mount_entry * mount_entry = NULL;
     struct file * file = NULL;
@@ -296,28 +319,15 @@ do_vfs_open(const uint8_t * path, uint32_t flags, uint32_t mode)
     /*
      * Select the per-mount-entry and search the sub-path
      */
-    {
-        int iptr = 0;
-        int iptr_dst = 0;
-        memset(c_name, 0x0, sizeof(c_name));
-        memset(sub_path, 0x0, sizeof(sub_path));
-        canonicalize_path_name(c_name, path);
-        for (iptr = 0; iptr < MAX_PATH; iptr++) {
-            if (c_name[iptr] != mount_entry->mount_point[iptr])
-                break;
-        }
-        //ASSERT(!mount_entry->mount_point[iptr]);
-        for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
-            sub_path[iptr_dst++] = c_name[iptr];
-        }
-    }
+    memset(sub_path, 0x0, sizeof(sub_path));
+    resolve_subpath(sub_path, path, mount_entry);
     /*
      * Invoke mount-entry-specific filesystem level OPEN interface
      */
     ASSERT(mount_entry->fs->fs_ops->fs_open);
     file = mount_entry->fs->fs_ops->fs_open(mount_entry->fs, sub_path);
     if (!file) {
-        LOG_TRIVIA("Failed to open file:%s\n", c_name);
+        LOG_TRIVIA("Failed to open file:%s\n", path);
     } else {
         LOG_TRIVIA("vfs open file:0x%x(%s)\n",
             file, file->name);
@@ -431,7 +441,6 @@ struct file *
 do_vfs_create(const uint8_t * path, uint32_t flags, uint32_t mode)
 {
     struct file * file = NULL;
-    uint8_t c_name[MAX_PATH];
     uint8_t sub_path[MAX_PATH];
     struct mount_entry * mount_entry = NULL;
     mount_entry = search_mount_entry(path);
@@ -440,21 +449,8 @@ do_vfs_create(const uint8_t * path, uint32_t flags, uint32_t mode)
         return NULL;
     }
     // select the per-mount entry and search the sub-path
-    {
-        int iptr = 0;
-        int iptr_dst = 0;
-        memset(c_name, 0x0, sizeof(c_name));
-        memset(sub_path, 0x0, sizeof(sub_path));
-        canonicalize_path_name(c_name, path);
-        for (iptr = 0; iptr < MAX_PATH; iptr++) {
-            if (c_name[iptr] != mount_entry->mount_point[iptr])
-                break;
-        }
-        ASSERT(!mount_entry->mount_point[iptr]);
-        for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
-            sub_path[iptr_dst++] = c_name[iptr];
-        }
-    }
+    memset(sub_path, 0x0, sizeof(sub_path));
+    resolve_subpath(sub_path, path, mount_entry);
     // try to invoke filesystem specific CREATE interface
     if (mount_entry->fs->fs_ops->fs_create) {
         file = mount_entry->fs->fs_ops->fs_create(mount_entry->fs,
@@ -463,7 +459,7 @@ do_vfs_create(const uint8_t * path, uint32_t flags, uint32_t mode)
     if (file) {
         file->mode = mode;   
     }
-    LOG_TRIVIA("create file:%s as 0x%x\n", c_name, file);
+    LOG_TRIVIA("create file:%s as 0x%x\n", path, file);
     return file;
 }
 
@@ -473,7 +469,6 @@ do_vfs_create(const uint8_t * path, uint32_t flags, uint32_t mode)
 struct file *
 do_vfs_directory_create(const uint8_t * path)
 {
-    uint8_t c_name[MAX_PATH];
     uint8_t sub_path[MAX_PATH];
     struct mount_entry  * mount_entry = NULL;
     struct file * file = NULL;
@@ -482,25 +477,12 @@ do_vfs_directory_create(const uint8_t * path)
         LOG_TRIVIA("can not find mount entry for path:%s\n", path);
         return NULL;
     }
-    {
-        int iptr = 0;
-        int iptr_dst = 0;
-        memset(c_name, 0x0, sizeof(c_name));
-        memset(sub_path, 0x0, sizeof(sub_path));
-        canonicalize_path_name(c_name, path);
-        for (iptr = 0; iptr < MAX_PATH; iptr++) {
-            if (c_name[iptr] != mount_entry->mount_point[iptr])
-                break;
-        }
-        ASSERT(!mount_entry->mount_point[iptr]);
-        for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
-            sub_path[iptr_dst++] = c_name[iptr];
-        }
-    }
+    memset(sub_path, 0x0, sizeof(sub_path));
+    resolve_subpath(sub_path, path, mount_entry);
     if (mount_entry->fs->fs_ops->fs_mkdir) {
         file = mount_entry->fs->fs_ops->fs_mkdir(mount_entry->fs, sub_path);
     }
-    LOG_TRIVIA("create directory:%s as 0x%x\n", c_name, file);
+    LOG_TRIVIA("create directory:%s as 0x%x\n", path, file);
     return file;
 }
 /*
@@ -514,7 +496,6 @@ int32_t
 do_vfs_path_delete(const uint8_t * path)
 {
     int32_t result = OK;
-    uint8_t c_name[MAX_PATH];
     uint8_t sub_path[MAX_PATH];
     struct file * file = NULL;
     struct mount_entry * mount_entry = search_mount_entry(path);
@@ -522,29 +503,16 @@ do_vfs_path_delete(const uint8_t * path)
         LOG_TRIVIA("can not find mount entry for path:%s\n", path);
         return -ERR_INVALID_ARG;
     }
-    {
-        int iptr = 0;
-        int iptr_dst = 0;
-        memset(c_name, 0x0, sizeof(c_name));
-        memset(sub_path, 0x0, sizeof(sub_path));
-        canonicalize_path_name(c_name, path);
-        for (iptr = 0; iptr < MAX_PATH; iptr++) {
-            if (c_name[iptr] != mount_entry->mount_point[iptr])
-                break;
-        }
-        ASSERT(!mount_entry->mount_point[iptr]);
-        for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
-            sub_path[iptr_dst++] = c_name[iptr];
-        }
-    }
+    memset(sub_path, 0x0, sizeof(sub_path));
+    resolve_subpath(sub_path, path, mount_entry);
     ASSERT(mount_entry->fs->fs_ops->fs_open);
     file = mount_entry->fs->fs_ops->fs_open(mount_entry->fs, sub_path);
     if (!file) {
-        LOG_TRIVIA("Failed to find file:%s\n", c_name);
+        LOG_TRIVIA("Failed to find file:%s\n", path);
         return -ERR_NOT_FOUND;
     }
     if (file->refer_count) {
-        LOG_TRIVIA("File:%s is in use\n", c_name);
+        LOG_TRIVIA("File:%s is in use\n", path);
         return -ERR_IN_USE;
     }
     if (!mount_entry->fs->fs_ops->fs_delete) {
@@ -562,7 +530,6 @@ int32_t
 do_vfs_stat(const uint8_t * path, struct stat * buf)
 {
     int32_t result = -ERR_GENERIC;
-    uint8_t c_name[MAX_PATH];
     uint8_t sub_path[MAX_PATH];
     struct file * file = NULL;
     struct mount_entry * mount_entry = search_mount_entry(path);
@@ -570,29 +537,16 @@ do_vfs_stat(const uint8_t * path, struct stat * buf)
         LOG_TRIVIA("can not find mount entry for path:%s\n", path);
         return -ERR_INVALID_ARG;
     }
-    {
-        int iptr = 0;
-        int iptr_dst = 0;
-        memset(c_name, 0x0, sizeof(c_name));
-        memset(sub_path, 0x0, sizeof(sub_path));
-        canonicalize_path_name(c_name, path);
-        for (iptr = 0; iptr < MAX_PATH; iptr++) {
-            if (c_name[iptr] != mount_entry->mount_point[iptr])
-                break;
-        }
-        ASSERT(!mount_entry->mount_point[iptr]);
-        for (; iptr < MAX_PATH && c_name[iptr]; iptr++) {
-            sub_path[iptr_dst++] = c_name[iptr];
-        }
-    }
+    memset(sub_path, 0x0, sizeof(sub_path));
+    resolve_subpath(sub_path, path, mount_entry);
     ASSERT(mount_entry->fs->fs_ops->fs_open);
     file = mount_entry->fs->fs_ops->fs_open(mount_entry->fs, sub_path);
     if (!file) {
-        LOG_TRIVIA("Failed to find file:%s\n", c_name);
+        LOG_TRIVIA("Failed to find file:%s\n", path);
         return -ERR_NOT_FOUND;
     }
     if (!file->ops->stat) {
-        LOG_TRIVIA("stat not supported for file:%s\n", c_name);
+        LOG_TRIVIA("stat not supported for file:%s\n", path);
         return -ERR_NOT_SUPPORTED;
     }
     memset(buf, 0x0, sizeof(struct stat));
@@ -600,3 +554,110 @@ do_vfs_stat(const uint8_t * path, struct stat * buf)
     return result;
 }
 
+/*
+ * The VFS layer interface to scan the dir entries given the absolute path
+ */
+static void
+put_dir_entry(struct dirent * dirp, int iptr, struct file * file)
+{
+    dirp[iptr].type = file->type;
+    strcpy_safe(dirp[iptr].name, file->name, sizeof(dirp[iptr].name));
+    switch (file->type)
+    {
+        case FILE_TYPE_MARK:
+        case FILE_TYPE_DIR:
+            dirp[iptr].size = 0x0;
+            break;
+        case FILE_TYPE_REGULAR:
+            ASSERT(file->ops);
+            dirp[iptr].size = file->ops->size ? file->ops->size(file) : 0;
+            break;
+        default:
+            __not_reach();
+            break;
+    }
+}
+
+int32_t
+do_vfs_getdents(const uint8_t * path,
+    struct dirent * dirp,
+    int32_t count)
+{
+    int nr_entry = 0x0;
+    uint8_t sub_path[MAX_PATH];
+    struct file * file = NULL;
+    struct mount_entry * mount_entry = search_mount_entry(path);
+    if (!mount_entry) {
+        return -ERR_INVALID_ARG;
+    }
+    // part 1. find the file entry
+    memset(sub_path, 0x0, sizeof(sub_path));
+    resolve_subpath(sub_path, path, mount_entry);
+    ASSERT(mount_entry->fs->fs_ops->fs_open);
+    file = mount_entry->fs->fs_ops->fs_open(mount_entry->fs, sub_path);
+    if (file) {
+        if (file->type == FILE_TYPE_REGULAR) {
+            if (nr_entry < count) {
+                put_dir_entry(dirp, nr_entry++, file);
+            }
+        } else if (file->type == FILE_TYPE_DIR) {
+            struct generic_tree * _node = NULL;
+            struct file * _child_file = NULL;
+            FOREACH_CHILD_NODE_START(&file->fs_node, _node) {
+                _child_file = CONTAINER_OF(_node, struct file, fs_node);
+                if (nr_entry < count) {
+                    put_dir_entry(dirp, nr_entry++, _child_file);
+                } else {
+                    break;
+                }
+            }
+            FOREACH_CHILD_NODE_END();
+        } else if (file->type == FILE_TYPE_MARK) {
+            struct generic_tree * _node = NULL;
+            struct file * _sibling_file = NULL;
+            FOREACH_SIBLING_NODE_START(&file->fs_node, _node) {
+                _sibling_file = CONTAINER_OF(_node, struct file, fs_node);
+                if (nr_entry < count) {
+                    put_dir_entry(dirp, nr_entry++, _sibling_file);
+                } else {
+                    break;
+                }
+            }
+            FOREACH_SIBLING_NODE_END();
+        }
+    }
+    // part 2. find more entries from mount entries.
+    if (file->type == FILE_TYPE_MARK) {
+        int idx = 0;
+        uint8_t * ptr = NULL;
+        for (idx = 0; idx < MOUNT_ENTRY_SIZE; idx++) {
+            if (!mount_entries[idx].valid ||
+                &mount_entries[idx] == mount_entry)
+                continue;
+            if (start_with(mount_entries[idx].mount_point,
+                mount_entry->mount_point))
+                continue;
+            memset(sub_path, 0x0, sizeof(sub_path));
+            resolve_subpath(sub_path,
+                mount_entries[idx].mount_point,
+                mount_entry);
+            for (ptr = sub_path; *ptr; ptr++) {
+                if (*ptr == '/') {
+                    *ptr = '\x0';
+                    break;
+                }
+            }
+            if (nr_entry < count) {
+                dirp[nr_entry].type = FILE_TYPE_DIR;
+                dirp[nr_entry].size = 0x0;
+                strcpy_safe(dirp[nr_entry].name,
+                    sub_path,
+                    sizeof(dirp[nr_entry].name));
+                nr_entry++;
+            } else {
+                break;
+            }
+        }
+    }
+    return nr_entry;
+}

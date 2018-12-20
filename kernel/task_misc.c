@@ -14,6 +14,7 @@
 #include <kernel/include/elf.h>
 
 #define CPU_YIELD_TRAP_VECTOR 0x88
+
 static void
 sleep_callback(struct timer_entry * timer, void * priv)
 {
@@ -57,6 +58,7 @@ yield_cpu(void)
     pop_signal_cpu_state(signal_cpu);
     pop_cpu_state(cpu);
 }
+
 static uint32_t
 cpu_yield_handler(struct x86_cpustate * cpu)
 {
@@ -66,7 +68,19 @@ cpu_yield_handler(struct x86_cpustate * cpu)
     }
     return esp;
 }
-
+// XXX: the caller must make sure it's in task context
+static uint32_t
+compose_absolute_path(uint8_t * absolute_path, uint8_t * path)
+{
+    uint8_t * ptr = path;
+    for(; *ptr && *ptr == ' '; ptr++);
+    if (ptr[0] != '/') {
+        sprintf((char *)absolute_path, "%s/%s", current->cwd, path);
+    } else {
+        strcpy_safe(absolute_path, path, MAX_PATH);
+    }
+    return OK;
+}
 static int32_t
 call_sys_exit(struct x86_cpustate * cpu, uint32_t exit_code)
 {
@@ -119,14 +133,17 @@ search_unoccupied_file_descriptor(struct task * task)
 
 static int32_t
 call_sys_open(struct x86_cpustate * cpu,
-    const uint8_t * path,
+    const uint8_t * _path,
     uint32_t flags,
     uint32_t mode)
 {
-    // FIXME: concatenate current as full path if a relative path is given.
+    // FIXED: concatenate current as full path if a relative path is given.
     int32_t fd = -1;
     struct file * file  = NULL;
+    uint8_t path[MAX_PATH];
     ASSERT(current);
+    memset(path, 0x0, sizeof(path));
+    compose_absolute_path(path, (uint8_t *)_path);
     fd = search_unoccupied_file_descriptor(current);
     if (fd < 0) {
         return -ERR_OUT_OF_RESOURCE;
@@ -341,10 +358,24 @@ call_sys_getcwd(struct x86_cpustate * cpu, void * buffer, int32_t size)
 }
 
 static uint32_t
-call_sys_chdir(struct x86_cpustate * cpu, void * buffer)
+call_sys_chdir(struct x86_cpustate * cpu, void * path)
 {
+    uint8_t c_name[MAX_PATH]; 
+    uint8_t absolute_path[MAX_PATH];
     ASSERT(current);
-    set_work_directory(current, (uint8_t *)buffer);
+    memset(c_name, 0x0, sizeof(c_name));
+    memset(absolute_path, 0x0, sizeof(absolute_path));
+    compose_absolute_path(absolute_path, path);
+    canonicalize_path_name(c_name, absolute_path);
+    {
+        // This is to valid the target directory
+        struct dirent dir;
+        if (do_vfs_getdents(c_name, &dir, 1) != 1 ||
+            (dir.type != FILE_TYPE_DIR &&
+                dir.type != FILE_TYPE_MARK))
+            return -ERR_INVALID_ARG;
+    }
+    set_work_directory(current, (uint8_t *)c_name);
     return OK;
 }
 
@@ -412,13 +443,7 @@ call_sys_execve(struct x86_cpustate * cpu,
     memset(commands_line, 0x0, sizeof(commands_line));
     {
         // compose the absolute path.
-        uint8_t * ptr = filename;
-        for(; *ptr && *ptr == ' '; ptr++);
-        if (ptr[0] != '/') {
-            sprintf((char *)absolute_path, "%s/%s", current->cwd, filename);
-        } else {
-            strcpy_safe(absolute_path, filename, sizeof(absolute_path));
-        }
+        compose_absolute_path(absolute_path, filename);
         LOG_DEBUG("Elf32 loading:%s\n", absolute_path);
     }
 
@@ -518,6 +543,17 @@ call_sys_wait0(struct x86_cpustate * cpu, int32_t target_task_id)
     }
     return result;
 }
+static uint32_t
+call_sys_getdents(struct x86_cpustate * cpu,
+    uint8_t * path,
+    struct dirent * dirp,
+    int32_t count)
+{
+    uint8_t absolute_path[MAX_PATH];
+    memset(absolute_path, 0x0, sizeof(absolute_path));
+    compose_absolute_path(absolute_path, path);
+    return do_vfs_getdents(absolute_path, dirp, count);
+}
 void
 task_misc_init(void)
 {
@@ -543,4 +579,5 @@ task_misc_init(void)
     register_system_call(SYS_EXECVE_IDX, 3, (call_ptr)call_sys_execve);
     register_system_call(SYS_UNAME_IDX, 1, (call_ptr)call_sys_uname);
     register_system_call(SYS_WAIT0_IDX, 1, (call_ptr)call_sys_wait0);
+    register_system_call(SYS_GETDENTS_IDX, 3, (call_ptr)call_sys_getdents);
 }

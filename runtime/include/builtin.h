@@ -70,4 +70,9 @@ uname(struct utsname * uts);
 int32_t
 wait0(int32_t target_task_id);
 
+int32_t
+getdents(uint8_t * path,
+    struct dirent * dirp,
+    int32_t count);
+
 #endif

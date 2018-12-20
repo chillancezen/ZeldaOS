@@ -17,18 +17,21 @@ shell_sigint_handler(int signal)
 {
     printf("Shell interrupted\n");
 }
-
+static char last_wd[256];
+static char search_path[256];
 static char cmd_hint[128];
+static char global_cwd[256];
+static char * tty;
+static char * path_to_search;
 static void
 update_cmd_hint(void)
 {
     struct utsname uts;
-    char cwd[256];
     memset(&uts, 0x0, sizeof(struct utsname));
     memset(cmd_hint, 0x0, sizeof(cmd_hint));
     assert(!uname(&uts));
     sprintf(cmd_hint, "[Link@%s.%s %s]# ", uts.nodename, uts.domainname,
-        getcwd((uint8_t *)cwd, sizeof(cwd)));
+        getcwd((uint8_t *)global_cwd, sizeof(global_cwd)));
 }
 
 static int
@@ -44,23 +47,85 @@ shell_exit(const char * path, char **argv, char ** envp)
     exit(0);
     return -ERR_PROCESSED;
 }
+static int
+shell_cd(const char * path, char ** argv, char ** envp)
+{
+    char * target_wd = argv[1] ? argv[1] : last_wd;
+    uint8_t cwd[256];
+    getcwd(cwd, sizeof(cwd));
+    int32_t error;
+    if ((error = chdir((uint8_t *)target_wd))) {
+        printf("unable to change current working directory, error:%d\n", error);
+    } else {
+        strcpy(last_wd, (char *)cwd);
+        update_cmd_hint();
+    }
+    return -ERR_PROCESSED;
+}
+static int
+shell_pwd(const char * path, char ** argv, char ** envp)
+{
+    uint8_t cwd[256];
+    printf("%s\n", getcwd(cwd, sizeof(cwd)));
+    return -ERR_PROCESSED;
+}
 struct builtin_command_hander {
     char * command;
     int (*handler)(const char * path, char ** argv, char ** envp);
 } shell_builtin_command[] = {
     {"clear", shell_clear},
     {"exit", shell_exit},
+    {"cd", shell_cd},
+    {"pwd", shell_pwd},
     {NULL, NULL},
 };
 
 extern char ** environ;
+static inline int
+__isalpha(int ch)
+{
+    return (ch >= 'a' && ch <= 'z') ||
+        (ch >= 'A' && ch <= 'Z');
+}
 
+static inline int
+__isdigit(int ch)
+{
+    return ch >= '0' && ch <= '9';
+}
 static int
-process_shell_commands(const char * path,
+process_shell_commands(const char * _path,
     char ** argv,
     char ** envp)
 {
     int idx = 0;
+    char path[256];
+    memset(path, 0x0, sizeof(path));
+    for (; *_path && *_path == ' '; _path++);
+    strcpy(path, _path);
+    if (__isalpha(_path[0]) || __isdigit(_path[0])) {
+        // Given the paths to search, we compose a potential absolute path
+        // here before we proceed
+        char tmp_buffer[256];
+        char split_buffer[256];
+        char delimiter[] = ":";
+        char * path_token = NULL;
+        memset(split_buffer, 0x0, sizeof(split_buffer));
+        strcpy(split_buffer, search_path);
+        struct dirent dir;
+        path_token = strtok(split_buffer, delimiter);
+        do {
+            if (!path_token)
+                break;
+            sprintf(tmp_buffer, "%s/%s", path_token, _path);
+            if (getdents((uint8_t *)tmp_buffer, &dir, 1) == 1 &&
+                dir.type == FILE_TYPE_REGULAR) {
+                memset(path, 0x0, sizeof(path));
+                strcpy(path, tmp_buffer);
+                break;
+            }
+        } while ((path_token = strtok(NULL, delimiter)));
+    }
     for (idx = 0; ; idx++) {
         if (!shell_builtin_command[idx].command)
             break;;
@@ -69,16 +134,36 @@ process_shell_commands(const char * path,
         assert(shell_builtin_command[idx].handler);
         return shell_builtin_command[idx].handler(path, argv, envp);
     }
-    if (!envp[0])
+    if (!envp[0]) {
+        // XXX:here we only care environment variable: PATH, tty, cwd
+        // where PATH and tty are inherited from shell, cwd varies.
+        char local_environ[4][256];
+        char * local_envp[4];
+        int local_env_iptr = 0;
+        if (tty) {
+            sprintf(local_environ[local_env_iptr], "tty=%s", tty);
+            local_envp[local_env_iptr] = local_environ[local_env_iptr];
+            local_env_iptr++;
+        }
+        sprintf(local_environ[local_env_iptr], "PATH=%s", search_path);
+        local_envp[local_env_iptr] = local_environ[local_env_iptr];
+        local_env_iptr++;
+
+        sprintf(local_environ[local_env_iptr], "cwd=%s", global_cwd);
+        local_envp[local_env_iptr] = local_environ[local_env_iptr];
+        local_env_iptr++;
+
+        local_envp[local_env_iptr] = NULL;
         return execve((const uint8_t *)path,
             (uint8_t **)argv,
-            (uint8_t **)environ);
+            (uint8_t **)local_envp);
+    }
     return execve((const uint8_t *)path, (uint8_t **)argv, (uint8_t **)envp);
 }
 #define MAX_COMMAND_LINE_BUFFER_LENGTH 128
 #define MAX_ONESHOT_BUFFER_LENGTH 32
 #define HINT_CMD_LINE_FULL "[cmd line buffer full]"
-
+#define DEFAUT_SEARCH_PATH  "/usr/bin:/usr/sbin"
 
 int main(int argc, char ** argv)
 {
@@ -91,7 +176,12 @@ int main(int argc, char ** argv)
     int left = 0;
     int terminate = 0;
     int sub_task;
-    char * tty = getenv("tty");
+    tty = getenv("tty");
+    path_to_search = getenv("PATH");
+    memset(last_wd, 0x0, sizeof(last_wd));
+    memset(search_path, 0x0, sizeof(search_path));
+    getcwd((uint8_t *)last_wd, sizeof(last_wd));
+    strcpy(search_path, path_to_search ? path_to_search : DEFAUT_SEARCH_PATH);
     is_serial0 = tty && !strcmp(tty, "/dev/serial0");
     assert(!signal(SIGINT, shell_sigint_handler));
     pseudo_terminal_enable_master();
