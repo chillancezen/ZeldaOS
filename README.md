@@ -38,7 +38,7 @@ you can specify more different `-serial` parameter([qemu mannual](https://manpag
 Welcome to ZeldaOS Version 0.1
 Copyright (c) 2018 Jie Zheng [at] VMware
 
-[Link@Hyrule.kingdom /home/zelda]# /usr/bin/uname
+[Link@Hyrule.kingdom /home/zelda]# uname
 sysname  : ZeldaOS
 nodename : Hyrule
 release  : The Brave
@@ -46,6 +46,36 @@ version  : 0.1
 machine  : i686
 domain   : kingdom
 [Link@Hyrule.kingdom /home/zelda]#
+[Link@Hyrule.kingdom /home/zelda]# ps
+    0 PL0:0x1060f6   kernel_idle_task          running                   /
+    1 PL3:0x40000c27 /usr/bin/userland_init    interruptible             /
+    2 PL0:0x104664   wq:ethernet_rx            interruptible             /
+    3 PL3:0x400013c8 /usr/bin/shelld           interruptible             /home/zelda
+    4 PL3:0x400013c8 /usr/bin/shelld           interruptible             /home/zelda
+    5 PL3:0x400013c8 /usr/bin/shelld           interruptible             /home/zelda
+    6 PL3:0x400013c8 /usr/bin/shelld           interruptible             /home/zelda
+    7 PL3:0x400013c8 /usr/bin/shelld           interruptible             /home/zelda
+    8 PL3:0x400013c8 /usr/bin/shelld           interruptible             /home/zelda
+    9 PL3:0x400013c8 /usr/bin/shelld           interruptible             /home/zelda
+   10 PL3:0x40000b24 ps                        running                   /home/zelda
+[Link@Hyrule.kingdom /dev]# ls -la ./ ./net
+./:
+FILE_TYPE_MARK        0        .
+FILE_TYPE_REGULAR     0        serial0
+FILE_TYPE_REGULAR     2000     ptm0
+FILE_TYPE_REGULAR     2000     ptm1
+FILE_TYPE_REGULAR     2000     ptm2
+FILE_TYPE_REGULAR     2000     ptm3
+FILE_TYPE_REGULAR     2000     ptm4
+FILE_TYPE_REGULAR     2000     ptm5
+FILE_TYPE_REGULAR     0        console
+FILE_TYPE_DIR         0        net
+
+./net:
+FILE_TYPE_MARK        0        .
+FILE_TYPE_REGULAR     0        Ethernet:0:3.0
+FILE_TYPE_REGULAR     0        Ethernet:0:4.0
+[Link@Hyrule.kingdom /dev]#
 ```
 #### (b) Launch ZeldaOS via the Zelda.iso bootable image or hard drive.
 In this case the kernel is booted by GRUB multiboot. you can burn the `Zelda.iso` into a udisk drive or hard drive from which you can boot the kernel.

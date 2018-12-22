@@ -108,6 +108,9 @@ call_sys_kill(struct x86_cpustate * cpu, uint32_t task_id, uint32_t signal)
     if (((int32_t)task_id) >= 0) {
         task = search_task_by_id(task_id);
     }
+    if (task->privilege_level == 0/*DPL_0*/) {
+        return -ERR_NOT_SUPPORTED;
+    }
     if (!task) {
         return -ERR_NOT_FOUND;
     }
@@ -554,6 +557,15 @@ call_sys_getdents(struct x86_cpustate * cpu,
     compose_absolute_path(absolute_path, path);
     return do_vfs_getdents(absolute_path, dirp, count);
 }
+
+static uint32_t
+call_sys_gettaskents(struct x86_cpustate * cpu,
+    struct taskent * taskp,
+    int32_t count)
+{    
+    return do_task_traverse(taskp, count);
+}
+
 void
 task_misc_init(void)
 {
@@ -580,4 +592,6 @@ task_misc_init(void)
     register_system_call(SYS_UNAME_IDX, 1, (call_ptr)call_sys_uname);
     register_system_call(SYS_WAIT0_IDX, 1, (call_ptr)call_sys_wait0);
     register_system_call(SYS_GETDENTS_IDX, 3, (call_ptr)call_sys_getdents);
+    register_system_call(SYS_GETTASKENTS_IDX, 2,
+        (call_ptr)call_sys_gettaskents);
 }

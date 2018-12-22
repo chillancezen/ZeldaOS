@@ -75,4 +75,7 @@ getdents(uint8_t * path,
     struct dirent * dirp,
     int32_t count);
 
+uint32_t
+gettaskents(struct taskent * taskp, int32_t count);
+
 #endif

@@ -656,6 +656,41 @@ unregister_task_from_task_table(struct task * task)
     return result;
 }
 
+uint32_t
+do_task_traverse(struct taskent * taskp, int32_t count)
+{
+    int nr_task = 0;
+    int idx = 0;
+    int32_t to_terminate = 0;
+    struct hash_node * _node = NULL;
+    struct task * _task = NULL;
+    for (idx = 0; idx < KERNEL_TASK_HASH_TABLE_SIZE; idx++) {
+        LIST_FOREACH_START(&kernel_task_hash_heads[idx], _node) {
+            _task = CONTAINER_OF(_node, struct task, node);
+            if (nr_task < count) {
+                taskp[nr_task].task_id = _task->task_id;
+                taskp[nr_task].state = _task->state;
+                taskp[nr_task].non_stop_state = _task->non_stop_state;
+                taskp[nr_task].entry = _task->entry;
+                taskp[nr_task].privilege_level = _task->privilege_level;
+                strcpy_safe(taskp[nr_task].name,
+                    _task->name,
+                    sizeof(taskp[nr_task].name));
+                strcpy_safe(taskp[nr_task].cwd,
+                    _task->cwd,
+                    sizeof(taskp[nr_task].cwd));
+                nr_task++;
+            } else {
+                to_terminate = 1;
+                break;
+            }
+        }
+        LIST_FOREACH_END();
+        if (to_terminate)
+            break;
+    }
+    return nr_task;
+}
 /*
  * This is the kernel idle task which will always be selected and select 
  */

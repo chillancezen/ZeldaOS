@@ -41,7 +41,19 @@ struct dirent {
     uint32_t size;
     uint32_t type;
     uint8_t name[256];
-} __attribute__((packed));
+}__attribute__((packed));
+
+
+
+struct taskent {
+    uint8_t name[256];
+    uint8_t cwd[256];
+    uint32_t task_id;
+    uint32_t state;
+    uint32_t non_stop_state;
+    uint32_t entry;
+    uint32_t privilege_level;
+}__attribute__((packed));
 
 // The File SEEK macro from: Linux/fs.h
 
@@ -100,6 +112,7 @@ enum SYSCALL_INDEX {
     // We are not going to realize POSIX conforming interface such as opendir
     // instead, we realize Linux interface:getdents
     SYS_GETDENTS_IDX,
+    SYS_GETTASKENTS_IDX,
 };
 
 enum SIGNAL {

@@ -156,3 +156,9 @@ getdents(uint8_t * path,
         (uint32_t)dirp,
         count);
 }
+
+uint32_t
+gettaskents(struct taskent * taskp, int32_t count)
+{
+    return do_system_call2(SYS_GETTASKENTS_IDX, (uint32_t)taskp, count);
+}

@@ -242,4 +242,7 @@ task_signal_sub_init(void);
 void
 raw_task_wake_up(struct task * task);
 
+uint32_t
+do_task_traverse(struct taskent * taskp, int32_t count);
+
 #endif

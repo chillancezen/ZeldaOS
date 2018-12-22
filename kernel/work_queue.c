@@ -4,7 +4,7 @@
 #include <kernel/include/work_queue.h>
 #include <kernel/include/task.h>
 #include <kernel/include/zelda_posix.h>
-
+#include <lib/include/string.h>
 static void
 work_queue_top_level_body(void)
 {    
@@ -30,10 +30,12 @@ work_queue_top_level_body(void)
 }
 
 uint32_t
-register_work_queue(struct work_queue * work_queue_blob, uint8_t * name)
+register_work_queue(struct work_queue * work_queue_blob, uint8_t * _name)
 {
+    uint8_t name[256];
     uint32_t result = OK;
     struct task * wq_task = NULL;
+    sprintf((char *)name, "wq:%s", _name);
     result = create_kernel_task(work_queue_top_level_body,
         &wq_task,
         name);
