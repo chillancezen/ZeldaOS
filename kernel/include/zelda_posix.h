@@ -53,6 +53,7 @@ struct taskent {
     uint32_t non_stop_state;
     uint32_t entry;
     uint32_t privilege_level;
+    uint32_t schedule_counter;
 }__attribute__((packed));
 
 // The File SEEK macro from: Linux/fs.h

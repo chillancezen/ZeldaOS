@@ -33,9 +33,9 @@ print_directory(struct dirent * dirp,
             continue;
         if (flag_l) {
             printf("%-20s  %-6d   %s\n",
-                dirp[idx].type == FILE_TYPE_MARK ? "FILE_TYPE_MARK" :
-                    dirp[idx].type == FILE_TYPE_REGULAR ? "FILE_TYPE_REGULAR" :
-                    "FILE_TYPE_DIR",
+                dirp[idx].type == FILE_TYPE_MARK ? "[mark]" :
+                    dirp[idx].type == FILE_TYPE_REGULAR ? "file" :
+                    "directory",
                 dirp[idx].size,
                 dirp[idx].type == FILE_TYPE_MARK ? "." :
                     (char *)dirp[idx].name);

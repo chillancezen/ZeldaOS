@@ -335,6 +335,7 @@ schedule(struct x86_cpustate * cpu)
         current = kernel_idle_task;
     }
     ASSERT(current);
+    current->schedule_counter++;
     enable_task_paging(current);
     set_tss_privilege_level0_stack(current->privilege_level0_stack_top);
     return esp;
@@ -673,6 +674,7 @@ do_task_traverse(struct taskent * taskp, int32_t count)
                 taskp[nr_task].non_stop_state = _task->non_stop_state;
                 taskp[nr_task].entry = _task->entry;
                 taskp[nr_task].privilege_level = _task->privilege_level;
+                taskp[nr_task].schedule_counter = _task->schedule_counter;
                 strcpy_safe(taskp[nr_task].name,
                     _task->name,
                     sizeof(taskp[nr_task].name));

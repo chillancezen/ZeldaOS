@@ -100,6 +100,8 @@ struct task {
     uint8_t signal_pending;
     // The Userland/kernel land  entry point.
     uint32_t entry;
+    // The counter which counts how many times being scheduled
+    uint32_t schedule_counter;
     /*
      * this field specifies in which privilege level the task can run
      * it's often in [DPL_0, DPL_3]

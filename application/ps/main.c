@@ -49,10 +49,11 @@ main(int argc, char * argv[])
     int32_t nr_task = 0;
     nr_task = gettaskents(taskp, MAX_TASKENT);
     for (idx = 0; idx < nr_task; idx++) {
-        printf("%5d PL%d:0x%-8x %-25s %-25s %-25s\n",
+        printf("%5d PL%d:0x%-8x   %-10d %-25s %-25s %-25s\n",
             taskp[idx].task_id,
             taskp[idx].privilege_level,
             taskp[idx].entry,
+            taskp[idx].schedule_counter,
             taskp[idx].name,
             state_to_string(taskp[idx].state),
             taskp[idx].cwd);
