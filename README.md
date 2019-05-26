@@ -91,7 +91,12 @@ FILE_TYPE_REGULAR     0        Ethernet:0:4.0
 41
 43
 47
-[Link@Hyrule.kingdom /usr/var]# 
+[Link@Hyrule.kingdom /home/zelda]# dummy
+0: Hello World
+1: Hello World
+^X
+[keyboard interrupted]
+[Link@Hyrule.kingdom /home/zelda]#
 ```
 #### (b) Launch ZeldaOS via the Zelda.iso bootable image or hard drive.
 In this case the kernel is booted by GRUB multiboot. you can burn the `Zelda.iso` into a udisk drive or hard drive from which you can boot the kernel.
