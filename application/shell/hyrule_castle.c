@@ -11,11 +11,16 @@
 #include <string.h>
 #include <stdlib.h>
 //int exit(int);
-
+static int outgoing_task_id = -1;
 static void
 shell_sigint_handler(int signal)
 {
-    printf("Shell interrupted\n");
+    if (outgoing_task_id > 0) {
+        // When shell receive SIGINT signals, it immediately send the SIGINT to
+        // the outgoing sub task. by default the ZELDA runtime specify a handler
+        // to gracefully terminate the task itself
+        kill(outgoing_task_id, SIGINT);
+    }
 }
 static char last_wd[256];
 static char search_path[256];
@@ -242,7 +247,9 @@ int main(int argc, char ** argv)
         sub_task =
             exec_command_line(command_line_buffer, process_shell_commands);
         if (sub_task > 0) {
+            outgoing_task_id = sub_task;
             while(wait0(sub_task));
+            outgoing_task_id = -1;
         }
     }
     return 0;

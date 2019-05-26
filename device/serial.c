@@ -89,13 +89,29 @@ serial0_dev_read(struct file * file, uint32_t offset, void * buffer, int size)
         remove_wait_queue_entry(&wq_head, &wait);
         return nr_read; 
 }
+
+static int32_t current_shelld_pid = 0;
+static int32_t
+serial0_dev_ioctl(struct file * file, uint32_t request, void * foo, void * bar)
+{
+    switch (request)
+    {
+        case PTTY_IOCTL_MASTER:
+            current_shelld_pid = (int32_t)foo;
+            break;
+        default:
+            break;
+    }
+    return OK;
+}
+
 static struct file_operation serial0_dev_ops = {
     .size = serial0_dev_size,
     .stat = serial0_dev_stat,
     .read = serial0_dev_read,
     .write = serial0_dev_write,
     .truncate = NULL,
-    .ioctl = NULL
+    .ioctl = serial0_dev_ioctl
 };
 static int32_t
 serial_data_available(void)
@@ -115,7 +131,17 @@ serial_port_interrupt_hadnler(struct x86_cpustate * cpu)
     uint32_t esp = (uint32_t)cpu;
     uint32_t nr_recv = 0;
     while(serial_data_available()) {
-        ring_enqueue(serial_local_buff, serial_read());
+        uint8_t ch = serial_read();
+        if (ch == 0x18) {
+            // Here we use ^X to interrupt the shelld to instead of ^C as I find
+            // no way to capture ^C with serial port.
+            struct task * shell_task = search_task_by_id(current_shelld_pid);
+            if (shell_task) {
+                signal_task(shell_task, SIGINT);
+            }
+            continue;
+        }
+        ring_enqueue(serial_local_buff, ch);
         nr_recv++;
     }
     if (nr_recv)

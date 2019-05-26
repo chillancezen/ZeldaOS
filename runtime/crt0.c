@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
-
 extern void * _zelda_constructor_init_start;
 extern void * _zelda_constructor_init_end;
 #define PSEUDO_TERMINAL_KEY "tty"
@@ -69,6 +68,14 @@ print_hexdecimal(uint32_t val)
         write_serial(dict[*ptr & 0xf]);
     }
 }
+
+
+static void
+zelda_default_sigint_handler(int signal)
+{
+    printf("[keyboard interrupted]\n");
+    kill(getpid(), 9);
+}
 void _start(int argc, char ** argv)
 {
     int32_t _start = (int)&_zelda_constructor_init_start;
@@ -107,9 +114,17 @@ void _start(int argc, char ** argv)
             print_serial("\n");
         }
     }
+    // register the default SIGINT handler
+
+    if (signal(2, zelda_default_sigint_handler)) {
+        print_serial("Error setting default SIGINT handler, pid:");
+        print_hexdecimal(getpid());
+        print_serial("\n");
+    }
     // init_array as constructor, we run it here
-    for(addr = _start; addr < _end; addr += 4)
+    for(addr = _start; addr < _end; addr += 4) {
         ((void (*)(void))*(int32_t *)addr)();
-    // XXX: Introduce Constructor
+    }
+    // Run the application body
     exit(main(argc, argv));
 }

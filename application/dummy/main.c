@@ -6,9 +6,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <zelda.h>
-int main(void)
+
+int32_t
+sleep(int32_t milisecond);
+
+int
+main(void)
 {
-    printf("Hello World\n");
+    int index = 0;
+    for (index = 0; index < 5; index++) {
+        printf("%d: Hello World\n", index);
+        sleep(2000);
+    }
     return 0;
 }
 #if 0
