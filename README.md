@@ -75,7 +75,23 @@ FILE_TYPE_DIR         0        net
 FILE_TYPE_MARK        0        .
 FILE_TYPE_REGULAR     0        Ethernet:0:3.0
 FILE_TYPE_REGULAR     0        Ethernet:0:4.0
-[Link@Hyrule.kingdom /dev]#
+[Link@Hyrule.kingdom /usr/var]# tinyvm primes.vm
+2
+3
+5
+7
+11
+13
+17
+19
+23
+29
+31
+37
+41
+43
+47
+[Link@Hyrule.kingdom /usr/var]# 
 ```
 #### (b) Launch ZeldaOS via the Zelda.iso bootable image or hard drive.
 In this case the kernel is booted by GRUB multiboot. you can burn the `Zelda.iso` into a udisk drive or hard drive from which you can boot the kernel.
@@ -136,6 +152,7 @@ When the kernel is fully ready, the `default console` (which you can navigate to
 - [X] ZeldaOS [runtime](https://github.com/chillancezen/ZeldaOS/tree/master/runtime).
 - [X] `newlib` libc and libm port
 - [ ] dynamic programming language support
+- [X] language-level VM support: port [Tinyvm](https://github.com/jakogut/tinyvm) without modifying even one line of code.
 - [X] [`system call list`](https://github.com/chillancezen/ZeldaOS/blob/master/runtime/syscall_inventory0.c)
 - [X] [`signal list`](https://github.com/chillancezen/ZeldaOS/blob/master/kernel/include/zelda_posix.h)
 - [X] multiple [Applications](https://github.com/chillancezen/ZeldaOS/tree/master/application) running at Privilege Level 3
