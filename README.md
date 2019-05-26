@@ -80,11 +80,11 @@ FILE_TYPE_REGULAR     0        Ethernet:0:4.0
 #### (b) Launch ZeldaOS via the Zelda.iso bootable image or hard drive.
 In this case the kernel is booted by GRUB multiboot. you can burn the `Zelda.iso` into a udisk drive or hard drive from which you can boot the kernel.
 we have the splash window when the kernel boots(grub draws it):
-![image_of_splash](https://raw.githubusercontent.com/chillancezen/misc/master/image/zelda_os_splash.png)
+![image_of_splash](https://raw.githubusercontent.com/chillancezen/DEPRECATED-misc/master/image/zelda_os_splash.png)
 
 When the kernel is fully ready, the `default console` (which you can navigate to by `Alt+F1`) is displayed, there are other 6  consoles initiated by [`/usr/bin/userland_init`](https://github.com/chillancezen/ZeldaOS/blob/master/application/userland_init/etc/userland.init), you can switch the console by `Alt+F2 ... Alt+F7`, you will observe console as below:
 
-![image_of_console0](https://raw.githubusercontent.com/chillancezen/misc/master/image/zelda_os_console0.png)
+![image_of_console0](https://raw.githubusercontent.com/chillancezen/DEPRECATED-misc/master/image/zelda_os_console0.png)
 
 ### Feature inventory
 
