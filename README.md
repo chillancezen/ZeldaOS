@@ -1,7 +1,7 @@
 #  ZeldaOS 
 
 `Written in C&inline assembly from scratch, ZeldaOS is an unix-like 32bit monolithic kernel which is designed to comform to POSIX.1 interface. At present, it's only able to run on any x86 and x86_64 processors. The name Zelda is from Nintendo video game: The Legend of Zelda`
-
+[![asciicast](https://asciinema.org/a/N6MhA5n56HtztpL2UwBvkfLvU.svg)](https://asciinema.org/a/N6MhA5n56HtztpL2UwBvkfLvU)
 ### How to Build The Project ?
 To build the project, we need a 64bit Linux host (I used a CentOS 7.3) and GCC suite(my GCC version is 4.8.5, other versioned gcc are supposed to work), in order to  package a bootable ISO image, I also install rpm package: `#yum install -y xorriso`. the compilation tools will automatically generate 32bit elf objects with [Makefile and Linker script](https://github.com/chillancezen/ZeldaOS/tree/master/mk)
 
