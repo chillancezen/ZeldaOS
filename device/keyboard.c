@@ -52,7 +52,12 @@ uint8_t retrieve_scancode(void)
  * like multimedia scancode
  */
 
-uint8_t process_scancode(uint8_t scancode)
+uint8_t discard_pressed_bit(uint8_t scancode)
+{
+    return scancode & 0x7f;
+}
+
+void process_scancode(uint8_t scancode)
 {
     /*
      * check whether the Key is pressed or released
@@ -62,7 +67,8 @@ uint8_t process_scancode(uint8_t scancode)
     }else {
         key_state |= KEY_STATE_PRESSED;
     }
-    scancode = scancode & 0x7f;
+    scancode = discard_pressed_bit(scancode);
+
     /*
      * check and update the control/shift/alt  and caps key status
      */
@@ -104,7 +110,6 @@ uint8_t process_scancode(uint8_t scancode)
                 break;
         }
     }
-    return scancode;
 }
 
 uint8_t to_ascii(uint8_t scancode, uint8_t keystate)
@@ -149,7 +154,8 @@ uint32_t keyboard_interrupt_handler(struct x86_cpustate * parg __used)
     uint8_t scancode = retrieve_scancode();
     uint8_t asciicode;
     int32_t handled;
-    scancode = process_scancode(scancode);
+    process_scancode(scancode);
+    scancode = discard_pressed_bit(scancode);
     handled = hook_scancode(scancode, key_state);
     asciicode = to_ascii(scancode, key_state);
 
