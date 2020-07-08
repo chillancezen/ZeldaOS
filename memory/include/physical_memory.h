@@ -40,7 +40,7 @@ struct multiboot_info {
     uint32_t mmap_addr;
 };
 
-void probe_physical_mmeory(struct multiboot_info * boot_info);
+void probe_physical_memory(struct multiboot_info * boot_info);
 __attribute__((always_inline)) inline uint32_t get_system_memory_boundary(void);
 __attribute__((always_inline)) inline uint32_t get_system_memory_start(void);
 

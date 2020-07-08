@@ -27,7 +27,7 @@ uint32_t get_system_memory_start(void)
     uint32_t _bss_end = (uint32_t)&_kernel_bss_end;
     return (uint32_t)page_round_addr(_bss_end);
 }
-void probe_physical_mmeory(struct multiboot_info * boot_info)
+void probe_physical_memory(struct multiboot_info * boot_info)
 {
     int idx = 0;
     struct multiboot_mmap * mmap =
