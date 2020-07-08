@@ -62,7 +62,7 @@ init1(void)
 static void
 init2(void)
 {
-    probe_physical_mmeory(boot_info);
+    probe_physical_memory(boot_info);
     kernel_vma_init();
     paging_fault_init();
     paging_init();
